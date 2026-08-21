@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>The Goldbach Diagonal · Strip Arithmetic I · Wessen Getachew</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Spectral:ital,wght@0,300;0,400;0,500;1,400&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#04040d; --bg1:#07071a; --bg2:#0c0c22; --bg3:#11112c;
+  --cream:#ddd8cc; --cream2:#b8b2a6; --cream3:#6a6560;
+  --gold:#c8a84a; --teal:#3dc8b8; --coral:#e05060; --violet:#9b7fe8; --lime:#7ec87a;
+  --edge:rgba(255,255,255,.07); --edge2:rgba(255,255,255,.13);
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --serif:'Spectral',Georgia,serif;
+  --disp:'Cinzel',serif;
+  --rail:300px; --dock:238px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow-x:auto;overflow-y:hidden}
+/* Safety net: on a real desktop window nothing ever exceeds the viewport, so
+   this scrollbar never appears. It only shows up if the layout ever renders
+   wider than what's visible — e.g. a mobile browser's "Desktop site" mode,
+   which reports a wide viewport to CSS while the physical screen stays
+   narrow. Without this, that combination trapped the rail (View/Coloring/
+   Export) permanently off-screen with no way to reach it. */
+body{
+  background:var(--bg);color:var(--cream);font-family:var(--serif);
+  -webkit-font-smoothing:antialiased;
+}
+/* faint plate texture so the console does not read as flat black */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 120% 80% at 18% 0%,rgba(61,200,184,.055),transparent 62%),
+    radial-gradient(ellipse 100% 70% at 92% 100%,rgba(200,168,74,.05),transparent 60%);
+}
+#shell{position:relative;z-index:1;height:100%;display:grid;grid-template-rows:auto 1fr auto}
+
+/* ── masthead ─────────────────────────────────────────────── */
+#top{
+  display:flex;align-items:center;gap:14px;padding:0 16px;height:46px;
+  border-bottom:1px solid var(--edge2);background:linear-gradient(180deg,var(--bg1),var(--bg));
+}
+.brand{font-family:var(--disp);font-size:.78rem;letter-spacing:.2em;color:var(--gold);white-space:nowrap}
+.brand em{font-style:normal;color:var(--cream3);font-size:.62rem;letter-spacing:.24em;margin-left:9px}
+.tsep{width:1px;height:20px;background:var(--edge2);flex:0 0 auto}
+.reading{display:flex;gap:16px;align-items:baseline;font-family:var(--mono);font-size:10px;overflow-x:auto;scrollbar-width:none}
+.reading::-webkit-scrollbar{display:none}
+.rd{white-space:nowrap;color:var(--cream3);letter-spacing:.1em}
+.rd b{font-weight:500;color:var(--cream);margin-left:5px;letter-spacing:.04em}
+.rd.hot b{color:var(--lime)}
+#top .spacer{flex:1}
+.tbtn{
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  background:none;border:1px solid var(--edge2);color:var(--cream2);
+  padding:5px 9px;cursor:pointer;border-radius:2px;white-space:nowrap;
+  transition:border-color .15s,color .15s,background .15s;
+}
+.tbtn:hover{border-color:var(--gold);color:var(--gold)}
+.tbtn.on{border-color:var(--teal);color:var(--teal);background:rgba(61,200,184,.08)}
+a.tbtn{text-decoration:none}
+
+/* ── stage ────────────────────────────────────────────────── */
+#stage{display:grid;grid-template-columns:1fr var(--rail);min-height:0}
+#plate{position:relative;min-width:0;min-height:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:10px}
+#cv{display:block;image-rendering:pixelated;border:1px solid var(--edge)}
+#hud{
+  position:absolute;top:14px;left:18px;font-family:var(--mono);font-size:10px;
+  color:var(--cream3);letter-spacing:.09em;pointer-events:none;line-height:1.7;
+}
+#hud .k{color:var(--cream)}
+#legend{
+  position:absolute;bottom:14px;left:18px;display:flex;gap:14px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;pointer-events:none;
+}
+.lg{display:flex;align-items:center;gap:6px;color:var(--cream2)}
+.lg i{width:16px;height:2px;display:block;border-radius:1px}
+#probe{
+  position:absolute;pointer-events:none;font-family:var(--mono);font-size:10px;
+  background:rgba(4,4,13,.94);border:1px solid var(--edge2);border-radius:3px;
+  padding:6px 9px;color:var(--cream);white-space:pre;display:none;line-height:1.6;z-index:5;
+}
+
+/* ── rail ─────────────────────────────────────────────────── */
+#rail{border-left:1px solid var(--edge2);background:var(--bg1);overflow-y:auto;overscroll-behavior:contain}
+#rail::-webkit-scrollbar{width:7px}#rail::-webkit-scrollbar-thumb{background:var(--edge2);border-radius:4px}
+.grp{border-bottom:1px solid var(--edge);padding:12px 14px 14px}
+.grp h4{
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--gold);font-weight:500;margin-bottom:10px;display:flex;align-items:center;gap:8px;
+}
+.grp h4::after{content:'';flex:1;height:1px;background:var(--edge)}
+.row{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.row:last-child{margin-bottom:0}
+.lab{font-family:var(--mono);font-size:9px;color:var(--cream3);letter-spacing:.1em;min-width:56px;text-transform:uppercase}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:2px;background:var(--edge2);border-radius:2px;outline:none;min-width:0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--gold);cursor:pointer;border:2px solid var(--bg)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--gold);cursor:pointer;border:2px solid var(--bg)}
+input[type=range].tl::-webkit-slider-thumb{background:var(--teal)}
+input[type=range].tl::-moz-range-thumb{background:var(--teal)}
+input[type=number],select{
+  background:rgba(255,255,255,.05);border:1px solid var(--edge2);color:var(--teal);
+  font-family:var(--mono);font-size:10px;padding:3px 5px;border-radius:2px;text-align:center;
+}
+select{color:var(--cream2);text-align:left;cursor:pointer}
+select option{background:var(--bg2)}
+.val{font-family:var(--mono);font-size:10px;color:var(--teal);min-width:42px;text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{
+  font-family:var(--mono);font-size:9px;letter-spacing:.06em;background:none;
+  border:1px solid var(--edge2);color:var(--cream2);padding:4px 7px;cursor:pointer;border-radius:2px;
+  transition:border-color .15s,color .15s;
+}
+.chip:hover{border-color:var(--cream2);color:var(--cream)}
+.chip.on{border-color:var(--gold);color:var(--gold);background:rgba(200,168,74,.1)}
+.note{font-family:var(--mono);font-size:8.5px;color:var(--cream3);line-height:1.65;letter-spacing:.03em;margin-top:9px}
+.note b{color:var(--cream2);font-weight:400}
+
+/* ── dock ─────────────────────────────────────────────────── */
+#dock{height:var(--dock);border-top:1px solid var(--edge2);display:grid;grid-template-columns:1fr 340px;background:var(--bg1);min-height:0}
+#dockL,#dockR{min-height:0;display:flex;flex-direction:column}
+#dockR{border-left:1px solid var(--edge2)}
+.dhead{
+  display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--edge);
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);
+  background:var(--bg2);flex:0 0 auto;
+}
+.dhead .spacer{flex:1}
+.dhead .sub{color:var(--cream3);letter-spacing:.1em;text-transform:none;font-size:9px}
+.scroll{overflow-y:auto;min-height:0;flex:1;overscroll-behavior:contain}
+.scroll::-webkit-scrollbar{width:7px}.scroll::-webkit-scrollbar-thumb{background:var(--edge2);border-radius:4px}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px}
+thead th{
+  position:sticky;top:0;background:var(--bg2);color:var(--cream3);font-weight:400;
+  font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;text-align:right;
+  padding:5px 9px;border-bottom:1px solid var(--edge2);z-index:2;white-space:nowrap;
+}
+thead th:first-child{text-align:left}
+tbody td{padding:3px 9px;text-align:right;color:var(--cream2);border-bottom:1px solid rgba(255,255,255,.035);white-space:nowrap}
+tbody td:first-child{text-align:left;color:var(--cream)}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:rgba(255,255,255,.045)}
+tbody tr.sel td{background:rgba(200,168,74,.13)}
+tbody tr.sel td:first-child{box-shadow:inset 2px 0 0 var(--gold)}
+.vg{color:var(--lime)}       /* Goldbach pair            */
+.vf{color:var(--coral)}      /* full but not a pair      */
+.vn{color:var(--cream3)}     /* not both full            */
+.cfull{color:var(--gold)}
+.dfull{color:var(--coral)}
+#detail{padding:11px 13px;font-family:var(--mono);font-size:10px;line-height:1.75;color:var(--cream2)}
+#detail h5{font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);font-weight:500;margin:12px 0 6px}
+#detail h5:first-child{margin-top:0}
+#detail .eq{color:var(--cream);letter-spacing:.02em}
+#detail .kv{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid rgba(255,255,255,.04);padding:2px 0}
+#detail .kv span:first-child{color:var(--cream3)}
+.walk{width:100%;border-collapse:collapse;font-size:9.5px;margin-top:5px}
+.walk th{text-align:right;color:var(--cream3);font-weight:400;font-size:8px;letter-spacing:.12em;padding:2px 6px;border-bottom:1px solid var(--edge)}
+.walk th:first-child{text-align:left}
+.walk td{text-align:right;padding:1px 6px;border-bottom:1px solid rgba(255,255,255,.03)}
+.walk td:first-child{text-align:left}
+.ok{color:var(--lime)}.no{color:var(--coral)}
+.walkwrap{margin-top:6px;border:1px solid var(--edge);border-radius:3px;background:rgba(255,255,255,.02)}
+.walkwrap summary{
+  cursor:pointer;list-style:none;padding:5px 9px;font-size:9px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--cream2);user-select:none;display:flex;
+  align-items:center;gap:7px;
+}
+.walkwrap summary::-webkit-details-marker{display:none}
+.walkwrap summary::before{content:'▸';color:var(--gold);font-size:9px;transition:transform .15s}
+.walkwrap[open] summary::before{transform:rotate(90deg)}
+.walkwrap summary:hover{color:var(--cream)}
+.walkwrap summary .vn{text-transform:none;letter-spacing:.03em}
+.walkbox{max-height:190px;overflow-y:auto;overscroll-behavior:contain;border-top:1px solid var(--edge)}
+.walkbox::-webkit-scrollbar{width:7px}.walkbox::-webkit-scrollbar-thumb{background:var(--edge2);border-radius:4px}
+.walkbox .walk th{position:sticky;top:0;background:var(--bg2);z-index:1}
+.verdictbar{
+  margin-top:10px;padding:8px 10px;border:1px solid var(--edge2);border-radius:3px;
+  font-size:9.5px;line-height:1.7;letter-spacing:.03em;
+}
+.verdictbar.g{border-color:rgba(126,200,122,.45);background:rgba(126,200,122,.08);color:var(--lime)}
+.verdictbar.f{border-color:rgba(224,80,96,.4);background:rgba(224,80,96,.07);color:var(--coral)}
+.verdictbar.n{color:var(--cream3)}
+#empty,.empty-msg{padding:22px 14px;font-family:var(--mono);font-size:10px;color:var(--cream3);line-height:1.8;letter-spacing:.04em}
+
+#busy{
+  position:fixed;inset:0;background:rgba(4,4,13,.82);display:none;z-index:50;
+  align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--gold);
+}
+#busy.on{display:flex}
+
+@media (max-width:1100px){ :root{--rail:250px;--dock:212px} #dock{grid-template-columns:1fr 260px} }
+@media (max-width:860px){
+  html,body{overflow:auto}
+  #shell{height:auto;display:block}
+  #top{height:auto;flex-wrap:wrap;padding:8px 12px;gap:8px 12px;position:sticky;top:0;z-index:20}
+  #top .spacer{display:none}
+  .reading{width:100%;order:3;gap:12px}
+  .brand{font-size:.68rem}
+  #stage{grid-template-columns:1fr}
+  /* stack the plate so the legend sits under the lattice instead of beside it */
+  #plate{display:flex;flex-direction:column;align-items:center;gap:8px;height:auto;padding:12px 10px}
+  #cv{max-width:100%}
+  #rail{border-left:none;border-top:1px solid var(--edge2);max-height:none;overflow:visible}
+  #dock{height:auto;grid-template-columns:1fr}
+  #dockR{border-left:none;border-top:1px solid var(--edge2)}
+  #dockL .scroll{max-height:320px}
+  #dockR .scroll{max-height:520px}
+  #legend{position:static;justify-content:center;gap:12px}
+  #hud{background:rgba(4,4,13,.72);padding:5px 8px;border-radius:3px;top:18px;left:16px}
+  #probe{display:none!important}
+
+  /* "locked" mobile mode — canvas pins to the top of the viewport as the
+     page scrolls, so adjusting a control in the rail/dock below updates the
+     lattice live without tapping back up to see it. Toggled by the same
+     Fullscreen button; real Fullscreen API is unreliable on mobile browsers
+     so this is driven by a plain body class instead (see toggleFS()). */
+  body.is-fs #top{position:static}
+  body.is-fs #plate{
+    position:sticky;top:0;z-index:15;background:var(--bg);
+    padding:8px 10px;box-shadow:0 6px 14px -6px rgba(0,0,0,.6);
+    border-bottom:1px solid var(--edge2);
+  }
+  body.is-fs #hud,body.is-fs #legend{display:none}
+}
+</style>
+</head>
+<body>
+<div id="shell">
+
+  <div id="top">
+    <div class="brand">STRIP ARITHMETIC <em>I · THE GOLDBACH DIAGONAL</em></div>
+    <div class="tsep"></div>
+    <div class="reading">
+      <span class="rd">G<b id="rd-G">121</b></span>
+      <span class="rd">E = 2(G+1)<b id="rd-E">244</b></span>
+      <span class="rd">gap g<b id="rd-g">61</b></span>
+      <span class="rd">s = E−g<b id="rd-s">183</b></span>
+      <span class="rd hot">Goldbach pairs<b id="rd-gb">—</b></span>
+      <span class="rd">√E threshold<b id="rd-thr">—</b></span>
+    </div>
+    <div class="spacer"></div>
+    <button class="tbtn" id="btn-fs" onclick="toggleFS()">⛶ Fullscreen</button>
+    <a class="tbtn" href="page5.html" title="Part I, Page 5 — the Gap Diagonal Identity this page grew out of">← Page 5</a>
+  </div>
+
+  <div id="stage">
+    <div id="plate">
+      <canvas id="cv"></canvas>
+      <div id="hud"></div>
+      <div id="legend">
+        <span class="lg"><i style="background:var(--teal)"></i>a &nbsp;M−r=g</span>
+        <span class="lg"><i style="background:var(--violet)"></i>b &nbsp;r−M=g</span>
+        <span class="lg"><i style="background:var(--gold)"></i>c &nbsp;r+M=g</span>
+        <span class="lg"><i style="background:var(--coral)"></i>d &nbsp;r+M=E−g</span>
+      </div>
+      <div id="probe"></div>
+    </div>
+
+    <div id="rail">
+      <div class="grp">
+        <h4>Lattice</h4>
+        <div class="row">
+          <span class="lab">View</span>
+          <button class="chip on" id="vw-grid" onclick="setView('grid')" style="flex:1" title="Square lattice — the original (r,M) grid, one cell per point.">Grid</button>
+          <button class="chip" id="vw-ring" onclick="setView('ring')" style="flex:1" title="Concentric rings — ring M at radius M/G, point r at angle 2πr/M. Only r<M sits within one turn; r>M wraps past 2π onto the same ring, so nothing is dropped.">Ring</button>
+          <button class="chip" id="vw-cayley" onclick="setView('cayley')" style="flex:1" title="The same ring points, 1:1, run through the Cayley/Möbius map Γ(z)=(z−1)/(z+1) — same construction as the Strip Arithmetic opener's Cayley view.">Cayley</button>
+        </div>
+        <div class="note" id="view-note" style="display:none">Ring/Cayley plot the same a/b/c/d strip points as Grid, just re-projected — the underlying (r,M) data is identical.</div>
+        <div id="cayley-extra" style="display:none">
+          <div class="row">
+            <span class="lab">Zoom out</span>
+            <button class="chip on" id="cz-1" onclick="setCayleyZoom(1)" style="flex:1">1×</button>
+            <button class="chip" id="cz-2" onclick="setCayleyZoom(2)" style="flex:1">2×</button>
+            <button class="chip" id="cz-4" onclick="setCayleyZoom(4)" style="flex:1">4×</button>
+            <button class="chip" id="cz-8" onclick="setCayleyZoom(8)" style="flex:1">8×</button>
+          </div>
+          <div class="row">
+            <span class="lab">θ rotate</span>
+            <input type="range" id="sl-crot" min="0" max="359" step="1" value="0" oninput="setCayleyRot(+this.value)">
+            <input type="number" id="in-crot" min="0" max="359" value="0" style="width:50px" oninput="setCayleyRot(+this.value)">
+          </div>
+        </div>
+        <div class="row">
+          <span class="lab">Grid G</span>
+          <input type="range" id="sl-G" min="1" max="1024" step="1" value="121" oninput="setG(+this.value)" title="Slides 1–1024 for fine control. Type into the box on the right to go higher, up to 4096.">
+          <input type="number" id="in-G" min="1" max="4096" value="121" style="width:56px" oninput="setG(+this.value)">
+          <button class="chip" id="ch-playG" onclick="toggleSweepG()" title="Play G: climbs from 1 up to whatever G is currently set, then descends back down to 1, back and forth. Runs independently of Play g / Play pairs — both keep sweeping while G moves.">▶ Play G</button>
+        </div>
+        <div class="row">
+          <span class="lab">Gap g</span>
+          <input type="range" class="tl" id="sl-g" min="1" max="122" step="1" value="61" oninput="setGap(+this.value)">
+          <input type="number" id="in-g" min="1" max="4097" value="61" style="width:56px" oninput="setGap(+this.value)">
+        </div>
+        <div class="row">
+          <span class="lab">Even E</span>
+          <span class="val" id="v-E" style="flex:1;text-align:left">244 = g + s</span>
+          <button class="chip" onclick="stepPair(-1)" title="Previous Goldbach pair">◀ pair</button>
+          <button class="chip" onclick="stepPair(1)" title="Next Goldbach pair">pair ▶</button>
+        </div>
+        <div class="row">
+          <span class="lab">Sweep</span>
+          <button class="chip" id="ch-play" onclick="toggleSweep()" title="Single mode: walk g from 1 to G−1 and back. Multi-pair mode: page through every batch (all partitions).">▶ Play g</button>
+          <button class="chip" id="ch-playp" onclick="toggleSweepPairs()" title="Single mode: step through the Goldbach pairs of E. Multi-pair mode: page through the Goldbach-pair batches, looping.">▶ Play pairs</button>
+        </div>
+        <div class="note">Sliding <b>g</b> walks every additive partition <b>E = g + s</b>. The two sum strips carry those parts.</div>
+      </div>
+
+      <div class="grp">
+        <h4>Presets</h4>
+        <div class="chips" id="presets"></div>
+        <div class="note">Each preset fixes an even <b>E</b> and puts <b>G = E/2 − 1</b>, the grid whose corner frame carries that partition. Hover for why each one is here.<br><br>Compare <b>48</b> and <b>52</b>: nearly the same size, 5 representations against 3. An E divisible by 6 can draw primes from both residue classes mod 3; one that is not divisible by 3 cannot, and lands in the sparse band. That split is the banding in Goldbach's comet.</div>
+      </div>
+
+      <div class="grp">
+        <h4>Multi-pair</h4>
+        <div class="row">
+          <span class="lab">Overlay</span>
+          <button class="chip" id="ch-multi" onclick="toggleMulti()" style="flex:1">Off — single gap g</button>
+        </div>
+        <div class="row" id="mp-mode-row" style="display:none">
+          <span class="lab">Show</span>
+          <button class="chip on" id="mm-pairs" onclick="setMultiMode('pairs')" style="flex:1">Goldbach pairs</button>
+          <button class="chip" id="mm-all" onclick="setMultiMode('all')" style="flex:1">all partitions</button>
+        </div>
+        <div class="row" id="mp-batch-row" style="display:none;flex-wrap:wrap">
+          <span class="lab">Batch</span>
+          <button class="chip on" data-bs="1" onclick="setBatchSize(1)">1</button>
+          <button class="chip" data-bs="5" onclick="setBatchSize(5)">5</button>
+          <button class="chip" data-bs="10" onclick="setBatchSize(10)">10</button>
+          <button class="chip" data-bs="25" onclick="setBatchSize(25)">25</button>
+          <button class="chip" data-bs="0" id="bs-all" onclick="setBatchSize(0)">all</button>
+        </div>
+        <div class="row" id="mp-pager-row" style="display:none">
+          <button class="chip" style="flex:0 0 auto" onclick="pageStep(-1)">◀</button>
+          <span class="val" id="mp-pg" style="flex:1;text-align:center">— of —</span>
+          <button class="chip" style="flex:0 0 auto" onclick="pageStep(1)">▶</button>
+        </div>
+        <div class="note" id="mp-note" style="display:none">
+          Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, dim where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.
+        </div>
+      </div>
+
+      <div class="grp">
+        <h4>Strips</h4>
+        <div class="chips">
+          <button class="chip on" id="ch-sum" onclick="toggleShow('sum')">sum c·d</button>
+          <button class="chip on" id="ch-diff" onclick="toggleShow('diff')">diff a·b</button>
+          <button class="chip on" id="ch-frame" onclick="toggleShow('frame')">frame</button>
+          <button class="chip" id="ch-diag" onclick="toggleShow('diag')">r = M</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <span class="lab">Dim off</span>
+          <input type="range" id="sl-dim" min="0" max="100" step="5" value="45" oninput="setDim(+this.value)">
+          <span class="val" id="v-dim">45%</span>
+        </div>
+      </div>
+
+      <div class="grp">
+        <h4>Rendering</h4>
+        <div class="row">
+          <span class="lab">Colour</span>
+          <select id="sel-col" onchange="setCol(this.value)" style="flex:1">
+            <option value="plain">plain · coprime / not</option>
+            <option value="gcd">gcd magnitude</option>
+            <option value="sector" selected>sector quadrants</option>
+            <option value="spf">smallest prime factor</option>
+          </select>
+        </div>
+        <div class="row">
+          <span class="lab">Labels</span>
+          <select id="sel-lbl" onchange="setLbl(this.value)" style="flex:1">
+            <option value="r" selected>by r</option>
+            <option value="M">by M</option>
+            <option value="rM">r , M</option>
+            <option value="gcd">gcd(r,M)</option>
+            <option value="off">off</option>
+          </select>
+        </div>
+        <div class="note">Labels draw only where a cell clears 13&nbsp;px, so they never pile up. Above roughly <b>G = 320</b> the canvas switches to a one-pixel-per-cell buffer and scales it without smoothing.</div>
+      </div>
+
+      <div class="grp">
+        <h4>Export</h4>
+        <div class="row" style="margin-bottom:8px">
+          <span class="lab">Views</span>
+          <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;color:var(--cream2)"><input type="checkbox" id="exp-grid" checked> Grid</label>
+          <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;color:var(--cream2)"><input type="checkbox" id="exp-ring"> Ring</label>
+          <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;color:var(--cream2)"><input type="checkbox" id="exp-cayley"> Cayley</label>
+        </div>
+        <div class="chips">
+          <button class="chip" onclick="doExportViews(2048)">2K</button>
+          <button class="chip" onclick="doExportViews(4096)">4K</button>
+          <button class="chip" onclick="doExportViews(8192)">8K</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <span class="lab">Plate</span>
+          <select id="sel-plate" style="flex:1">
+            <option value="full" selected>lattice + readout</option>
+            <option value="bare">lattice only</option>
+          </select>
+        </div>
+        <div class="note">Checking more than one view downloads one file per view — each keeps its own header/legend design, just re-projected. The view you're currently looking at gets auto-checked when you switch.</div>
+      </div>
+
+      <div class="grp">
+        <h4>The claim</h4>
+        <div class="note">
+          <b>c</b> is fully lit exactly when <b>g</b> is prime — it spans one whole period of gcd(·,g) minus the single point r=g, so it holds precisely φ(g) coprime points.<br><br>
+          <b>d</b> is fully lit whenever <b>s</b> is prime, but it samples only g−1 residues of the longer period s, so below the threshold it can come up full on a composite s.<br><br>
+          For <b>g &gt; √E</b> the leak closes: a composite s has a prime factor ≤ √s, which a window of g−1 consecutive integers cannot miss. There, both strips full ⟺ <b>g and s both prime</b>.<br><br>
+          Verified exhaustively for every G &lt; 300: zero counterexamples above the threshold, and every false positive below it.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dock">
+    <div id="dockL">
+      <div class="dhead">
+        <span>Partition table</span>
+        <span class="sub" id="tbl-sub">—</span>
+        <span class="spacer"></span>
+        <button class="chip" id="f-all" onclick="setFilter('all')">all</button>
+        <button class="chip on" id="f-gold" onclick="setFilter('gold')">pairs</button>
+        <button class="chip" id="f-full" onclick="setFilter('full')">both full</button>
+      </div>
+      <div class="scroll" id="tblwrap"></div>
+    </div>
+    <div id="dockR">
+      <div class="dhead"><span>Step by step</span><span class="spacer"></span><span class="sub" id="det-sub">select a row</span></div>
+      <div class="scroll" id="detwrap"><div id="empty">Pick a row from the partition table, or move the gap slider.<br><br>The drawer walks each lattice point on the two sum strips and shows the gcd reduction that decides it.</div></div>
+    </div>
+  </div>
+
+</div>
+<div id="busy">building table…</div>
+
+<script>
+"use strict";
+/* ════════════════════════════════════════════════════════════════════
+   STRIP ARITHMETIC I — THE GOLDBACH DIAGONAL
+   Part II of the C(n) block-coprime framework. Grew out of Page 5's gap
+   diagonal identity gcd(r,M) = gcd(r, M−r).
+
+   The object: on the G×G lattice, a gap g selects four lines.
+       a : M − r = g            b : r − M = g          (difference pair)
+       c : r + M = g            d : r + M = E − g      (sum pair, E = 2(G+1))
+   The two sum strips carry totals that add to E, so sliding g enumerates
+   every additive partition of the even number E. Strip c is fully coprime
+   exactly when g is prime; strip d is fully coprime whenever E−g is prime.
+   Above g = √E the second implication reverses too, and "both strips fully
+   lit" becomes exactly "E = g + s is a Goldbach partition".
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── number theory core ──────────────────────────────────────────── */
+let SPF=null, SPF_N=0;
+function ensureSPF(N){
+  if(SPF&&SPF_N>=N) return;
+  SPF_N=Math.max(N,1024);
+  SPF=new Int32Array(SPF_N+1);
+  for(let i=2;i<=SPF_N;i++){
+    if(SPF[i]===0){ for(let j=i;j<=SPF_N;j+=i) if(SPF[j]===0) SPF[j]=i; }
+  }
+}
+function distinctPrimes(x){
+  const out=[];
+  while(x>1){ const p=SPF[x]; out.push(p); while(x%p===0) x/=p; }
+  return out;
+}
+function phi(x){
+  if(x<1) return 0;
+  let r=x,y=x;
+  while(y>1){ const p=SPF[y]; while(y%p===0) y/=p; r-=r/p; }
+  return Math.round(r);
+}
+function isPrime(x){ return x>=2 && SPF[x]===x; }
+function gcd(a,b){ while(b){ const t=a%b; a=b; b=t; } return a; }
+
+// count of integers in [A,B] coprime to s — inclusion/exclusion over rad(s).
+// rad(s) has at most ~8 distinct primes in our range, so this is O(1) per call
+// and lets the whole partition table build in milliseconds even at G = 4096.
+function coprimeInWindow(A,B,s){
+  if(B<A||s<1) return 0;
+  if(s===1) return B-A+1;
+  const ps=distinctPrimes(s), k=ps.length;
+  let total=0;
+  for(let mask=0;mask<(1<<k);mask++){
+    let d=1,bits=0;
+    for(let i=0;i<k;i++) if(mask&(1<<i)){ d*=ps[i]; bits++; }
+    const cnt=Math.floor(B/d)-Math.floor((A-1)/d);
+    total += bits&1 ? -cnt : cnt;
+  }
+  return total;
+}
+// the four strips at (G,g). a and b are equal by the transpose (r,M)->(M,r),
+// so b is not recomputed.
+function stripsAt(G,g){
+  const E=2*(G+1), s=E-g;
+  const aTot=Math.max(0,G-g);
+  const aCop=aTot>0?coprimeInWindow(1,aTot,g):0;   // gcd(r,r+g)=gcd(r,g)
+  const cA=Math.max(1,g-G), cB=Math.min(G,g-1), cTot=Math.max(0,cB-cA+1);
+  const cCop=cTot>0?coprimeInWindow(cA,cB,g):0;     // gcd(r,g-r)=gcd(r,g)
+  const dA=Math.max(1,s-G), dB=Math.min(G,s-1), dTot=Math.max(0,dB-dA+1);
+  const dCop=dTot>0?coprimeInWindow(dA,dB,s):0;     // gcd(r,s-r)=gcd(r,s)
+  return {g,s,E,aCop,aTot,cCop,cTot,dCop,dTot,
+          cFull:cTot>0&&cCop===cTot, dFull:dTot>0&&dCop===dTot};
+}
+
+/* ── state ───────────────────────────────────────────────────────── */
+const S={G:121,g:61,col:'sector',lbl:'r',dim:0.45,view:'grid',cayleyZoom:1,cayleyRot:0,
+         show:{sum:true,diff:true,frame:true,diag:false},
+         filter:'gold',rows:[],sel:null,
+         multi:false,multiMode:'pairs',batch:1,page:0,items:[],pairIdx:new Map()};
+const BR={a:[61,200,184],b:[155,127,232],c:[200,168,74],d:[224,80,96]};
+const KIND_RGB={gOnly:[200,168,74],sOnly:[61,200,184],none:[58,58,70]};
+const KIND_ALPHA={gOnly:.55,sOnly:.55,none:.28};
+
+const PRESETS=[
+  {E:48,   t:'48',   why:'divisible by 6 — the rich band'},
+  {E:52,   t:'52',   why:'same size, not divisible by 3 — the sparse band'},
+  {E:60,   t:'60',   why:'twin primes 29+31 straddle E/2'},
+  {E:106,  t:'106',  why:'E = 2·53, the balanced partition 53+53'},
+  {E:210,  t:'210',  why:'primorial 2·3·5·7 — maximal small-prime support'},
+  {E:244,  t:'244',  why:'square grid: g = (G+1)/2 makes the frame a square'},
+  {E:1000, t:'1000', why:'scale check'},
+  {E:2048, t:'2048', why:'power of two — no odd prime support'}
+];
+
+/* ── geometry helpers ────────────────────────────────────────────── */
+// which branch a cell sits on, honouring the strip toggles
+function branchOf(r,m,G,g){
+  if(g<1) return null;
+  if(S.show.diff){ if(m-r===g) return 'a'; if(r-m===g) return 'b'; }
+  if(S.show.sum){ const E=2*(G+1); if(r+m===g) return 'c'; if(r+m===E-g) return 'd'; }
+  return null;
+}
+
+/* ── colour ──────────────────────────────────────────────────────── */
+function hsl2rgb(h,s,l){
+  h=((h%360)+360)%360; s/=100; l/=100;
+  const c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs((h/60)%2-1)), m=l-c/2;
+  let r,g,b;
+  if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}
+  else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}
+  return [Math.round((r+m)*255),Math.round((g+m)*255),Math.round((b+m)*255)];
+}
+function cellRGBA(r,m,G){
+  const q=gcd(r,m);
+  if(q!==1) return [26,14,30,0.16];
+  switch(S.col){
+    case 'plain':  return [61,200,184,0.82];
+    case 'gcd':    return [200,168,74,0.82];
+    case 'spf':{
+      const p=SPF[Math.max(2,Math.min(SPF_N,r))]||2;
+      return [...hsl2rgb((p*47)%360,58,58),0.82];
+    }
+    default:{ // sector quadrants — same device Page 5 uses
+      const h=(Math.atan2(m-(G+1)/2,r-(G+1)/2)*180/Math.PI+360)%360;
+      return [...hsl2rgb(h,52,52),0.82];
+    }
+  }
+}
+function labelOf(r,m){
+  switch(S.lbl){
+    case 'off': return '';
+    case 'M':   return ''+m;
+    case 'rM':  return r+','+m;
+    case 'gcd': return ''+gcd(r,m);
+    default:    return ''+r;
+  }
+}
+
+/* ── canvas ──────────────────────────────────────────────────────── */
+/* The lattice underneath the strips depends only on (G, colour mode) — not on
+   the gap and not on the dim level. So it is composed once into a G×G buffer
+   and cached. A gap change then costs only the four strips, which are O(G)
+   points, plus one translucent wash for the dim. That turns a 900 ms redraw at
+   G=2048 into a few milliseconds, so the gap slider stays live at any size. */
+const HUE_LUT={};
+function hueTable(sat,lit){
+  const k=sat+'/'+lit;
+  if(HUE_LUT[k]) return HUE_LUT[k];
+  const t=new Uint8Array(360*3);
+  for(let d=0;d<360;d++){ const c=hsl2rgb(d,sat,lit); t[d*3]=c[0]; t[d*3+1]=c[1]; t[d*3+2]=c[2]; }
+  return HUE_LUT[k]=t;
+}
+// coprimality of the whole lattice by sieving the composite pairs: for each
+// prime p ≤ G mark every (r,m) with p | r and p | m. Costs G²·Σ1/p² ≈ 0.45 G²
+// writes, well under one gcd per cell.
+let MASK=null, MASK_G=0;
+function coprimeMask(G){
+  if(MASK&&MASK_G===G) return MASK;
+  const m=new Uint8Array(G*G).fill(1);
+  for(let p=2;p<=G;p++){
+    if(SPF[p]!==p) continue;
+    for(let r=p;r<=G;r+=p){
+      const base=(r-1)*G-1;
+      for(let mm=p;mm<=G;mm+=p) m[base+mm]=0;
+    }
+  }
+  MASK_G=G; return MASK=m;
+}
+let BASE=null, BASE_KEY='';
+function baseLayer(G){
+  const key=G+'|'+S.col;
+  if(BASE&&BASE_KEY===key) return BASE;
+  const mask=coprimeMask(G);
+  const off=document.createElement('canvas');
+  off.width=G; off.height=G;
+  const octx=off.getContext('2d');
+  const img=octx.createImageData(G,G), D=img.data;
+  const sector=S.col==='sector', spf=S.col==='spf', gcdm=S.col==='gcd';
+  const lut=hueTable(sector?52:58, sector?52:58);
+  const cx=(G+1)/2;
+  for(let m=1;m<=G;m++){
+    const dy=m-cx;
+    for(let r=1;r<=G;r++){
+      const idx=((m-1)*G+(r-1));
+      const i4=idx*4;
+      if(!mask[(r-1)*G+(m-1)]){           // not coprime
+        D[i4]=24; D[i4+1]=13; D[i4+2]=32; D[i4+3]=255; continue;
+      }
+      let R,Gc,B;
+      if(sector){
+        let a=Math.atan2(dy,r-cx)*57.29577951308232+360;
+        const hi=(a|0)%360;
+        R=lut[hi*3]; Gc=lut[hi*3+1]; B=lut[hi*3+2];
+      } else if(spf){
+        const hi=((SPF[r]||2)*47)%360;
+        R=lut[hi*3]; Gc=lut[hi*3+1]; B=lut[hi*3+2];
+      } else if(gcdm){ R=200; Gc=168; B=74; }
+      else { R=61; Gc=200; B=184; }
+      const A=0.82;
+      D[i4]=Math.round(R*A+4*(1-A));
+      D[i4+1]=Math.round(Gc*A+4*(1-A));
+      D[i4+2]=Math.round(B*A+13*(1-A));
+      D[i4+3]=255;
+    }
+  }
+  octx.putImageData(img,0,0);
+  BASE_KEY=key; return BASE=off;
+}
+function stripPoints(G,g){
+  const E=2*(G+1), s=E-g, out=[];
+  if(S.show.diff){
+    for(let r=1;r+g<=G;r++) out.push([r,r+g,'a']);
+    for(let r=g+1;r<=G;r++) out.push([r,r-g,'b']);
+  }
+  if(S.show.sum){
+    for(let r=Math.max(1,g-G);r<=Math.min(G,g-1);r++) out.push([r,g-r,'c']);
+    // g = G+1 is the balanced partition E = 2·(G+1): s equals g and the two sum
+    // strips collapse onto the single central anti-diagonal. Emit it once.
+    if(s!==g) for(let r=Math.max(1,s-G);r<=Math.min(G,s-1);r++) out.push([r,s-r,'d']);
+  }
+  return out;
+}
+/* ── multi-pair overlay ──────────────────────────────────────────── */
+// stable per-pair colour independent of batch/page, via golden-angle hue spacing
+function goldenColorRGB(i){
+  const h=((i*137.508)%360)/360, s=.72, l=.58;
+  const hue2rgb=(p,q,t)=>{ if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t;
+    if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; };
+  const q=l<0.5?l*(1+s):l+s-l*s, p=2*l-q;
+  return [Math.round(hue2rgb(p,q,h+1/3)*255),Math.round(hue2rgb(p,q,h)*255),Math.round(hue2rgb(p,q,h-1/3)*255)];
+}
+function computeMultiItems(){
+  const G=S.G, E=2*(G+1), list=[];
+  if(S.multiMode==='pairs'){
+    for(let g=2;g<=E/2;g++) if(isPrime(g)&&isPrime(E-g)) list.push({g,s:E-g,kind:'pair'});
+  } else {
+    for(let g=1;g<=E/2;g++){
+      const s=E-g, gp=isPrime(g), sp=isPrime(s);
+      list.push({g,s,kind:gp&&sp?'pair':gp?'gOnly':sp?'sOnly':'none'});
+    }
+  }
+  S.items=list; S.pairIdx=new Map();
+  let pc=0;
+  for(const it of list) if(it.kind==='pair'){ S.pairIdx.set(it.g,pc); pc++; }
+  S.page=Math.min(S.page,Math.max(0,totalPages()-1));
+  const bsAll=document.getElementById('bs-all');
+  if(bsAll){
+    const est=list.length*G*4; // a,b,c,d per item, O(G) each
+    bsAll.disabled=est>6000000;
+    if(bsAll.disabled&&S.batch===0) setBatchSize(1);
+  }
+}
+function totalPages(){
+  if(!S.items.length) return 1;
+  const bs=S.batch||S.items.length;
+  return Math.max(1,Math.ceil(S.items.length/bs));
+}
+function currentBatch(){
+  const bs=S.batch||S.items.length;
+  const start=S.page*bs;
+  return S.items.slice(start,start+bs);
+}
+// every point drawn by the current batch: a,b,c,d per item, coloured per item.
+function multiPoints(G){
+  const out=[];
+  for(const it of currentBatch()){
+    const rgb = it.kind==='pair' ? goldenColorRGB(S.pairIdx.get(it.g)||0) : KIND_RGB[it.kind];
+    const baseA = it.kind==='pair' ? 1 : KIND_ALPHA[it.kind];
+    if(S.show.sum){
+      for(let r=Math.max(1,it.g-G);r<=Math.min(G,it.g-1);r++) out.push([r,it.g-r,rgb,baseA]);
+      if(it.s!==it.g) for(let r=Math.max(1,it.s-G);r<=Math.min(G,it.s-1);r++) out.push([r,it.s-r,rgb,baseA]);
+    }
+    if(S.show.diff){
+      for(let r=1;r<=G-it.g;r++) out.push([r,r+it.g,rgb,baseA]);
+      for(let r=it.g+1;r<=G;r++) out.push([r,r-it.g,rgb,baseA]);
+    }
+  }
+  return out;
+}
+
+const cv=document.getElementById('cv');
+let CSS_SIZE=600;
+function fitCanvas(){
+  const plate=document.getElementById('plate');
+  const pad=20;
+  const w=Math.max(160,plate.clientWidth-pad);
+  const stacked=window.matchMedia('(max-width:860px)').matches;
+  const locked=document.body.classList.contains('is-fs');
+  const h=stacked?Math.round(Math.min(w,window.innerHeight*(locked?0.86:0.62)))
+                 :Math.max(160,plate.clientHeight-pad);
+  CSS_SIZE=Math.floor(Math.min(w,h));
+  const dpr=Math.min(window.devicePixelRatio||1,3);
+  cv.style.width=CSS_SIZE+'px'; cv.style.height=CSS_SIZE+'px';
+  cv.width=Math.floor(CSS_SIZE*dpr); cv.height=Math.floor(CSS_SIZE*dpr);
+}
+// One renderer for screen and export; `px` is the pixel side of the target.
+function paint(ctx,px,G,g){
+  if(S.view==='ring'||S.view==='cayley') return paintPolar(ctx,px,G,g,S.view);
+  return paintGrid(ctx,px,G,g);
+}
+function paintGrid(ctx,px,G,g){
+  const E=2*(G+1);
+  ctx.save();
+  ctx.fillStyle='#04040d'; ctx.fillRect(0,0,px,px);
+  const cell=px/G, gapOn=g>=1;
+
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(baseLayer(G),0,0,px,px);
+
+  // hairline cell separation only where the cells are big enough to want it
+  if(cell>=4){
+    ctx.strokeStyle='rgba(4,4,13,.85)'; ctx.lineWidth=Math.max(1,cell*0.10);
+    ctx.beginPath();
+    for(let i=1;i<G;i++){ const t=i*cell; ctx.moveTo(t,0); ctx.lineTo(t,px); ctx.moveTo(0,t); ctx.lineTo(px,t); }
+    ctx.stroke();
+  }
+  // the dim is a single wash rather than a per-cell alpha
+  if(gapOn&&S.dim>0){ ctx.fillStyle=`rgba(4,4,13,${S.dim})`; ctx.fillRect(0,0,px,px); }
+
+  // strips — O(G) points per gap, drawn at full strength on top of the wash.
+  // Multi mode overlays several gaps at once (each its own colour) instead of
+  // the single current g; both paths share the same point-and-dim convention.
+  const sz=Math.max(1,cell-(cell>=4?Math.min(1.4,cell*0.13):0));
+  if(S.multi){
+    ctx.globalCompositeOperation='lighter';
+    for(const [r,m,rgb,baseA] of multiPoints(G)){
+      const a=(gcd(r,m)===1?baseA:baseA*0.32);
+      ctx.fillStyle=`rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`;
+      ctx.fillRect((r-1)*cell,(m-1)*cell,sz,sz);
+    }
+    ctx.globalCompositeOperation='source-over';
+  } else if(gapOn){
+    for(const [r,m,br] of stripPoints(G,g)){
+      const q=BR[br];
+      ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${gcd(r,m)===1?0.95:0.42})`;
+      ctx.fillRect((r-1)*cell,(m-1)*cell,sz,sz);
+    }
+  }
+
+  // frame: the four strips extended to their vertices, which land on r=0, M=0,
+  // r=G+1 and M=G+1 — a 45°-rotated rectangle with its corners on the extended
+  // frame, square exactly when g = (G+1)/2.
+  if(!S.multi&&gapOn&&S.show.frame){
+    const P=(x,y)=>[(x-0.5)*cell,(y-0.5)*cell];
+    ctx.lineWidth=Math.max(1,px/1400); ctx.setLineDash([px/190,px/190]);
+    const seg=(x1,y1,x2,y2,rgb)=>{
+      ctx.strokeStyle=`rgba(${rgb[0]},${rgb[1]},${rgb[2]},.42)`;
+      const A=P(x1,y1),B=P(x2,y2);
+      ctx.beginPath(); ctx.moveTo(A[0],A[1]); ctx.lineTo(B[0],B[1]); ctx.stroke();
+    };
+    if(S.show.diff){ seg(0,g,G+1-g,G+1,BR.a); seg(g,0,G+1,G+1-g,BR.b); }
+    if(S.show.sum){ seg(0,g,g,0,BR.c); seg(G+1-g,G+1,G+1,G+1-g,BR.d); }
+    ctx.setLineDash([]);
+  }
+  if(S.show.diag){
+    ctx.strokeStyle='rgba(255,255,255,.16)'; ctx.lineWidth=Math.max(1,px/1600);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(px,px); ctx.stroke();
+  }
+
+  // labels only where a cell clears 13 px, so they can never pile up
+  if(S.lbl!=='off'&&cell>=13){
+    ctx.font=`${Math.min(cell*0.34,15)}px "JetBrains Mono",monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    const onStrip=new Set((!S.multi&&gapOn)?stripPoints(G,g).map(p=>p[0]+','+p[1]):[]);
+    for(let m=1;m<=G;m++) for(let r=1;r<=G;r++){
+      const t=labelOf(r,m); if(!t) continue;
+      ctx.fillStyle=onStrip.has(r+','+m)?'rgba(4,4,13,.88)'
+        :(gcd(r,m)===1?'rgba(255,255,255,.58)':'rgba(255,255,255,.18)');
+      ctx.fillText(t,(r-0.5)*cell,(m-0.5)*cell,cell*0.9);
+    }
+  }
+  ctx.restore();
+}
+// ── Ring / Cayley ───────────────────────────────────────────────────
+// Same underlying (r,M) data as Grid — the a/b/c/d strip points (or the
+// multi-pair overlay points) — just re-projected. Ring puts ring M at
+// radius M/G and point r at angle θ=2πr/M; since M ranges the same 1…G as
+// r, the r<M half fills one turn and r>M keeps going — angle just wraps
+// past 2π (cos/sin are periodic, so no clamping is needed), rather than
+// dropping or mirroring that half. Cayley takes the exact same (θ,ring)
+// points as a complex z, and runs them through the same Möbius map
+// Γ(z)=(z−1)/(z+1) used by the Strip Arithmetic opener's Cayley view.
+function ringXY(r,m,G,px){
+  const cx=px/2, cy=px/2, Rmax=px*0.46;
+  const theta=2*Math.PI*r/m;
+  const rho=(m/G)*Rmax;
+  return [cx+rho*Math.cos(theta), cy-rho*Math.sin(theta)];
+}
+function cayleyXY(r,m,G,px){
+  const cx=px/2, cy=px/2, Rc=(px*0.46)/Math.max(1,S.cayleyZoom);
+  const theta=2*Math.PI*r/m + S.cayleyRot*Math.PI/180;
+  const normR=0.4+(m/G)*1.8; // same 0.4…2.2 spread the hero Cayley view uses
+  const zx=normR*Math.cos(theta), zy=normR*Math.sin(theta);
+  const ar=zx-1, ai=zy, br=zx+1, bi=zy, d=br*br+bi*bi;
+  if(d<1e-9) return [cx,cy];
+  const u=(ar*br+ai*bi)/d, v=(ai*br-ar*bi)/d;
+  return [cx+u*Rc, cy-v*Rc];
+}
+function paintPolar(ctx,px,G,g,view){
+  const proj = view==='ring' ? ringXY : cayleyXY;
+  ctx.save();
+  ctx.fillStyle='#04040d'; ctx.fillRect(0,0,px,px);
+  const cx=px/2, cy=px/2, Rmax=px*0.46;
+
+  // reference rings — faint circles at a handful of M levels for scale,
+  // mapped through the same projection so Cayley shows their Möbius image
+  const refMs=new Set([Math.round(G*0.25),Math.round(G*0.5),Math.round(G*0.75),G]);
+  refMs.forEach(M=>{
+    if(M<2) return;
+    ctx.strokeStyle='rgba(255,255,255,.07)'; ctx.lineWidth=Math.max(1,px/1400);
+    ctx.beginPath();
+    for(let a=0;a<=200;a++){
+      const th=a/200*2*Math.PI;
+      const r=Math.max(1,Math.round((th/(2*Math.PI))*M));
+      const [x,y]=proj(r||1,M,G,px);
+      a===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    if(view==='ring'){
+      const [lx,ly]=ringXY(1,M,G,px);
+      ctx.font=`${Math.max(8,px*0.012)}px "JetBrains Mono",monospace`;
+      ctx.fillStyle='rgba(200,168,74,.35)'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+      ctx.fillText('M='+M,lx+4,ly-2);
+    }
+  });
+  if(view==='cayley'){
+    const Rc=(px*0.46)/Math.max(1,S.cayleyZoom);
+    ctx.strokeStyle='rgba(126,200,122,.4)'; ctx.lineWidth=Math.max(1,px/1000);
+    ctx.beginPath(); ctx.arc(cx,cy,Rc,0,2*Math.PI); ctx.stroke();
+  } else {
+    ctx.fillStyle='rgba(200,168,74,.4)';
+    ctx.beginPath(); ctx.arc(cx,cy,3,0,2*Math.PI); ctx.fill();
+  }
+
+  const dotR=Math.max(0.9,px*0.0016);
+  const gapOn=g>=1;
+  if(S.multi){
+    ctx.globalCompositeOperation='lighter';
+    for(const [r,m,rgb,baseA] of multiPoints(G)){
+      const a=(gcd(r,m)===1?baseA:baseA*0.32);
+      const [x,y]=proj(r,m,G,px);
+      ctx.fillStyle=`rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`;
+      ctx.beginPath(); ctx.arc(x,y,dotR,0,2*Math.PI); ctx.fill();
+    }
+    ctx.globalCompositeOperation='source-over';
+  } else if(gapOn){
+    for(const [r,m,br] of stripPoints(G,g)){
+      const q=BR[br];
+      const [x,y]=proj(r,m,G,px);
+      ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${gcd(r,m)===1?0.95:0.42})`;
+      ctx.beginPath(); ctx.arc(x,y,dotR*(gcd(r,m)===1?1.15:0.75),0,2*Math.PI); ctx.fill();
+    }
+  }
+  ctx.font=`${Math.max(9,px*0.013)}px "JetBrains Mono",monospace`;
+  ctx.fillStyle='rgba(106,101,96,.9)'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(view==='ring'?'Ring: M=ring radius, θ=2πr/M (wraps past 2π for r>M)':'Cayley: Γ(z)=(z−1)/(z+1) of the same ring points',px*0.02,px*0.02);
+  ctx.restore();
+}
+function render(){
+  const ctx=cv.getContext('2d');
+  const dpr=Math.min(window.devicePixelRatio||1,3);
+  ctx.setTransform(1,0,0,1,0,0);
+  paint(ctx,CSS_SIZE*dpr,S.G,S.g);
+  drawHUD();
+}
+function drawHUD(){
+  if(S.multi){
+    const E=2*(S.G+1), nPair=S.multiMode==='pairs'?S.items.length:S.items.filter(x=>x.kind==='pair').length;
+    const batch=currentBatch();
+    document.getElementById('hud').innerHTML=
+      `<span class="k">${E}</span> even &nbsp; r(E) = <span class="k">${nPair}</span> pairs<br>`+
+      `batch <span class="k">${S.page+1}</span> of ${totalPages()} &nbsp; · &nbsp; ${batch.length} of ${S.items.length} shown`;
+    updateMultiLegend(batch);
+    const pg=document.getElementById('mp-pg');
+    if(pg) pg.textContent=`batch ${S.page+1} / ${totalPages()}`;
+    return;
+  }
+  const st=stripsAt(S.G,S.g);
+  const thr=Math.sqrt(st.E);
+  const v=verdict(st,thr);
+  const merged=st.s===st.g;
+  document.getElementById('hud').innerHTML=
+    `<span class="k">${st.E}</span> = ${st.g} + ${st.s}${merged?' &nbsp;<span style="color:#6a6560">balanced</span>':''}<br>`+
+    (merged
+      ? `c = d <span class="k">${st.cCop}/${st.cTot}</span> &nbsp;<span style="color:#6a6560">one central strip</span><br>`
+      : `c <span class="k">${st.cCop}/${st.cTot}</span> &nbsp; d <span class="k">${st.dCop}/${st.dTot}</span><br>`)+
+    `<span style="color:${v.col}">${v.short}</span>`;
+}
+function rgbToCss(rgb){ return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`; }
+function updateMultiLegend(batch){
+  const el=document.getElementById('legend');
+  const MAX=10;
+  let h='';
+  batch.slice(0,MAX).forEach(it=>{
+    const rgb = it.kind==='pair' ? goldenColorRGB(S.pairIdx.get(it.g)||0) : KIND_RGB[it.kind];
+    const tag = it.kind==='pair' ? `${it.g} + ${it.s}` :
+      `${it.g} + ${it.s} · ${it.kind==='gOnly'?'g prime only':it.kind==='sOnly'?'s prime only':'neither prime'}`;
+    h+=`<span class="lg"><i style="background:${rgbToCss(rgb)}"></i>${tag}</span>`;
+  });
+  if(batch.length>MAX) h+=`<span class="lg">+${batch.length-MAX} more this batch</span>`;
+  el.innerHTML=h||'<span class="lg">no items in this batch</span>';
+}
+function restoreDefaultLegend(){
+  document.getElementById('legend').innerHTML=
+    `<span class="lg"><i style="background:var(--teal)"></i>a &nbsp;M−r=g</span>`+
+    `<span class="lg"><i style="background:var(--violet)"></i>b &nbsp;r−M=g</span>`+
+    `<span class="lg"><i style="background:var(--gold)"></i>c &nbsp;r+M=g</span>`+
+    `<span class="lg"><i style="background:var(--coral)"></i>d &nbsp;r+M=E−g</span>`;
+}
+
+/* ── verdicts ────────────────────────────────────────────────────── */
+function verdict(st,thr){
+  const both=st.cFull&&st.dFull;
+  const pair=isPrime(st.g)&&isPrime(st.s);
+  if(both&&pair) return {k:'g',short:'GOLDBACH PAIR',col:'#7ec87a',
+    text:`Both sum strips are completely coprime and both totals are prime: ${st.E} = ${st.g} + ${st.s} is a Goldbach partition.`};
+  if(both&&!pair) return {k:'f',short:'FALSE POSITIVE',col:'#e05060',
+    text:`Both strips read full, but ${isPrime(st.g)?st.s:st.g} is composite. Only possible below the threshold g ≤ √E ≈ ${thr.toFixed(1)}: the window of g−1 residues is too short to be forced to contain a factor.`};
+  return {k:'n',short:'—',col:'#6a6560',
+    text:`Not both full. ${st.cFull?'':'c is short by '+(st.cTot-st.cCop)+'. '}${st.dFull?'':'d is short by '+(st.dTot-st.dCop)+'.'}`};
+}
+
+/* ── partition table ─────────────────────────────────────────────── */
+function buildRows(){
+  const G=S.G, E=2*(G+1), thr=Math.sqrt(E);
+  const rows=[];
+  for(let g=1;g<=G+1;g++){
+    const st=stripsAt(G,g);
+    st.pair=isPrime(g)&&isPrime(st.s);
+    st.both=st.cFull&&st.dFull;
+    st.above=g>thr;
+    rows.push(st);
+  }
+  S.rows=rows;
+  return rows;
+}
+function renderTable(){
+  const G=S.G, E=2*(G+1), thr=Math.sqrt(E);
+  const rows=S.rows.filter(r=>
+    S.filter==='all'?true : S.filter==='gold'?r.pair : r.both);
+  const nPair=S.rows.filter(r=>r.pair).length;
+  const nBoth=S.rows.filter(r=>r.both).length;
+  const nFalse=S.rows.filter(r=>r.both&&!r.pair).length;
+
+  document.getElementById('rd-gb').textContent=nPair;
+  document.getElementById('rd-thr').textContent='g > '+thr.toFixed(1);
+  document.getElementById('tbl-sub').textContent=
+    `${rows.length} shown · ${nPair} pairs · ${nBoth} both-full · ${nFalse} false +`;
+
+  if(!rows.length){
+    document.getElementById('tblwrap').innerHTML='<div class="empty-msg">No rows match this filter at G = '+G+'.</div>';
+    return;
+  }
+  const shown=rows;   // always every matching row; the box scrolls
+  let h='<table><thead><tr><th>g</th><th>s = E−g</th><th>c &nbsp;φ(g)/(g−1)</th><th>d</th><th>g&gt;√E</th><th>verdict</th></tr></thead><tbody>';
+  for(const r of shown){
+    const v=r.both&&r.pair?['vg','Goldbach']:r.both?['vf','false +']:['vn','—'];
+    h+=`<tr data-g="${r.g}"${r.g===S.g?' class="sel"':''}>`+
+       `<td>${r.g}${isPrime(r.g)?' <span class="cfull">p</span>':''}</td>`+
+       `<td>${r.s}${isPrime(r.s)?' <span class="dfull">p</span>':''}</td>`+
+       `<td class="${r.cFull?'cfull':''}">${r.cCop}/${r.cTot}</td>`+
+       `<td class="${r.dFull?'dfull':''}">${r.dCop}/${r.dTot}</td>`+
+       `<td class="vn">${r.above?'✓':'·'}</td>`+
+       `<td class="${v[0]}">${v[1]}</td></tr>`;
+  }
+  h+='</tbody></table>';
+  const wrap=document.getElementById('tblwrap');
+  wrap.innerHTML=h;
+  wrap.querySelectorAll('tbody tr').forEach(tr=>{
+    tr.addEventListener('click',()=>setGap(+tr.dataset.g));
+  });
+}
+// scrollIntoView walks up and scrolls EVERY scrollable ancestor, which on a
+// stacked layout drags the whole document to the bottom every time the gap
+// moves. Scroll the table's own box by hand instead so nothing else shifts.
+function scrollToSelected(){
+  const wrap=document.getElementById('tblwrap');
+  const tr=wrap.querySelector('tr.sel');
+  if(!tr) return;
+  const head=wrap.querySelector('thead');
+  const headH=head?head.getBoundingClientRect().height:0;
+  const top=tr.offsetTop, bot=top+tr.offsetHeight;
+  const viewTop=wrap.scrollTop+headH, viewBot=wrap.scrollTop+wrap.clientHeight;
+  if(top<viewTop) wrap.scrollTop=Math.max(0,top-headH-2);
+  else if(bot>viewBot) wrap.scrollTop=bot-wrap.clientHeight+2;
+}
+
+/* ── step-by-step drawer ─────────────────────────────────────────── */
+// Every lattice point on a strip, built only when its dropdown is opened.
+// At g = 4095 that is 4094 rows per strip; building both on every gap change
+// would stall the sweep, so the drawer ships the summary and fills a walk in
+// on demand.
+function buildWalk(strip){
+  const G=S.G, g=S.g, E=2*(G+1), s=E-g;
+  const A = strip==='c' ? Math.max(1,g-G) : Math.max(1,s-G);
+  const B = strip==='c' ? Math.min(G,g-1) : Math.min(G,s-1);
+  const mod = strip==='c' ? g : s;
+  const out=[];
+  out.push('<table class="walk"><thead><tr><th>r</th><th>M</th><th>reduces to</th><th>gcd</th><th></th></tr></thead><tbody>');
+  for(let r=A;r<=B;r++){
+    const q=gcd(r,mod), cls=q===1?'ok':'no';
+    out.push(`<tr><td>${r}</td><td>${mod-r}</td><td>gcd(${r},${mod})</td>`+
+             `<td class="${cls}">${q}</td><td class="${cls}">${q===1?'✓':'✕'}</td></tr>`);
+  }
+  out.push('</tbody></table>');
+  return out.join('');
+}
+function walkPanel(strip,label,total){
+  return `<details class="walkwrap" data-strip="${strip}">`+
+         `<summary>${label} <span class="vn">· ${total} points · click to open</span></summary>`+
+         `<div class="walkbox"></div></details>`;
+}
+function wireWalks(){
+  document.querySelectorAll('#detwrap .walkwrap').forEach(d=>{
+    d.addEventListener('toggle',()=>{
+      const box=d.querySelector('.walkbox');
+      if(d.open && !box.dataset.built){
+        box.innerHTML=buildWalk(d.dataset.strip);
+        box.dataset.built='1';
+      }
+    });
+  });
+}
+function renderDetail(){
+  const st=stripsAt(S.G,S.g), thr=Math.sqrt(st.E), v=verdict(st,thr);
+  document.getElementById('det-sub').textContent=`g = ${st.g}`;
+  const cA=Math.max(1,st.g-S.G), cB=Math.min(S.G,st.g-1);
+  const dA=Math.max(1,st.s-S.G), dB=Math.min(S.G,st.s-1);
+
+  const fac=x=>{const p=distinctPrimes(x);return p.length===1&&isPrime(x)?'prime':p.join(' · ');};
+  let h=`<div id="detail">
+    <h5>Partition</h5>
+    <div class="kv"><span>E = 2(G+1)</span><span class="eq">${st.E}</span></div>
+    <div class="kv"><span>g &nbsp;(strip c total)</span><span class="eq">${st.g} &nbsp;<span class="vn">${fac(st.g)}</span></span></div>
+    <div class="kv"><span>s = E − g &nbsp;(strip d)</span><span class="eq">${st.s} &nbsp;<span class="vn">${fac(st.s)}</span></span></div>
+    <div class="kv"><span>threshold √E</span><span class="eq">${thr.toFixed(2)} &nbsp;<span class="vn">${st.g>thr?'g is above':'g is below'}</span></span></div>
+
+    <div class="verdictbar ${v.k}">${v.short} — ${v.text}</div>
+
+    <h5>Strip c &nbsp;· &nbsp;r + M = ${st.g}</h5>
+    <div class="kv"><span>reduction</span><span class="eq">gcd(r, ${st.g}−r) = gcd(r, ${st.g})</span></div>
+    <div class="kv"><span>coprime</span><span class="eq ${st.cFull?'cfull':''}">${st.cCop} / ${st.cTot} &nbsp; ${st.cTot?(st.cCop/st.cTot).toFixed(4):'—'}</span></div>
+    <div class="kv"><span>φ(${st.g}) exactly</span><span class="eq">${phi(st.g)}</span></div>
+    ${walkPanel('c','walk strip c',st.cTot)}
+
+    <h5>Strip d &nbsp;· &nbsp;r + M = ${st.s}</h5>
+    <div class="kv"><span>reduction</span><span class="eq">gcd(r, ${st.s}−r) = gcd(r, ${st.s})</span></div>
+    <div class="kv"><span>window</span><span class="eq">${dA} … ${dB} &nbsp;<span class="vn">${st.dTot} pts</span></span></div>
+    <div class="kv"><span>coprime</span><span class="eq ${st.dFull?'dfull':''}">${st.dCop} / ${st.dTot} &nbsp; ${st.dTot?(st.dCop/st.dTot).toFixed(4):'—'}</span></div>
+    ${walkPanel('d','walk strip d',st.dTot)}
+
+    <h5>Difference pair</h5>
+    <div class="kv"><span>a : M − r = ${st.g}</span><span class="eq">${st.aCop} / ${st.aTot}</span></div>
+    <div class="kv"><span>b : r − M = ${st.g}</span><span class="eq">${st.aCop} / ${st.aTot}</span></div>
+    <div class="note">a and b agree cell for cell — the transpose (r,M) ↦ (M,r) maps one onto the other and gcd is symmetric. They only witness the primality of g while ${st.g} ≤ G/2 = ${(S.G/2).toFixed(1)}; past that the strip is shorter than g and cannot contain a multiple of it.</div>
+  </div>`;
+  document.getElementById('detwrap').innerHTML=h;
+  wireWalks();
+}
+
+/* ── controls ────────────────────────────────────────────────────── */
+function setG(v){
+  let G=Math.max(1,Math.min(4096,Math.round(+v||121)));
+  S.G=G;
+  ensureSPF(2*(G+1)+4);
+  document.getElementById('sl-G').value=G;
+  document.getElementById('in-G').value=G;
+  const slg=document.getElementById('sl-g'); slg.max=G+1;
+  document.getElementById('in-g').max=G+1;
+  if(S.g>G+1) S.g=Math.max(1,G+1);
+  slg.value=S.g; document.getElementById('in-g').value=S.g;
+  document.getElementById('rd-G').textContent=G;
+  document.getElementById('rd-E').textContent=2*(G+1);
+  // A running Play-G sweep drives G through this same function on every tick.
+  // Only a *manual* G change (slider drag, preset, typed value) should cancel
+  // the gap/pairs sweeps and the G sweep itself — an automated tick must not
+  // stop either, or the two "loop" animations couldn't run together.
+  if(!inPlayGTick){ stopSweeps(false); stopSweepG(); }
+  if(inPlayGTick){
+    // Skip the full-screen "busy" overlay during an automated G sweep — it's
+    // meant as a one-off cue for a slow manual rebuild, but toggling it every
+    // ~110ms is exactly what reads as the screen flashing. Run the same work
+    // directly instead.
+    buildRows(); renderTable(); syncGap();
+    if(S.multi) computeMultiItems();
+    render(); renderDetail(); scrollToSelected();
+  } else {
+    busy(true,()=>{
+      buildRows(); renderTable(); syncGap();
+      if(S.multi) computeMultiItems();
+      render(); renderDetail(); scrollToSelected();
+    });
+  }
+}
+/* ── multi-pair controls ─────────────────────────────────────────── */
+function toggleMulti(){
+  S.multi=!S.multi;
+  const b=document.getElementById('ch-multi');
+  b.textContent=S.multi?'On — overlay':'Off — single gap g';
+  b.classList.toggle('on',S.multi);
+  ['mp-mode-row','mp-batch-row','mp-pager-row','mp-note'].forEach(id=>{
+    document.getElementById(id).style.display=S.multi?'flex':'none';
+  });
+  document.getElementById('mp-note').style.display=S.multi?'block':'none';
+  // the single-gap slider is meaningless while overlaying many gaps, but the
+  // sweep buttons stay live — they page through the batches instead (see below)
+  ['sl-g','in-g'].forEach(id=>{
+    const el=document.getElementById(id); el.disabled=S.multi;
+    el.style.opacity=S.multi?0.35:1;
+  });
+  if(S.multi){ computeMultiItems(); }
+  else { restoreDefaultLegend(); }
+  render();
+}
+function setMultiMode(m){
+  S.multiMode=m; S.page=0;
+  document.getElementById('mm-pairs').classList.toggle('on',m==='pairs');
+  document.getElementById('mm-all').classList.toggle('on',m==='all');
+  computeMultiItems();
+  render();
+}
+function setBatchSize(n){
+  S.batch=n; S.page=0;
+  document.querySelectorAll('#mp-batch-row [data-bs]').forEach(b=>b.classList.toggle('on',+b.dataset.bs===n));
+  render();
+}
+function pageStep(d){
+  S.page=Math.max(0,Math.min(totalPages()-1,S.page+d));
+  render();
+}
+function syncGap(){
+  const st=stripsAt(S.G,S.g);
+  document.getElementById('rd-g').textContent=S.g;
+  document.getElementById('rd-s').textContent=st.s;
+  document.getElementById('v-E').textContent=`${st.E} = ${st.g} + ${st.s}`;
+}
+function setGap(v){
+  const G=S.G;
+  S.g=Math.max(1,Math.min(G+1,Math.round(+v||1)));
+  document.getElementById('sl-g').value=S.g;
+  document.getElementById('in-g').value=S.g;
+  syncGap();
+  // Re-flagging every row costs 4000 class writes a tick during a sweep, so
+  // move the flag between the two rows that actually changed.
+  const wrap=document.getElementById('tblwrap');
+  const prev=wrap.querySelector('tr.sel'); if(prev) prev.classList.remove('sel');
+  const now=wrap.querySelector('tr[data-g="'+S.g+'"]'); if(now) now.classList.add('sel');
+  scrollToSelected();
+  render(); renderDetail();
+}
+function stepPair(dir){
+  const pairs=S.rows.filter(r=>r.pair).map(r=>r.g);
+  if(!pairs.length) return;
+  let next=dir>0?pairs.find(x=>x>S.g):[...pairs].reverse().find(x=>x<S.g);
+  if(next===undefined) next=dir>0?pairs[0]:pairs[pairs.length-1];
+  setGap(next);
+}
+// Sweeps. Gap changes cost a couple of milliseconds at any G now, so both of
+// these stay smooth up to the top of the range. The step scales with G so a
+// one-way pass takes about the same time whether the grid is 23 or 4096.
+let sweepId=null, sweepDir=1, sweepFrom=null;
+function stopSweeps(restore){
+  if(sweepId){ clearInterval(sweepId); sweepId=null; }
+  ['ch-play','ch-playp'].forEach((id,i)=>{
+    const b=document.getElementById(id);
+    if(b){ b.textContent=i?'▶ Play pairs':'▶ Play g'; b.classList.remove('on'); }
+  });
+  if(restore&&sweepFrom!=null){
+    if(S.multi){ S.page=sweepFrom; render(); }
+    else setGap(sweepFrom);
+  }
+  sweepFrom=null;
+}
+function toggleSweep(){
+  // Stop just halts wherever the sweep currently is — no snapping back.
+  if(sweepId){ stopSweeps(false); return; }
+  stopSweeps(false);
+  const b=document.getElementById('ch-play');
+  if(S.multi){
+    // page through every batch — all partitions if that's not already the mode
+    if(S.multiMode!=='all') setMultiMode('all');
+    sweepFrom=S.page;
+    b.textContent='■ Stop'; b.classList.add('on');
+    sweepDir=1; S.page=0; render();
+    sweepId=setInterval(()=>{
+      const hi=totalPages()-1;
+      let n=S.page+sweepDir;
+      if(n>=hi){ n=hi; sweepDir=-1; } else if(n<=0){ n=0; sweepDir=1; }
+      S.page=n; render();
+    },700);
+    return;
+  }
+  sweepFrom=S.g;
+  b.textContent='■ Stop'; b.classList.add('on');
+  sweepDir=1; setGap(1);
+  sweepId=setInterval(()=>{
+    const hi=S.G+1, step=Math.max(1,Math.round((hi-1)/90));
+    let n=S.g+sweepDir*step;
+    if(n>=hi){ n=hi; sweepDir=-1; } else if(n<=1){ n=1; sweepDir=1; }
+    setGap(n);
+  },70);
+}
+// Play G: sweeps the grid size itself from its minimum up to whatever G the
+// slider was on when this was pressed, then loops back to the minimum and
+// repeats. It reuses setG() each tick, so it's flagged with inPlayGTick to
+// keep those ticks from cancelling the gap/pairs sweep — the two can run at
+// once, e.g. the diagonal gap g still walking while G grows underneath it.
+let sweepGId=null, inPlayGTick=false;
+function stopSweepG(){
+  if(sweepGId){ clearInterval(sweepGId); sweepGId=null; }
+  const b=document.getElementById('ch-playG');
+  if(b){ b.textContent='▶ Play G'; b.classList.remove('on'); }
+}
+function toggleSweepG(){
+  if(sweepGId){ stopSweepG(); return; }
+  stopSweepG();
+  const b=document.getElementById('ch-playG');
+  const lo=1, cap=S.G;
+  if(cap<=lo) return; // nothing to sweep — slider is already at the floor
+  const step=Math.max(1,Math.round((cap-lo)/60));
+  b.textContent='■ Stop'; b.classList.add('on');
+  // Ping-pong: climb 1→cap, then descend cap→1, repeat — no snap-reset.
+  let n=lo, dir=1;
+  const tick=()=>{
+    inPlayGTick=true;
+    setG(n);
+    inPlayGTick=false;
+    n+=dir*step;
+    if(n>=cap){ n=cap; dir=-1; }
+    else if(n<=lo){ n=lo; dir=1; }
+  };
+  tick();
+  sweepGId=setInterval(tick,110);
+}
+function toggleSweepPairs(){
+  if(sweepId){ stopSweeps(false); return; }
+  stopSweeps(false);
+  const b=document.getElementById('ch-playp');
+  if(S.multi){
+    // page through the Goldbach-pair batches only, forward, looping
+    if(S.multiMode!=='pairs') setMultiMode('pairs');
+    if(!S.items.length) return;
+    sweepFrom=S.page;
+    b.textContent='■ Stop'; b.classList.add('on');
+    let i=0;
+    S.page=0; render();
+    sweepId=setInterval(()=>{ S.page=i%totalPages(); i++; render(); },900);
+    return;
+  }
+  const pairs=S.rows.filter(r=>r.pair).map(r=>r.g);
+  if(!pairs.length) return;
+  sweepFrom=S.g;
+  b.textContent='■ Stop'; b.classList.add('on');
+  let i=0;
+  sweepId=setInterval(()=>{ setGap(pairs[i%pairs.length]); i++; },900);
+}
+function toggleShow(k){
+  S.show[k]=!S.show[k];
+  document.getElementById('ch-'+k).classList.toggle('on',S.show[k]);
+  render();
+}
+function setDim(v){ S.dim=Math.max(0,Math.min(1,v/100));
+  document.getElementById('v-dim').textContent=Math.round(S.dim*100)+'%'; render(); }
+function setCol(v){ S.col=v; BASE=null; BASE_KEY=''; render(); }
+function setView(v){
+  S.view=v;
+  ['grid','ring','cayley'].forEach(k=>document.getElementById('vw-'+k).classList.toggle('on',k===v));
+  document.getElementById('view-note').style.display=v==='grid'?'none':'block';
+  document.getElementById('cayley-extra').style.display=v==='cayley'?'block':'none';
+  const expBox=document.getElementById('exp-'+v);
+  if(expBox) expBox.checked=true;
+  render();
+}
+function setCayleyZoom(z){
+  S.cayleyZoom=z;
+  [1,2,4,8].forEach(k=>document.getElementById('cz-'+k).classList.toggle('on',k===z));
+  render();
+}
+function setCayleyRot(deg){
+  S.cayleyRot=((deg%360)+360)%360;
+  document.getElementById('sl-crot').value=S.cayleyRot;
+  document.getElementById('in-crot').value=S.cayleyRot;
+  render();
+}
+function setLbl(v){ S.lbl=v; render(); }
+function setFilter(f){
+  S.filter=f;
+  ['all','gold','full'].forEach(k=>document.getElementById('f-'+k).classList.toggle('on',k===f));
+  renderTable(); scrollToSelected();
+}
+function busy(on,then){
+  const b=document.getElementById('busy');
+  if(!on){ b.classList.remove('on'); return; }
+  b.classList.add('on');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ try{ then&&then(); } finally { b.classList.remove('on'); } }));
+}
+function toggleFS(){
+  const b=document.getElementById('btn-fs');
+  const goingOn=!document.body.classList.contains('is-fs');
+  // is-fs is the real switch — locks the canvas and strips the on-canvas
+  // text on mobile — kept in sync with, but not dependent on, the actual
+  // Fullscreen API (Safari/iOS in particular often refuses or silently no-ops it).
+  document.body.classList.toggle('is-fs',goingOn);
+  b.textContent=goingOn?'✕ Exit':'⛶ Fullscreen'; b.classList.toggle('on',goingOn);
+  if(goingOn){
+    (document.documentElement.requestFullscreen?document.documentElement.requestFullscreen():Promise.reject())
+      .catch(()=>{});
+  } else if(document.fullscreenElement) document.exitFullscreen();
+  setTimeout(()=>{fitCanvas();render();},60);
+}
+document.addEventListener('fullscreenchange',()=>{
+  // reconcile if the OS/browser exits fullscreen on its own (back button, swipe)
+  if(!document.fullscreenElement&&document.body.classList.contains('is-fs')){
+    document.body.classList.remove('is-fs');
+    const b=document.getElementById('btn-fs');
+    b.textContent='⛶ Fullscreen'; b.classList.remove('on');
+  }
+  setTimeout(()=>{fitCanvas();render();},60);
+});
+
+/* ── probe ───────────────────────────────────────────────────────── */
+(function(){
+  const probe=document.getElementById('probe');
+  // Both handlers do pixel→cell math that only means anything on the square
+  // Grid — Ring/Cayley plot points at projected (not uniform-grid) positions,
+  // so this used to silently report wrong r/M and could jump the gap to a
+  // nonsense value. Scoped to Grid until there's a real nearest-point hit
+  // test for the polar views.
+  cv.addEventListener('mousemove',e=>{
+    if(S.view!=='grid'){ probe.style.display='none'; return; }
+    const b=cv.getBoundingClientRect();
+    const cell=b.width/S.G;
+    const r=Math.floor((e.clientX-b.left)/cell)+1, m=Math.floor((e.clientY-b.top)/cell)+1;
+    if(r<1||r>S.G||m<1||m>S.G){ probe.style.display='none'; return; }
+    const q=gcd(r,m), br=branchOf(r,m,S.G,S.g);
+    probe.textContent=`r=${r}  M=${m}\ngcd = ${q}${q===1?'  coprime':''}`+
+      (br?`\nstrip ${br}`:'')+`\nM−r = ${m-r}   r+M = ${r+m}`;
+    probe.style.display='block';
+    const px=e.clientX-cv.parentElement.getBoundingClientRect().left+14;
+    const py=e.clientY-cv.parentElement.getBoundingClientRect().top+14;
+    probe.style.left=px+'px'; probe.style.top=py+'px';
+  });
+  cv.addEventListener('mouseleave',()=>{probe.style.display='none'});
+  cv.addEventListener('click',e=>{
+    if(S.view!=='grid') return;
+    const b=cv.getBoundingClientRect(), cell=b.width/S.G;
+    const r=Math.floor((e.clientX-b.left)/cell)+1, m=Math.floor((e.clientY-b.top)/cell)+1;
+    if(r<1||r>S.G||m<1||m>S.G) return;
+    const sum=r+m, E=2*(S.G+1);
+    // clicking a cell jumps to the gap whose sum strip runs through it
+    setGap(Math.max(1,Math.min(S.G-1, sum<=S.G? sum : E-sum)));
+  });
+})();
+
+/* ── export ──────────────────────────────────────────────────────── */
+// Exports the checked Views boxes as one PNG each. Each file keeps the exact
+// per-view design doExport already had (single-pair vs multi-pair header,
+// Grid's stat boxes vs Ring/Cayley's caption) — this just picks which
+// view(s) get rendered, without touching what any one export looks like.
+function selectedExportViews(){
+  return ['grid','ring','cayley'].filter(v=>{
+    const b=document.getElementById('exp-'+v);
+    return b&&b.checked;
+  });
+}
+function doExportViews(px){
+  const views=selectedExportViews();
+  if(!views.length) return;
+  // staggered so multiple simultaneous a.click() downloads don't collide
+  // with a browser's popup/download-spam guard
+  views.forEach((v,i)=>setTimeout(()=>doExport(px,v),i*350));
+}
+function doExport(px,viewOverride){
+  const prevView=S.view;
+  if(viewOverride) S.view=viewOverride;
+  const bare=document.getElementById('sel-plate').value==='bare';
+  busy(true,()=>{
+   try{
+    const c=document.createElement('canvas');
+    c.width=px; c.height=px;
+    const ctx=c.getContext('2d');
+    ctx.fillStyle='#04040d'; ctx.fillRect(0,0,px,px);
+    const M=Math.round(px*0.042);
+    let top=M, fname;
+    const vtag=S.view==='grid'?'':'-'+S.view;
+    if(!bare){
+      const T=(t,y,size,col,align,font)=>{
+        ctx.font=`${font||''}${size}px ${font==='bold '?'"JetBrains Mono",monospace':'"Cinzel",serif'}`;
+        ctx.fillStyle=col; ctx.textAlign=align||'left'; ctx.textBaseline='top';
+        ctx.fillText(t,align==='right'?px-M:M,y);
+      };
+      ctx.font=`${Math.round(px*0.0105)}px "JetBrains Mono",monospace`;
+      ctx.fillStyle='#c8a84a'; ctx.textAlign='center'; ctx.textBaseline='top';
+      ctx.fillText('STRIP ARITHMETIC I  ·  WESSEN GETACHEW  ·  2026',px/2,top);
+      top+=Math.round(px*0.026);
+      T('The Goldbach Diagonal',top,Math.round(px*0.040),'#ddd8cc');
+      ctx.font=`${Math.round(px*0.0115)}px "JetBrains Mono",monospace`;
+      ctx.fillStyle='#6a6560'; ctx.textAlign='right'; ctx.textBaseline='top';
+      ctx.fillText(`G = ${S.G}   ·   E = ${2*(S.G+1)}   ·   G² = ${S.G*S.G} pts`,px-M,top+Math.round(px*0.014));
+      top+=Math.round(px*0.056);
+
+      if(S.multi){
+        // ── multi-pair overlay export: describe the OVERLAY, not one gap ──
+        const E=2*(S.G+1);
+        const batch=currentBatch();
+        const nPair=S.multiMode==='pairs'?S.items.length:S.items.filter(x=>x.kind==='pair').length;
+        const modeLbl=S.multiMode==='pairs'?'Goldbach pairs':'all partitions';
+        const pages=totalPages(), full=pages===1;
+        ctx.font=`${Math.round(px*0.0155)}px "JetBrains Mono",monospace`;
+        ctx.fillStyle='#3dc8b8'; ctx.textAlign='left';
+        ctx.fillText(`${E} = g + s over g = 1…E/2   ·   showing ${modeLbl}`,M,top);
+        top+=Math.round(px*0.034);
+        const items=[
+          ['E',`${E}`,'2(G+1)','#c8a84a'],
+          ['r(E)',`${nPair}`,'Goldbach pairs','#7ec87a'],
+          ['shown',`${batch.length}`,'of '+S.items.length+' items','#3dc8b8'],
+          ['batch',`${S.page+1} / ${pages}`,full?'full set — nothing hidden':'PARTIAL — see legend below','#e0a83d']
+        ];
+        const bw=(px-2*M-(items.length-1)*px*0.008)/items.length, bh=Math.round(px*0.062);
+        items.forEach(([lab,val,sub,col],i)=>{
+          const bx=M+i*(bw+px*0.008);
+          ctx.fillStyle='rgba(255,255,255,.03)';
+          ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.fill();
+          ctx.strokeStyle=col+'88'; ctx.lineWidth=Math.max(1,px/2400);
+          ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.stroke();
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          let fs=Math.round(bh*0.34);
+          ctx.font=`600 ${fs}px "JetBrains Mono",monospace`;
+          while(fs>7&&ctx.measureText(val).width>bw*0.9){ fs-=1; ctx.font=`600 ${fs}px "JetBrains Mono",monospace`; }
+          ctx.fillStyle=col;
+          ctx.fillText(val,bx+bw/2,top+bh*0.36,bw*0.9);
+          ctx.font=`${Math.round(bh*0.17)}px "JetBrains Mono",monospace`;
+          ctx.fillStyle='rgba(106,101,96,.9)';
+          ctx.fillText(`${lab} · ${sub}`,bx+bw/2,top+bh*0.74,bw*0.94);
+        });
+        top+=bh+Math.round(px*0.020);
+        // per-item legend strip — the actual g+s pairs baked into this image,
+        // so a partial batch never looks like it depicts the whole overlay.
+        const fs2=Math.max(9,Math.round(px*0.0105));
+        ctx.font=`${fs2}px "JetBrains Mono",monospace`;
+        ctx.textBaseline='middle';
+        const sw=fs2*0.95, sh=Math.max(2,fs2*0.14), gapX=fs2*0.7, lineH=fs2*2.0;
+        const MAXSHOW=Math.min(batch.length,90);
+        let lx=M, ly=top+lineH*0.5;
+        for(let i=0;i<MAXSHOW;i++){
+          const it=batch[i];
+          const rgb=it.kind==='pair'?goldenColorRGB(S.pairIdx.get(it.g)||0):KIND_RGB[it.kind];
+          const label=it.kind==='pair'?`${it.g} + ${it.s}`:
+            `${it.g} + ${it.s} · ${it.kind==='gOnly'?'g only':it.kind==='sOnly'?'s only':'neither'}`;
+          const w=sw+gapX+ctx.measureText(label).width+fs2*1.1;
+          if(lx+w>px-M){ lx=M; ly+=lineH; }
+          ctx.fillStyle=rgbToCss(rgb);
+          ctx.beginPath(); ctx.roundRect(lx,ly-sh/2,sw,sh,sh/2); ctx.fill();
+          ctx.fillStyle='rgba(221,216,204,.85)'; ctx.textAlign='left';
+          ctx.fillText(label,lx+sw+gapX,ly);
+          lx+=w;
+        }
+        if(batch.length>MAXSHOW){
+          ctx.fillStyle='rgba(106,101,96,.9)';
+          ctx.fillText(`+${batch.length-MAXSHOW} more this batch`,lx,ly);
+        }
+        top=ly+lineH*0.9;
+        fname=`goldbach-multi-G${S.G}-${S.multiMode}-batch${S.page+1}of${pages}${vtag}-${px}.png`;
+      } else {
+        const st=stripsAt(S.G,S.g), thr=Math.sqrt(st.E), v=verdict(st,thr);
+        ctx.font=`${Math.round(px*0.0155)}px "JetBrains Mono",monospace`;
+        ctx.fillStyle='#3dc8b8'; ctx.textAlign='left';
+        ctx.fillText(`${st.E} = ${st.g} + ${st.s}   ·   c : r+M=${st.g}   ·   d : r+M=${st.s}`,M,top);
+        top+=Math.round(px*0.034);
+        const items=[
+          ['g',`${st.g}`,isPrime(st.g)?'prime':'composite','#c8a84a'],
+          ['s = E−g',`${st.s}`,isPrime(st.s)?'prime':'composite','#e05060'],
+          ['strip c',`${st.cCop}/${st.cTot}`,st.cFull?'fully lit':'short','#c8a84a'],
+          ['strip d',`${st.dCop}/${st.dTot}`,st.dFull?'fully lit':'short','#e05060'],
+          ['a = b',`${st.aCop}/${st.aTot}`,'difference pair','#3dc8b8'],
+          ['verdict',v.short,`g ${st.g>thr?'>':'≤'} √E = ${thr.toFixed(1)}`,v.col]
+        ];
+        const bw=(px-2*M-(items.length-1)*px*0.008)/items.length, bh=Math.round(px*0.062);
+        items.forEach(([lab,val,sub,col],i)=>{
+          const bx=M+i*(bw+px*0.008);
+          ctx.fillStyle='rgba(255,255,255,.03)';
+          ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.fill();
+          ctx.strokeStyle=col+'88'; ctx.lineWidth=Math.max(1,px/2400);
+          ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.stroke();
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          let fs=Math.round(bh*0.36);
+          ctx.font=`600 ${fs}px "JetBrains Mono",monospace`;
+          while(fs>7&&ctx.measureText(val).width>bw*0.9){ fs-=1; ctx.font=`600 ${fs}px "JetBrains Mono",monospace`; }
+          ctx.fillStyle=col;
+          ctx.fillText(val,bx+bw/2,top+bh*0.36,bw*0.9);
+          ctx.font=`${Math.round(bh*0.19)}px "JetBrains Mono",monospace`;
+          ctx.fillStyle='rgba(106,101,96,.9)';
+          ctx.fillText(`${lab} · ${sub}`,bx+bw/2,top+bh*0.72,bw*0.94);
+        });
+        top+=bh+Math.round(px*0.018);
+        fname=`goldbach-diagonal-G${S.G}-g${S.g}${vtag}-${px}.png`;
+      }
+    } else {
+      fname=S.multi?`goldbach-multi-G${S.G}-${S.multiMode}${vtag}-${px}.png`:`goldbach-diagonal-G${S.G}-g${S.g}${vtag}-${px}.png`;
+    }
+    const side=Math.min(px-2*M, px-top-(bare?M:Math.round(px*0.052)));
+    const ox=Math.round((px-side)/2);
+    const sub=document.createElement('canvas');
+    sub.width=side; sub.height=side;
+    paint(sub.getContext('2d'),side,S.G,S.g);
+    ctx.drawImage(sub,ox,top);
+    ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.lineWidth=1;
+    ctx.strokeRect(ox+.5,top+.5,side-1,side-1);
+    if(!bare){
+      ctx.font=`${Math.round(px*0.0105)}px "JetBrains Mono",monospace`;
+      ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle='#6a6560';
+      ctx.fillText(`a M−r=g  ·  b r−M=g  ·  c r+M=g  ·  d r+M=E−g   ·   mode ${S.col}   ·   labels ${S.lbl}   ·   view ${S.view}`,M,px-Math.round(px*0.030));
+      ctx.textAlign='right';
+      ctx.fillText('wessengetachew.github.io',px-M,px-Math.round(px*0.030));
+    }
+    const a=document.createElement('a');
+    a.download=fname;
+    a.href=c.toDataURL('image/png');
+    a.click();
+   } finally {
+    S.view=prevView;
+   }
+  });
+}
+
+/* ── boot ────────────────────────────────────────────────────────── */
+(function boot(){
+  const pw=document.getElementById('presets');
+  PRESETS.forEach(p=>{
+    const b=document.createElement('button');
+    b.className='chip'; b.textContent='E='+p.t;
+    b.title=p.why;
+    b.onclick=()=>{ setG(p.E/2-1); };
+    pw.appendChild(b);
+  });
+  ensureSPF(2*(S.G+1)+4);
+  fitCanvas();
+  setG(S.G);
+  setGap(S.g);
+  let t=null;
+  window.addEventListener('resize',()=>{ clearTimeout(t); t=setTimeout(()=>{fitCanvas();render();},120); });
+  document.addEventListener('keydown',e=>{
+    if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
+    if(e.key==='ArrowRight') setGap(S.g+1);
+    else if(e.key==='ArrowLeft') setGap(S.g-1);
+    else if(e.key===']') stepPair(1);
+    else if(e.key==='[') stepPair(-1);
+    else if(e.key==='f') toggleFS();
+  });
+})();
+</script>
+</body>
+</html>
