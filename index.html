@@ -148,6 +148,7 @@ tbody tr.sel td:first-child{box-shadow:inset 2px 0 0 var(--gold)}
 .vn{color:var(--cream3)}     /* not both full            */
 .cfull{color:var(--gold)}
 .dfull{color:var(--coral)}
+.gapn{color:var(--violet)}   /* gap-2n prime constellation badge */
 #detail{padding:11px 13px;font-family:var(--mono);font-size:10px;line-height:1.75;color:var(--cream2)}
 #detail h5{font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);font-weight:500;margin:12px 0 6px}
 #detail h5:first-child{margin-top:0}
@@ -191,7 +192,15 @@ tbody tr.sel td:first-child{box-shadow:inset 2px 0 0 var(--gold)}
 #busy.on{display:flex}
 
 @media (max-width:1100px){ :root{--rail:250px;--dock:212px} #dock{grid-template-columns:1fr 260px} }
-@media (max-width:860px){
+/* Stacked mobile layout. Triggers on (max-width:860px) for ordinary narrow
+   viewports, OR on any coarse-pointer/no-hover device (a real touchscreen)
+   regardless of reported viewport width — this second condition is what
+   catches a phone's browser in "Desktop site" mode, which lies to CSS about
+   being ~980-1200px wide while the physical screen stays phone-sized. Without
+   it, that combination never matched max-width:860px, so the layout stayed
+   in desktop grid mode and the rail (View/Coloring/Export) landed off-screen
+   with only a manual horizontal scroll to reach it. */
+@media (max-width:860px), (hover:none) and (pointer:coarse){
   html,body{overflow:auto}
   #shell{height:auto;display:block}
   #top{height:auto;flex-wrap:wrap;padding:8px 12px;gap:8px 12px;position:sticky;top:0;z-index:20}
@@ -401,7 +410,7 @@ tbody tr.sel td:first-child{box-shadow:inset 2px 0 0 var(--gold)}
             <option value="bare">lattice only</option>
           </select>
         </div>
-        <div class="note">Checking more than one view downloads one file per view — each keeps its own header/legend design, just re-projected. The view you're currently looking at gets auto-checked when you switch.</div>
+        <div class="note">Checking one view downloads that view alone. Checking two or three tiles them into a single PNG — side-by-side for two, a triangle for three. The view you're currently looking at gets auto-checked when you switch.</div>
       </div>
 
       <div class="grp">
@@ -425,6 +434,14 @@ tbody tr.sel td:first-child{box-shadow:inset 2px 0 0 var(--gold)}
         <button class="chip" id="f-all" onclick="setFilter('all')">all</button>
         <button class="chip on" id="f-gold" onclick="setFilter('gold')">pairs</button>
         <button class="chip" id="f-full" onclick="setFilter('full')">both full</button>
+        <button class="chip" id="f-gap2n" onclick="setFilter('gap2n')">gap 2n</button>
+      </div>
+      <div class="dhead" style="border-bottom:1px solid var(--edge)">
+        <span style="color:var(--violet)">n (gap = 2n)</span>
+        <input type="range" id="sl-gapn" min="1" max="200" step="1" value="1" oninput="setGapN(+this.value)" style="flex:1;max-width:160px">
+        <input type="number" id="in-gapn" min="1" max="200" value="1" style="width:50px" oninput="setGapN(+this.value)">
+        <span class="spacer"></span>
+        <span class="sub">flags g/s with a prime partner 2n away · n=1 twin, n=2 cousin, n=3 sexy</span>
       </div>
       <div class="scroll" id="tblwrap"></div>
     </div>
@@ -511,7 +528,7 @@ function stripsAt(G,g){
 /* ── state ───────────────────────────────────────────────────────── */
 const S={G:121,g:61,col:'sector',lbl:'r',dim:0.45,view:'grid',cayleyZoom:1,cayleyRot:0,
          show:{sum:true,diff:true,frame:true,diag:false},
-         filter:'gold',rows:[],sel:null,
+         filter:'gold',rows:[],sel:null,gapN:1,
          multi:false,multiMode:'pairs',batch:1,page:0,items:[],pairIdx:new Map()};
 const BR={a:[61,200,184],b:[155,127,232],c:[200,168,74],d:[224,80,96]};
 const KIND_RGB={gOnly:[200,168,74],sOnly:[61,200,184],none:[58,58,70]};
@@ -720,7 +737,15 @@ function fitCanvas(){
   const plate=document.getElementById('plate');
   const pad=20;
   const w=Math.max(160,plate.clientWidth-pad);
-  const stacked=window.matchMedia('(max-width:860px)').matches;
+  // Must match the CSS breakpoint exactly (see the (hover:none) and
+  // (pointer:coarse) media query above): a phone in "Desktop site" mode
+  // reports a wide viewport, so width alone under-detects it. When that
+  // happened here specifically, this function fell into the desktop branch
+  // and sized the canvas off plate.clientHeight — but CSS had already
+  // switched #plate to a height:auto flex column, so clientHeight collapsed
+  // to whatever the canvas already was, pinning it small instead of letting
+  // it grow to fill the width.
+  const stacked=window.matchMedia('(max-width:860px), (hover:none) and (pointer:coarse)').matches;
   const locked=document.body.classList.contains('is-fs');
   const h=stacked?Math.round(Math.min(w,window.innerHeight*(locked?0.86:0.62)))
                  :Math.max(160,plate.clientHeight-pad);
@@ -957,14 +982,26 @@ function verdict(st,thr){
 }
 
 /* ── partition table ─────────────────────────────────────────────── */
+// Gap-2n prime constellations: x is flagged when x itself is prime and it
+// has a prime partner exactly 2n away (either side). n=1 → twin primes,
+// n=2 → cousin primes, n=3 → sexy primes, etc. Bounds check against SPF_N
+// since ensureSPF is sized to cover x±2n (see setG/setGapN/boot).
+function hasGapPartner(x,n){
+  if(!isPrime(x)) return false;
+  const hi=x+2*n, lo=x-2*n;
+  return (hi<=SPF_N&&isPrime(hi))||(lo>=2&&isPrime(lo));
+}
 function buildRows(){
-  const G=S.G, E=2*(G+1), thr=Math.sqrt(E);
+  const G=S.G, E=2*(G+1), thr=Math.sqrt(E), n=S.gapN;
   const rows=[];
   for(let g=1;g<=G+1;g++){
     const st=stripsAt(G,g);
     st.pair=isPrime(g)&&isPrime(st.s);
     st.both=st.cFull&&st.dFull;
     st.above=g>thr;
+    st.gGap=hasGapPartner(g,n);
+    st.sGap=hasGapPartner(st.s,n);
+    st.gapPartner=st.gGap||st.sGap;
     rows.push(st);
   }
   S.rows=rows;
@@ -973,15 +1010,16 @@ function buildRows(){
 function renderTable(){
   const G=S.G, E=2*(G+1), thr=Math.sqrt(E);
   const rows=S.rows.filter(r=>
-    S.filter==='all'?true : S.filter==='gold'?r.pair : r.both);
+    S.filter==='all'?true : S.filter==='gold'?r.pair : S.filter==='gap2n'?r.gapPartner : r.both);
   const nPair=S.rows.filter(r=>r.pair).length;
   const nBoth=S.rows.filter(r=>r.both).length;
   const nFalse=S.rows.filter(r=>r.both&&!r.pair).length;
+  const nGap=S.rows.filter(r=>r.gapPartner).length;
 
   document.getElementById('rd-gb').textContent=nPair;
   document.getElementById('rd-thr').textContent='g > '+thr.toFixed(1);
   document.getElementById('tbl-sub').textContent=
-    `${rows.length} shown · ${nPair} pairs · ${nBoth} both-full · ${nFalse} false +`;
+    `${rows.length} shown · ${nPair} pairs · ${nBoth} both-full · ${nFalse} false + · ${nGap} gap-2n (n=${S.gapN})`;
 
   if(!rows.length){
     document.getElementById('tblwrap').innerHTML='<div class="empty-msg">No rows match this filter at G = '+G+'.</div>';
@@ -992,8 +1030,8 @@ function renderTable(){
   for(const r of shown){
     const v=r.both&&r.pair?['vg','Goldbach']:r.both?['vf','false +']:['vn','—'];
     h+=`<tr data-g="${r.g}"${r.g===S.g?' class="sel"':''}>`+
-       `<td>${r.g}${isPrime(r.g)?' <span class="cfull">p</span>':''}</td>`+
-       `<td>${r.s}${isPrime(r.s)?' <span class="dfull">p</span>':''}</td>`+
+       `<td>${r.g}${isPrime(r.g)?' <span class="cfull">p</span>':''}${r.gGap?' <span class="gapn" title="part of a gap-'+(2*S.gapN)+' prime pair">±'+(2*S.gapN)+'</span>':''}</td>`+
+       `<td>${r.s}${isPrime(r.s)?' <span class="dfull">p</span>':''}${r.sGap?' <span class="gapn" title="part of a gap-'+(2*S.gapN)+' prime pair">±'+(2*S.gapN)+'</span>':''}</td>`+
        `<td class="${r.cFull?'cfull':''}">${r.cCop}/${r.cTot}</td>`+
        `<td class="${r.dFull?'dfull':''}">${r.dCop}/${r.dTot}</td>`+
        `<td class="vn">${r.above?'✓':'·'}</td>`+
@@ -1098,7 +1136,7 @@ function renderDetail(){
 function setG(v){
   let G=Math.max(1,Math.min(4096,Math.round(+v||121)));
   S.G=G;
-  ensureSPF(2*(G+1)+4);
+  ensureSPF(2*(G+1)+4+2*S.gapN);
   document.getElementById('sl-G').value=G;
   document.getElementById('in-G').value=G;
   const slg=document.getElementById('sl-g'); slg.max=G+1;
@@ -1321,8 +1359,16 @@ function setCayleyRot(deg){
 function setLbl(v){ S.lbl=v; render(); }
 function setFilter(f){
   S.filter=f;
-  ['all','gold','full'].forEach(k=>document.getElementById('f-'+k).classList.toggle('on',k===f));
+  ['all','gold','full','gap2n'].forEach(k=>document.getElementById('f-'+k).classList.toggle('on',k===f));
   renderTable(); scrollToSelected();
+}
+function setGapN(v){
+  const n=Math.max(1,Math.min(200,Math.round(+v||1)));
+  S.gapN=n;
+  document.getElementById('sl-gapn').value=n;
+  document.getElementById('in-gapn').value=n;
+  ensureSPF(2*(S.G+1)+4+2*n);
+  buildRows(); renderTable(); scrollToSelected();
 }
 function busy(on,then){
   const b=document.getElementById('busy');
@@ -1389,10 +1435,11 @@ document.addEventListener('fullscreenchange',()=>{
 })();
 
 /* ── export ──────────────────────────────────────────────────────── */
-// Exports the checked Views boxes as one PNG each. Each file keeps the exact
-// per-view design doExport already had (single-pair vs multi-pair header,
-// Grid's stat boxes vs Ring/Cayley's caption) — this just picks which
-// view(s) get rendered, without touching what any one export looks like.
+// Exports the checked Views boxes. One box checked → the single-view PNG
+// doExport already produced. More than one box checked → ONE combined PNG
+// (doExportCombined) with the views tiled into it — side-by-side for two,
+// a triangle (apex + base pair) for three — instead of firing off several
+// separate downloads.
 function selectedExportViews(){
   return ['grid','ring','cayley'].filter(v=>{
     const b=document.getElementById('exp-'+v);
@@ -1402,9 +1449,188 @@ function selectedExportViews(){
 function doExportViews(px){
   const views=selectedExportViews();
   if(!views.length) return;
-  // staggered so multiple simultaneous a.click() downloads don't collide
-  // with a browser's popup/download-spam guard
-  views.forEach((v,i)=>setTimeout(()=>doExport(px,v),i*350));
+  if(views.length===1){ doExport(px,views[0]); return; }
+  doExportCombined(px,views);
+}
+const VIEW_LABEL={grid:'GRID',ring:'RING',cayley:'CAYLEY'};
+// Draws the multi-pair overlay header (stat boxes + per-item g+s legend)
+// used by BOTH doExport and doExportCombined, so a combined export carries
+// the exact same batch/legend detail a single-view multi export does —
+// nothing gets dropped just because the image is tiled. Returns the y
+// coordinate where the block ends (so the caller can continue drawing
+// below it) along with the page count (used in doExport's filename).
+function drawMultiHeader(ctx,px,top,M){
+  const E=2*(S.G+1);
+  const batch=currentBatch();
+  const nPair=S.multiMode==='pairs'?S.items.length:S.items.filter(x=>x.kind==='pair').length;
+  const modeLbl=S.multiMode==='pairs'?'Goldbach pairs':'all partitions';
+  const pages=totalPages(), full=pages===1;
+  ctx.font=`${Math.round(px*0.0155)}px "JetBrains Mono",monospace`;
+  ctx.fillStyle='#3dc8b8'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(`${E} = g + s over g = 1…E/2   ·   showing ${modeLbl}`,M,top);
+  top+=Math.round(px*0.034);
+  const items=[
+    ['E',`${E}`,'2(G+1)','#c8a84a'],
+    ['r(E)',`${nPair}`,'Goldbach pairs','#7ec87a'],
+    ['shown',`${batch.length}`,'of '+S.items.length+' items','#3dc8b8'],
+    ['batch',`${S.page+1} / ${pages}`,full?'full set — nothing hidden':'PARTIAL — see legend below','#e0a83d']
+  ];
+  const bw=(px-2*M-(items.length-1)*px*0.008)/items.length, bh=Math.round(px*0.062);
+  items.forEach(([lab,val,sub,col],i)=>{
+    const bx=M+i*(bw+px*0.008);
+    ctx.fillStyle='rgba(255,255,255,.03)';
+    ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.fill();
+    ctx.strokeStyle=col+'88'; ctx.lineWidth=Math.max(1,px/2400);
+    ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.stroke();
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    let fs=Math.round(bh*0.34);
+    ctx.font=`600 ${fs}px "JetBrains Mono",monospace`;
+    while(fs>7&&ctx.measureText(val).width>bw*0.9){ fs-=1; ctx.font=`600 ${fs}px "JetBrains Mono",monospace`; }
+    ctx.fillStyle=col;
+    ctx.fillText(val,bx+bw/2,top+bh*0.36,bw*0.9);
+    ctx.font=`${Math.round(bh*0.17)}px "JetBrains Mono",monospace`;
+    ctx.fillStyle='rgba(106,101,96,.9)';
+    ctx.fillText(`${lab} · ${sub}`,bx+bw/2,top+bh*0.74,bw*0.94);
+  });
+  top+=bh+Math.round(px*0.020);
+  // per-item legend strip — the actual g+s pairs baked into this image, so
+  // a partial batch never looks like it depicts the whole overlay.
+  const fs2=Math.max(9,Math.round(px*0.0105));
+  ctx.font=`${fs2}px "JetBrains Mono",monospace`;
+  ctx.textBaseline='middle';
+  const sw=fs2*0.95, sh=Math.max(2,fs2*0.14), gapX=fs2*0.7, lineH=fs2*2.0;
+  const MAXSHOW=Math.min(batch.length,90);
+  let lx=M, ly=top+lineH*0.5;
+  for(let i=0;i<MAXSHOW;i++){
+    const it=batch[i];
+    const rgb=it.kind==='pair'?goldenColorRGB(S.pairIdx.get(it.g)||0):KIND_RGB[it.kind];
+    const label=it.kind==='pair'?`${it.g} + ${it.s}`:
+      `${it.g} + ${it.s} · ${it.kind==='gOnly'?'g only':it.kind==='sOnly'?'s only':'neither'}`;
+    const w=sw+gapX+ctx.measureText(label).width+fs2*1.1;
+    if(lx+w>px-M){ lx=M; ly+=lineH; }
+    ctx.fillStyle=rgbToCss(rgb);
+    ctx.beginPath(); ctx.roundRect(lx,ly-sh/2,sw,sh,sh/2); ctx.fill();
+    ctx.fillStyle='rgba(221,216,204,.85)'; ctx.textAlign='left';
+    ctx.fillText(label,lx+sw+gapX,ly);
+    lx+=w;
+  }
+  if(batch.length>MAXSHOW){
+    ctx.fillStyle='rgba(106,101,96,.9)';
+    ctx.fillText(`+${batch.length-MAXSHOW} more this batch`,lx,ly);
+  }
+  top=ly+lineH*0.9;
+  return {top,pages};
+}
+// Tiles 2 or 3 views into a single canvas and downloads it as one PNG.
+// 2 views  → side-by-side pair.
+// 3 views  → triangle: one panel centered on top (apex), the other two
+//            forming the base row underneath.
+// Header is drawn twice: once on a throwaway canvas purely to measure how
+// tall it ends up (the multi-pair legend wraps a variable number of lines
+// depending on the current batch, so its height can't be known up front),
+// then for real once the final canvas is sized correctly.
+function doExportCombined(px,views){
+  const prevView=S.view;
+  const bare=document.getElementById('sel-plate').value==='bare';
+  busy(true,()=>{
+   try{
+    const M=Math.round(px*0.042);
+    const gap=Math.round(px*0.022);
+    const labelH=bare?0:Math.round(px*0.028);
+    const footerH=bare?0:Math.round(px*0.034);
+    const n=views.length;
+    const contentW=px-2*M;
+    const side=Math.floor((contentW-gap)/2);
+
+    function drawHeader(ctx){
+      let top=M;
+      if(bare) return top;
+      ctx.font=`${Math.round(px*0.0105)}px "JetBrains Mono",monospace`;
+      ctx.fillStyle='#c8a84a'; ctx.textAlign='center'; ctx.textBaseline='top';
+      ctx.fillText('STRIP ARITHMETIC I  ·  WESSEN GETACHEW  ·  2026',px/2,top);
+      top+=Math.round(px*0.026);
+      ctx.font=`${Math.round(px*0.040)}px "Cinzel",serif`;
+      ctx.fillStyle='#ddd8cc'; ctx.textAlign='left'; ctx.textBaseline='top';
+      ctx.fillText('The Goldbach Diagonal — combined views',M,top);
+      // stats sit on their own line below the title rather than beside it —
+      // the title text is long enough here that sharing a line with a
+      // right-aligned stats string caused them to overlap.
+      top+=Math.round(px*0.048);
+      ctx.font=`${Math.round(px*0.0115)}px "JetBrains Mono",monospace`;
+      ctx.fillStyle='#6a6560'; ctx.textAlign='right';
+      ctx.fillText(`G = ${S.G}   ·   E = ${2*(S.G+1)}   ·   g = ${S.g}`,px-M,top);
+      top+=Math.round(px*0.030);
+      if(S.multi){
+        const r=drawMultiHeader(ctx,px,top,M);
+        top=r.top;
+      }
+      return top;
+    }
+
+    const measCanvas=document.createElement('canvas');
+    measCanvas.width=px; measCanvas.height=10;
+    const headerBottom=drawHeader(measCanvas.getContext('2d'));
+
+    // lay out panel positions
+    const panelPositions=[];
+    let canvasH;
+    if(n===2){
+      const y=headerBottom+labelH;
+      panelPositions.push({v:views[0],x:M,y,side});
+      panelPositions.push({v:views[1],x:M+side+gap,y,side});
+      canvasH=y+side+footerH+M;
+    } else {
+      const apexX=M+Math.floor((contentW-side)/2);
+      const yTop=headerBottom+labelH;
+      const yBottom=yTop+side+Math.round(px*0.03)+labelH;
+      panelPositions.push({v:views[0],x:apexX,y:yTop,side});
+      panelPositions.push({v:views[1],x:M,y:yBottom,side});
+      panelPositions.push({v:views[2],x:M+side+gap,y:yBottom,side});
+      canvasH=yBottom+side+footerH+M;
+    }
+
+    const c=document.createElement('canvas');
+    c.width=px; c.height=canvasH;
+    const ctx=c.getContext('2d');
+    ctx.fillStyle='#04040d'; ctx.fillRect(0,0,px,canvasH);
+    drawHeader(ctx);
+
+    panelPositions.forEach(p=>{
+      S.view=p.v;
+      const sub=document.createElement('canvas');
+      sub.width=p.side; sub.height=p.side;
+      paint(sub.getContext('2d'),p.side,S.G,S.g);
+      ctx.drawImage(sub,p.x,p.y);
+      ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.lineWidth=1;
+      ctx.strokeRect(p.x+.5,p.y+.5,p.side-1,p.side-1);
+      if(!bare){
+        ctx.font=`${Math.round(px*0.0125)}px "JetBrains Mono",monospace`;
+        ctx.fillStyle='#c8a84a'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+        ctx.fillText(VIEW_LABEL[p.v]||p.v.toUpperCase(),p.x+p.side/2,p.y-Math.round(px*0.006));
+      }
+    });
+
+    if(!bare){
+      const fy=canvasH-footerH+Math.round(px*0.008);
+      ctx.font=`${Math.round(px*0.0105)}px "JetBrains Mono",monospace`;
+      ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle='#6a6560';
+      ctx.fillText(`a M−r=g  ·  b r−M=g  ·  c r+M=g  ·  d r+M=E−g   ·   mode ${S.col}   ·   labels ${S.lbl}`,M,fy);
+      ctx.textAlign='right';
+      ctx.fillText('wessengetachew.github.io',px-M,fy);
+    }
+
+    const vtag=views.join('+');
+    const fname=S.multi
+      ? `goldbach-multi-G${S.G}-${S.multiMode}-combined-${vtag}-${px}.png`
+      : `goldbach-diagonal-G${S.G}-g${S.g}-combined-${vtag}-${px}.png`;
+    const a=document.createElement('a');
+    a.download=fname;
+    a.href=c.toDataURL('image/png');
+    a.click();
+   } finally {
+    S.view=prevView;
+   }
+  });
 }
 function doExport(px,viewOverride){
   const prevView=S.view;
@@ -1437,66 +1663,9 @@ function doExport(px,viewOverride){
 
       if(S.multi){
         // ── multi-pair overlay export: describe the OVERLAY, not one gap ──
-        const E=2*(S.G+1);
-        const batch=currentBatch();
-        const nPair=S.multiMode==='pairs'?S.items.length:S.items.filter(x=>x.kind==='pair').length;
-        const modeLbl=S.multiMode==='pairs'?'Goldbach pairs':'all partitions';
-        const pages=totalPages(), full=pages===1;
-        ctx.font=`${Math.round(px*0.0155)}px "JetBrains Mono",monospace`;
-        ctx.fillStyle='#3dc8b8'; ctx.textAlign='left';
-        ctx.fillText(`${E} = g + s over g = 1…E/2   ·   showing ${modeLbl}`,M,top);
-        top+=Math.round(px*0.034);
-        const items=[
-          ['E',`${E}`,'2(G+1)','#c8a84a'],
-          ['r(E)',`${nPair}`,'Goldbach pairs','#7ec87a'],
-          ['shown',`${batch.length}`,'of '+S.items.length+' items','#3dc8b8'],
-          ['batch',`${S.page+1} / ${pages}`,full?'full set — nothing hidden':'PARTIAL — see legend below','#e0a83d']
-        ];
-        const bw=(px-2*M-(items.length-1)*px*0.008)/items.length, bh=Math.round(px*0.062);
-        items.forEach(([lab,val,sub,col],i)=>{
-          const bx=M+i*(bw+px*0.008);
-          ctx.fillStyle='rgba(255,255,255,.03)';
-          ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.fill();
-          ctx.strokeStyle=col+'88'; ctx.lineWidth=Math.max(1,px/2400);
-          ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.stroke();
-          ctx.textAlign='center'; ctx.textBaseline='middle';
-          let fs=Math.round(bh*0.34);
-          ctx.font=`600 ${fs}px "JetBrains Mono",monospace`;
-          while(fs>7&&ctx.measureText(val).width>bw*0.9){ fs-=1; ctx.font=`600 ${fs}px "JetBrains Mono",monospace`; }
-          ctx.fillStyle=col;
-          ctx.fillText(val,bx+bw/2,top+bh*0.36,bw*0.9);
-          ctx.font=`${Math.round(bh*0.17)}px "JetBrains Mono",monospace`;
-          ctx.fillStyle='rgba(106,101,96,.9)';
-          ctx.fillText(`${lab} · ${sub}`,bx+bw/2,top+bh*0.74,bw*0.94);
-        });
-        top+=bh+Math.round(px*0.020);
-        // per-item legend strip — the actual g+s pairs baked into this image,
-        // so a partial batch never looks like it depicts the whole overlay.
-        const fs2=Math.max(9,Math.round(px*0.0105));
-        ctx.font=`${fs2}px "JetBrains Mono",monospace`;
-        ctx.textBaseline='middle';
-        const sw=fs2*0.95, sh=Math.max(2,fs2*0.14), gapX=fs2*0.7, lineH=fs2*2.0;
-        const MAXSHOW=Math.min(batch.length,90);
-        let lx=M, ly=top+lineH*0.5;
-        for(let i=0;i<MAXSHOW;i++){
-          const it=batch[i];
-          const rgb=it.kind==='pair'?goldenColorRGB(S.pairIdx.get(it.g)||0):KIND_RGB[it.kind];
-          const label=it.kind==='pair'?`${it.g} + ${it.s}`:
-            `${it.g} + ${it.s} · ${it.kind==='gOnly'?'g only':it.kind==='sOnly'?'s only':'neither'}`;
-          const w=sw+gapX+ctx.measureText(label).width+fs2*1.1;
-          if(lx+w>px-M){ lx=M; ly+=lineH; }
-          ctx.fillStyle=rgbToCss(rgb);
-          ctx.beginPath(); ctx.roundRect(lx,ly-sh/2,sw,sh,sh/2); ctx.fill();
-          ctx.fillStyle='rgba(221,216,204,.85)'; ctx.textAlign='left';
-          ctx.fillText(label,lx+sw+gapX,ly);
-          lx+=w;
-        }
-        if(batch.length>MAXSHOW){
-          ctx.fillStyle='rgba(106,101,96,.9)';
-          ctx.fillText(`+${batch.length-MAXSHOW} more this batch`,lx,ly);
-        }
-        top=ly+lineH*0.9;
-        fname=`goldbach-multi-G${S.G}-${S.multiMode}-batch${S.page+1}of${pages}${vtag}-${px}.png`;
+        const r=drawMultiHeader(ctx,px,top,M);
+        top=r.top;
+        fname=`goldbach-multi-G${S.G}-${S.multiMode}-batch${S.page+1}of${r.pages}${vtag}-${px}.png`;
       } else {
         const st=stripsAt(S.G,S.g), thr=Math.sqrt(st.E), v=verdict(st,thr);
         ctx.font=`${Math.round(px*0.0155)}px "JetBrains Mono",monospace`;
@@ -1569,7 +1738,7 @@ function doExport(px,viewOverride){
     b.onclick=()=>{ setG(p.E/2-1); };
     pw.appendChild(b);
   });
-  ensureSPF(2*(S.G+1)+4);
+  ensureSPF(2*(S.G+1)+4+2*S.gapN);
   fitCanvas();
   setG(S.G);
   setGap(S.g);
