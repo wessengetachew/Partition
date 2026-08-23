@@ -92,7 +92,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 .nb2-fs.on{color:var(--teal);border-color:rgba(61,200,184,.5);background:rgba(61,200,184,.08)}
 
 /* ── content ───────────────────────────────────────────────────── */
-#content{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 20px 110px}
+#content{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 20px 110px;display:flex;flex-direction:column}
 
 /* ── hero ──────────────────────────────────────────────────────── */
 #hero{text-align:center;padding:52px 20px 36px;border-bottom:1px solid var(--edge)}
@@ -390,12 +390,21 @@ body.is-fs{overflow:visible}
    canvas block stays pinned to the top of the viewport while it's the
    thing in view, but once you scroll past it, it scrolls away normally and
    everything below (Instrument panel, partition table, claim) is reachable
-   like any other page content — no more trapped-on-the-grid dead end. */
-body.is-fs #hero,body.is-fs #reading{display:none}
-body.is-fs #figure-sect{
-  position:sticky;top:calc(var(--wg-navh,0px) + 50px);z-index:400;
+   like any other page content — no more trapped-on-the-grid dead end.
+   #content is a flex column so sections can be reordered here without
+   moving them in the DOM: hero is hidden outright (nothing belongs above
+   the locked canvas), and Reading the lattice drops from its normal spot
+   above the figure to right after it, becoming the first thing you reach
+   once you scroll past the lock — a dropdown, not a wall of text. */
+body.is-fs #hero{display:none}
+body.is-fs #figure-sect{order:1;position:sticky;top:calc(var(--wg-navh,0px) + var(--nb2-h,50px));z-index:400;
   background:var(--bg);margin:0;border-radius:0;padding-top:10px;
 }
+body.is-fs #density-bar{order:2}
+body.is-fs #reading{order:3}
+body.is-fs #controls{order:4}
+body.is-fs #drawer{order:5}
+body.is-fs #claim{order:6}
 body.is-fs #plate{max-width:min(92vw,58vh)}
 body.is-fs .figcap{display:none}
 
@@ -422,6 +431,27 @@ body.is-fs .figcap{display:none}
   #wg-pagenav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:6px 10px}
   #wg-pagenav::-webkit-scrollbar{display:none}
   .wg-brand{font-size:.6rem;margin-right:4px}
+
+  /* ── mobile full screen: half canvas, half scrollable page ─────
+     #figure-sect (header + view tabs + canvas + legend) locks to
+     exactly the top 50vh, full-bleed. Everything else — density-bar,
+     the Reading dropdown, controls, drawer, claim — was reordered by
+     the general is-fs rules above and scrolls normally underneath the
+     lock, so scrolling never stops working once the canvas is pinned. */
+  body.is-fs #figure-sect{
+    top:calc(var(--wg-navh,0px) + var(--nb2-h,50px));
+    height:50vh;margin:0 -12px 14px;padding:0;background:var(--bg);
+    display:flex;flex-direction:column;overflow:hidden;
+    border-left:none;border-right:none;border-radius:0;border-bottom:1px solid var(--edge2);
+  }
+  body.is-fs #figure-sect>.sect-hdr{display:none}
+  body.is-fs #view-bar{flex:0 0 auto;padding:0 10px}
+  body.is-fs #figure{
+    flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+    background:none;border:none;padding:8px 10px 0;
+  }
+  body.is-fs #plate{flex:1 1 auto;min-height:0;width:100%;max-width:100%;aspect-ratio:auto}
+  body.is-fs #legend{flex:0 0 auto;padding-top:6px}
 }
 
 </style>
@@ -636,14 +666,15 @@ body.is-fs .figcap{display:none}
     </div>
   </div>
 
-  <div class="density-bar">
-    <div class="db-item"><span class="db-lbl">Side G</span><span class="db-val gold" id="rd-G">121</span></div>
-    <div class="db-item"><span class="db-lbl">E = 2(G+1)</span><span class="db-val" id="rd-E">244</span></div>
-    <div class="db-item"><span class="db-lbl">gap g</span><span class="db-val teal" id="rd-g">61</span></div>
-    <div class="db-item"><span class="db-lbl">s = E − g</span><span class="db-val" id="rd-s">183</span></div>
-    <div class="db-item"><span class="db-lbl">Goldbach pairs</span><span class="db-val lime" id="rd-gb">—</span></div>
-    <div class="db-item"><span class="db-lbl">√E threshold</span><span class="db-val" id="rd-thr">—</span></div>
-  </div>
+</div>
+
+<div class="density-bar" id="density-bar">
+  <div class="db-item"><span class="db-lbl">Side G</span><span class="db-val gold" id="rd-G">121</span></div>
+  <div class="db-item"><span class="db-lbl">E = 2(G+1)</span><span class="db-val" id="rd-E">244</span></div>
+  <div class="db-item"><span class="db-lbl">gap g</span><span class="db-val teal" id="rd-g">61</span></div>
+  <div class="db-item"><span class="db-lbl">s = E − g</span><span class="db-val" id="rd-s">183</span></div>
+  <div class="db-item"><span class="db-lbl">Goldbach pairs</span><span class="db-val lime" id="rd-gb">—</span></div>
+  <div class="db-item"><span class="db-lbl">√E threshold</span><span class="db-val" id="rd-thr">—</span></div>
 </div>
 
 <!-- ══════════ CONTROLS ══════════ -->
@@ -2922,6 +2953,16 @@ function doReportPDF(){
     syncNav();
     if(window.ResizeObserver) new ResizeObserver(syncNav).observe(nav);
     window.addEventListener('resize',syncNav);
+  }
+  // Same idea for the instrument bar itself — it switches from a fixed 50px
+  // to height:auto on mobile, so #figure's fullscreen sticky offset (which
+  // sits just below it) needs the real number, not a guess.
+  const nb2=document.getElementById('nbar2');
+  if(nb2){
+    const syncNb2=()=>document.documentElement.style.setProperty('--nb2-h',Math.round(nb2.getBoundingClientRect().height)+'px');
+    syncNb2();
+    if(window.ResizeObserver) new ResizeObserver(syncNb2).observe(nb2);
+    window.addEventListener('resize',syncNb2);
   }
 })();
 </script>
