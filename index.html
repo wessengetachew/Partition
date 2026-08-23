@@ -3278,10 +3278,10 @@ function doReportPDF(){
     const px=1400, M=Math.round(px*0.035), gap=Math.round(px*0.02);
     const side=Math.floor((px-2*M-2*gap)/3);
 
-    function drawHeader(ctx,top){
+    function drawHeader(ctx,top,tag){
       ctx.font=`${Math.round(px*0.011)}px "JetBrains Mono",monospace`;
       ctx.fillStyle='#c8a84a'; ctx.textAlign='center'; ctx.textBaseline='top';
-      ctx.fillText('STRIP ARITHMETIC I  ·  WESSEN GETACHEW  ·  SNAPSHOT REPORT',px/2,top);
+      ctx.fillText(`STRIP ARITHMETIC I  ·  WESSEN GETACHEW  ·  SNAPSHOT REPORT${tag?'  ·  '+tag:''}`,px/2,top);
       top+=Math.round(px*0.026);
       ctx.font=`${Math.round(px*0.036)}px "Cinzel",serif`;
       ctx.fillStyle='#ddd8cc'; ctx.textAlign='left'; ctx.textBaseline='top';
@@ -3290,6 +3290,101 @@ function doReportPDF(){
       ctx.fillStyle='#6a6560'; ctx.textAlign='right';
       ctx.fillText(new Date().toISOString().slice(0,16).replace('T',' ')+' UTC',px-M,top+Math.round(px*0.010));
       top+=Math.round(px*0.048);
+      return top;
+    }
+
+    // Shared small helpers for the breakdown (opener) page ------------------
+    const facOf=x=>{const p=distinctPrimes(x);return p.length===1&&isPrime(x)?'prime':p.join(' · ');};
+    function wrapText(ctx,text,x,y,maxWidth,lineHeight){
+      const words=text.split(' ');
+      let line='', ly=y;
+      for(let n=0;n<words.length;n++){
+        const test=line+words[n]+' ';
+        if(ctx.measureText(test).width>maxWidth && n>0){ ctx.fillText(line,x,ly); line=words[n]+' '; ly+=lineHeight; }
+        else line=test;
+      }
+      ctx.fillText(line,x,ly);
+      return ly+lineHeight;
+    }
+    function sectionHeader(ctx,top,label){
+      top+=Math.round(px*0.014);
+      ctx.font=`600 ${Math.round(px*0.0155)}px "JetBrains Mono",monospace`;
+      ctx.fillStyle='#3dc8b8'; ctx.textAlign='left'; ctx.textBaseline='top';
+      ctx.fillText(label,M,top);
+      return top+Math.round(px*0.028);
+    }
+    function bdRow(ctx,top,label,val,sub,i){
+      const rh=Math.round(px*0.030), colA=Math.round(px*0.30), colB=Math.round(px*0.20);
+      ctx.fillStyle= i%2? 'rgba(255,255,255,.025)':'transparent';
+      if(i%2) ctx.fillRect(M,top,px-2*M,rh);
+      ctx.fillStyle='#a8a29a'; ctx.font=`${Math.round(px*0.0135)}px "JetBrains Mono",monospace`; ctx.textAlign='left'; ctx.textBaseline='middle';
+      ctx.fillText(label,M+8,top+rh/2);
+      ctx.fillStyle='#c8a84a'; ctx.font=`600 ${Math.round(px*0.0155)}px "JetBrains Mono",monospace`;
+      ctx.fillText(val,M+colA,top+rh/2);
+      if(sub){
+        ctx.fillStyle='#6a6560'; ctx.font=`${Math.round(px*0.0115)}px "JetBrains Mono",monospace`;
+        let subT=sub;
+        while(ctx.measureText(subT).width>px-2*M-colA-colB-16 && subT.length>4){ subT=subT.slice(0,-4)+'…'; }
+        ctx.fillText(subT,M+colA+colB,top+rh/2);
+      }
+      return top+rh;
+    }
+    // Full opener page: E's partition, both strips' arithmetic, and the a/b
+    // difference pair — the same story the on-screen Step-by-step drawer
+    // tells, laid out as a standalone title page rather than a side panel.
+    function drawBreakdownPage(ctx){
+      let top=drawHeader(ctx,M,'BREAKDOWN OF E');
+      const st=stripsAt(S.G,S.g), thr=Math.sqrt(st.E), v=verdict(st,thr);
+
+      ctx.font=`${Math.round(px*0.026)}px "JetBrains Mono",monospace`;
+      ctx.fillStyle='#3dc8b8'; ctx.textAlign='left'; ctx.textBaseline='top';
+      ctx.fillText(`${st.E} = ${st.g} + ${st.s}`,M,top);
+      top+=Math.round(px*0.05);
+
+      top=sectionHeader(ctx,top,'PARTITION');
+      [['E = 2(G+1)',`${st.E}`,''],
+       ['g  (strip c total)',`${st.g}`,facOf(st.g)],
+       ['s = E − g  (strip d)',`${st.s}`,facOf(st.s)],
+       ['threshold √E',thr.toFixed(2),st.g>thr?'g is above':'g is below']
+      ].forEach((r,i)=>{ top=bdRow(ctx,top,r[0],r[1],r[2],i); });
+
+      top+=Math.round(px*0.018);
+      const barH=Math.round(px*0.034);
+      ctx.fillStyle='rgba(255,255,255,.04)'; ctx.fillRect(M,top,px-2*M,barH);
+      ctx.strokeStyle=v.col; ctx.lineWidth=2; ctx.strokeRect(M+1,top+1,px-2*M-2,barH-2);
+      ctx.font=`600 ${Math.round(px*0.0145)}px "JetBrains Mono",monospace`;
+      ctx.fillStyle=v.col; ctx.textAlign='left'; ctx.textBaseline='middle';
+      ctx.fillText(v.short,M+14,top+barH/2);
+      ctx.font=`${Math.round(px*0.0125)}px "JetBrains Mono",monospace`;
+      ctx.fillStyle='#c8c4bc';
+      let vt=v.text;
+      while(ctx.measureText(vt).width>px-2*M-14-Math.round(px*0.16) && vt.length>4){ vt=vt.slice(0,-4)+'…'; }
+      ctx.fillText(vt,M+Math.round(px*0.16),top+barH/2);
+      top+=barH+Math.round(px*0.01);
+
+      top=sectionHeader(ctx,top,`STRIP C  ·  r + M = ${st.g}`);
+      [['reduction',`gcd(r, ${st.g}−r) = gcd(r, ${st.g})`,''],
+       ['coprime',`${st.cCop} / ${st.cTot}`,st.cTot?(st.cCop/st.cTot).toFixed(4):'—'],
+       [`φ(${st.g}) exactly`,`${phi(st.g)}`,st.cFull?'fully coprime':'short']
+      ].forEach((r,i)=>{ top=bdRow(ctx,top,r[0],r[1],r[2],i); });
+
+      top=sectionHeader(ctx,top,`STRIP D  ·  r + M = ${st.s}`);
+      const dA=Math.max(1,st.s-S.G), dB=Math.min(S.G,st.s-1);
+      [['reduction',`gcd(r, ${st.s}−r) = gcd(r, ${st.s})`,''],
+       ['window',`${dA} … ${dB}`,`${st.dTot} pts`],
+       ['coprime',`${st.dCop} / ${st.dTot}`,st.dFull?'fully coprime':'short']
+      ].forEach((r,i)=>{ top=bdRow(ctx,top,r[0],r[1],r[2],i); });
+
+      top=sectionHeader(ctx,top,'DIFFERENCE PAIR');
+      [[`a : M − r = ${st.g}`,`${st.aCop} / ${st.aTot}`,''],
+       [`b : r − M = ${st.g}`,`${st.aCop} / ${st.aTot}`,'= a, transposed']
+      ].forEach((r,i)=>{ top=bdRow(ctx,top,r[0],r[1],r[2],i); });
+
+      top+=Math.round(px*0.02);
+      ctx.font=`${Math.round(px*0.0115)}px "JetBrains Mono",monospace`;
+      ctx.fillStyle='#8a857e';
+      const note=`a and b agree cell for cell — the transpose (r,M) ↦ (M,r) maps one onto the other and gcd is symmetric. They only witness the primality of g while ${st.g} ≤ G/2 = ${(S.G/2).toFixed(1)}; past that the strip is shorter than g and cannot contain a multiple of it.`;
+      top=wrapText(ctx,note,M,top,px-2*M,Math.round(px*0.017));
       return top;
     }
     function drawDataTable(ctx,top){
@@ -3372,12 +3467,32 @@ function doReportPDF(){
       });
       return top+rows.length*rh+Math.round(px*0.024);
     }
-    const measCanvas=document.createElement('canvas');
-    measCanvas.width=px; measCanvas.height=10;
-    const mctx=measCanvas.getContext('2d');
-    let top=drawHeader(mctx,M);
-    top=drawDataTable(mctx,top);
-    top=drawParamsTable(mctx,top);
+    // ── page 1 — opener: the full breakdown of E (skipped in multi-pair
+    //    overlay mode, where there's no single E/g/s triple to unpack) ──
+    let page1H=0, page1Canvas=null;
+    if(!S.multi){
+      const measCanvas=document.createElement('canvas');
+      measCanvas.width=px; measCanvas.height=10;
+      const mctx=measCanvas.getContext('2d');
+      const measTop=drawBreakdownPage(mctx);
+      page1H=measTop+Math.round(px*0.05)+M;
+      page1Canvas=document.createElement('canvas');
+      page1Canvas.width=px; page1Canvas.height=page1H;
+      const pctx=page1Canvas.getContext('2d');
+      pctx.fillStyle='#04040d'; pctx.fillRect(0,0,px,page1H);
+      drawBreakdownPage(pctx);
+      pctx.font=`${Math.round(px*0.010)}px "JetBrains Mono",monospace`;
+      pctx.fillStyle='#6a6560'; pctx.textAlign='right'; pctx.textBaseline='top';
+      pctx.fillText('wessengetachew.github.io',px-M,page1H-Math.round(px*0.028));
+    }
+
+    // ── page 2 — the three projections plus the full data/param tables ──
+    const measCanvas2=document.createElement('canvas');
+    measCanvas2.width=px; measCanvas2.height=10;
+    const mctx2=measCanvas2.getContext('2d');
+    let top=drawHeader(mctx2,M,'VIEWS & DATA');
+    top=drawDataTable(mctx2,top);
+    top=drawParamsTable(mctx2,top);
     const panelsY=top+Math.round(px*0.03);
     const canvasH=panelsY+side+Math.round(px*0.05)+M;
 
@@ -3385,7 +3500,7 @@ function doReportPDF(){
     c.width=px; c.height=canvasH;
     const ctx=c.getContext('2d');
     ctx.fillStyle='#04040d'; ctx.fillRect(0,0,px,canvasH);
-    let t=drawHeader(ctx,M);
+    let t=drawHeader(ctx,M,'VIEWS & DATA');
     t=drawDataTable(ctx,t);
     t=drawParamsTable(ctx,t);
     const py=t+Math.round(px*0.03);
@@ -3410,7 +3525,14 @@ function doReportPDF(){
 
     S.view=prevView;
     const {jsPDF}=window.jspdf;
-    const pdf=new jsPDF({orientation:canvasH>px?'p':'l',unit:'px',format:[px,canvasH]});
+    let pdf;
+    if(page1Canvas){
+      pdf=new jsPDF({orientation:page1H>px?'p':'l',unit:'px',format:[px,page1H]});
+      pdf.addImage(page1Canvas.toDataURL('image/png'),'PNG',0,0,px,page1H);
+      pdf.addPage([px,canvasH],canvasH>px?'p':'l');
+    } else {
+      pdf=new jsPDF({orientation:canvasH>px?'p':'l',unit:'px',format:[px,canvasH]});
+    }
     pdf.addImage(c.toDataURL('image/png'),'PNG',0,0,px,canvasH);
     const fname=S.multi
       ? `goldbach-report-G${S.G}-${S.multiMode}.pdf`
