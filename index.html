@@ -130,6 +130,11 @@ h1.hero-title{font-family:var(--disp);font-size:clamp(1.4rem,4vw,2.2rem);letter-
 #reading-hdr{cursor:pointer;user-select:none}
 #reading-hdr .rarrow{display:inline-block;transition:transform .25s;color:var(--gold);margin-right:6px}
 #reading-hdr.open .rarrow{transform:rotate(90deg)}
+#multitop-hdr{cursor:pointer;user-select:none}
+#multitop-hdr .rarrow{display:inline-block;transition:transform .25s;color:var(--gold);margin-right:6px}
+#multitop-hdr.open .rarrow{transform:rotate(90deg)}
+#multitop-body{display:none}
+#multitop-body.open{display:block}
 #reading-body{display:none}
 #reading-body.open{display:block}
 #reading-body .prose{text-align:center;margin:0 auto}
@@ -254,6 +259,11 @@ h1.hero-title{font-family:var(--disp);font-size:clamp(1.4rem,4vw,2.2rem);letter-
   color:var(--gold);font-weight:500;margin-bottom:10px;display:flex;align-items:center;gap:8px;
 }
 .grp h4::after{content:'';flex:1;height:1px;background:var(--edge)}
+.grp .grp-hdr{cursor:pointer;user-select:none}
+.grp .grp-hdr .rarrow{display:inline-block;transition:transform .25s;color:var(--gold)}
+.grp .grp-hdr.open .rarrow{transform:rotate(90deg)}
+.grp-body{display:none}
+.grp-body.open{display:block}
 .row{display:flex;align-items:center;gap:8px;margin-bottom:9px}
 .row:last-child{margin-bottom:0}
 .lab{font-family:var(--mono);font-size:9px;color:var(--cream3);letter-spacing:.1em;min-width:56px;text-transform:uppercase}
@@ -405,6 +415,7 @@ body.is-fs #reading{order:3}
 body.is-fs #controls{order:4}
 body.is-fs #drawer{order:5}
 body.is-fs #claim{order:6}
+  body.is-fs #views{order:7}
 body.is-fs #plate{max-width:min(92vw,58vh)}
 body.is-fs .figcap{display:none}
 
@@ -463,8 +474,6 @@ body.is-fs .figcap{display:none}
   <span class="wg-brand">WESSEN GETACHEW</span>
   <a class="pl" style="--c:#3dc8b8" href="https://wessengetachew.github.io/smith/page5.html" target="_blank" title="Gap Diagonal Identity — Page 5, the identity this page grew out of">P5</a>
   <span class="pl cur" style="--c:#c8a84a" title="You are here">The extension of the strip diagonal of the block coprimality C(n) framework</span>
-  <a class="pl" style="--c:#7ec87a" href="page2.html" title="The Density Bridge — does the Farey slice make this page asymptotic? Page 2">P2 · Density Bridge</a>
-  <a class="pl" style="--c:#9b7fe8" href="page3.html" title="The Cayley Plate — which Möbius map should the third view use? Page 3">P3 · Cayley Plate</a>
 </div>
 
 <!-- ══════════ STICKY INSTRUMENT BAR ══════════ -->
@@ -680,6 +689,40 @@ body.is-fs .figcap{display:none}
 </div>
 
 <!-- ══════════ CONTROLS ══════════ -->
+<!-- ══════════ MULTI-PAIR (below the canvas, above Instrument — multi is the default view) ══════════ -->
+<div class="sect" id="multitop">
+  <div class="sect-hdr" id="multitop-hdr" onclick="toggleGrp('multitop')"><span class="rarrow">▸</span>Multi-pair</div>
+  <div id="multitop-body">
+    <div class="grp" style="border:none;padding:0 0 4px">
+      <div class="row">
+        <span class="lab">Overlay</span>
+        <button class="chip" id="ch-multi" onclick="toggleMulti()" style="flex:1">Off — single gap g</button>
+      </div>
+      <div class="row" id="mp-mode-row" style="display:none">
+        <span class="lab">Show</span>
+        <button class="chip on" id="mm-pairs" onclick="setMultiMode('pairs')" style="flex:1">Goldbach pairs</button>
+        <button class="chip" id="mm-all" onclick="setMultiMode('all')" style="flex:1">all partitions</button>
+      </div>
+      <div class="row" id="mp-batch-row" style="display:none;flex-wrap:wrap">
+        <span class="lab">Batch</span>
+        <button class="chip on" data-bs="1" onclick="setBatchSize(1)">1</button>
+        <button class="chip" data-bs="5" onclick="setBatchSize(5)">5</button>
+        <button class="chip" data-bs="10" onclick="setBatchSize(10)">10</button>
+        <button class="chip" data-bs="25" onclick="setBatchSize(25)">25</button>
+        <button class="chip" data-bs="0" id="bs-all" onclick="setBatchSize(0)">all</button>
+      </div>
+      <div class="row" id="mp-pager-row" style="display:none">
+        <button class="chip" style="flex:0 0 auto" onclick="pageStep(-1)">◀</button>
+        <span class="val" id="mp-pg" style="flex:1;text-align:center">— of —</span>
+        <button class="chip" style="flex:0 0 auto" onclick="pageStep(1)">▶</button>
+      </div>
+      <div class="note" id="mp-note" style="display:none">
+        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, dim where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="sect" id="controls">
   <div class="sect-hdr">Instrument</div>
   <div class="panels">
@@ -739,8 +782,12 @@ body.is-fs .figcap{display:none}
         <button class="chip" id="ch-playp" onclick="toggleSweepPairs()" title="Single mode: step through the Goldbach pairs of E. Multi-pair mode: page through the Goldbach-pair batches, looping.">▶ Play pairs</button>
       </div>
       <div class="note">Sliding <b>g</b> walks every additive partition <b>E = g + s</b>. The two sum strips carry those parts.</div>
+      <div class="row grp-hdr" id="grp-magnifier-hdr" onclick="toggleGrp('grp-magnifier')" style="margin-top:8px;cursor:pointer;user-select:none">
+        <span class="rarrow">▸</span><span class="lab" style="min-width:auto">Magnifier</span>
+      </div>
+      <div class="grp-body" id="grp-magnifier-body">
       <div class="row" style="margin-top:8px">
-        <span class="lab">Magnifier</span>
+        <span class="lab">Zoom</span>
         <button class="chip" id="lz-2" onclick="setLensZoom(2)" style="flex:1">2×</button>
         <button class="chip on" id="lz-3" onclick="setLensZoom(3)" style="flex:1">3×</button>
         <button class="chip" id="lz-4" onclick="setLensZoom(4)" style="flex:1">4×</button>
@@ -756,45 +803,20 @@ body.is-fs .figcap{display:none}
         <button class="chip" id="lp-br" onclick="setLensPin('br')" style="flex:1" title="Pin to bottom-right">↘</button>
       </div>
       <div class="note">Press and hold a point on the lattice, drag to pan the lens, release to jump the gap there.<br><br><b>auto</b> keeps the lens above your finger and slides it sideways when it runs out of headroom — continuously, so it never jumps across the pointer the way it used to at mid-plate. Pin it to a corner if you would rather it never moved at all.<br><br>The lens now centres on the true point everywhere, including the outermost row, column and all four corners. Past the lattice edge the view goes empty and the dashed gold line marks where the boundary falls — that emptiness is the edge, not a rendering fault.</div>
+      </div>
     </div>
 
     <div class="grp">
-      <h4>Presets</h4>
+      <h4 class="grp-hdr" id="grp-presets-hdr" onclick="toggleGrp('grp-presets')"><span class="rarrow">▸</span>Presets</h4>
+      <div class="grp-body" id="grp-presets-body">
       <div class="chips" id="presets"></div>
       <div class="note">Each preset fixes an even <b>E</b> and puts <b>G = E/2 − 1</b>, the grid whose corner frame carries that partition. Hover for why each one is here.<br><br>Compare <b>48</b> and <b>52</b>: nearly the same size, 5 representations against 3. An E divisible by 6 can draw primes from both residue classes mod 3; one that is not divisible by 3 cannot, and lands in the sparse band. That split is the banding in Goldbach's comet.</div>
-    </div>
-
-    <div class="grp">
-      <h4>Multi-pair</h4>
-      <div class="row">
-        <span class="lab">Overlay</span>
-        <button class="chip" id="ch-multi" onclick="toggleMulti()" style="flex:1">Off — single gap g</button>
-      </div>
-      <div class="row" id="mp-mode-row" style="display:none">
-        <span class="lab">Show</span>
-        <button class="chip on" id="mm-pairs" onclick="setMultiMode('pairs')" style="flex:1">Goldbach pairs</button>
-        <button class="chip" id="mm-all" onclick="setMultiMode('all')" style="flex:1">all partitions</button>
-      </div>
-      <div class="row" id="mp-batch-row" style="display:none;flex-wrap:wrap">
-        <span class="lab">Batch</span>
-        <button class="chip on" data-bs="1" onclick="setBatchSize(1)">1</button>
-        <button class="chip" data-bs="5" onclick="setBatchSize(5)">5</button>
-        <button class="chip" data-bs="10" onclick="setBatchSize(10)">10</button>
-        <button class="chip" data-bs="25" onclick="setBatchSize(25)">25</button>
-        <button class="chip" data-bs="0" id="bs-all" onclick="setBatchSize(0)">all</button>
-      </div>
-      <div class="row" id="mp-pager-row" style="display:none">
-        <button class="chip" style="flex:0 0 auto" onclick="pageStep(-1)">◀</button>
-        <span class="val" id="mp-pg" style="flex:1;text-align:center">— of —</span>
-        <button class="chip" style="flex:0 0 auto" onclick="pageStep(1)">▶</button>
-      </div>
-      <div class="note" id="mp-note" style="display:none">
-        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, dim where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.
       </div>
     </div>
 
     <div class="grp">
-      <h4>Strips</h4>
+      <h4 class="grp-hdr" id="grp-strips-hdr" onclick="toggleGrp('grp-strips')"><span class="rarrow">▸</span>Strips</h4>
+      <div class="grp-body" id="grp-strips-body">
       <div class="chips">
         <button class="chip on" id="ch-sum" onclick="toggleShow('sum')">sum c·d</button>
         <button class="chip on" id="ch-diff" onclick="toggleShow('diff')">diff a·b</button>
@@ -807,10 +829,12 @@ body.is-fs .figcap{display:none}
         <span class="val" id="v-dim">45%</span>
       </div>
       <div class="note">Everything not on a strip is washed back by the dim, so the four lines read against the full coprimality field rather than replacing it.</div>
+      </div>
     </div>
 
     <div class="grp">
-      <h4>Rendering</h4>
+      <h4 class="grp-hdr" id="grp-render-hdr" onclick="toggleGrp('grp-render')"><span class="rarrow">▸</span>Rendering</h4>
+      <div class="grp-body" id="grp-render-body">
       <div class="row">
         <span class="lab">Colour</span>
         <select id="sel-col" onchange="setCol(this.value)" style="flex:1">
@@ -842,10 +866,12 @@ body.is-fs .figcap{display:none}
         <span class="val" id="v-lbladapt" style="width:40px">55%</span>
       </div>
       <div class="note">Grid: labels draw only where a cell clears the pile-up gate (13&nbsp;px at size 1×, scaled with the slider), so they never collide. Above roughly <b>G = 320</b> the canvas switches to a one-pixel-per-cell buffer and scales it without smoothing.<br><br>Ring / Cayley: the current strip points are always labelled; the rest of the lattice joins in once there's room for it — <b>G ≤ 256</b>, the zoom-in slider past <b>2×</b>, or size at <b>0.7×</b> or below. Each label claims the rectangle it actually measures, so nothing overlaps at any size.<br><br><b>Grade</b> exists because crowding in the polar views is a function of radius, not a constant. At <b>G = 20…30</b> every point has room and 0% — one size everywhere — is right. By <b>G ≈ 200</b> the inner rings are a smear while the rim is still half empty; grading spends small type on the packed middle and full type on the open rim, which raises the number of readable labels instead of trading one zone off against the other.</div>
+      </div>
     </div>
 
     <div class="grp">
-      <h4>Export</h4>
+      <h4 class="grp-hdr" id="grp-export-hdr" onclick="toggleGrp('grp-export')"><span class="rarrow">▸</span>Export</h4>
+      <div class="grp-body" id="grp-export-body">
       <div class="row" style="margin-bottom:8px">
         <span class="lab">Views</span>
         <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;color:var(--cream2)"><input type="checkbox" id="exp-grid" checked> Grid</label>
@@ -865,6 +891,7 @@ body.is-fs .figcap{display:none}
         </select>
       </div>
       <div class="note">Checking one view downloads that view alone. Checking two or three tiles them into a single PNG — side-by-side for two, a triangle for three. The view you're currently looking at gets auto-checked when you switch.</div>
+      </div>
     </div>
 
   </div>
@@ -913,10 +940,10 @@ body.is-fs .figcap{display:none}
     </div>
   </div>
 
-  <div class="theory-hdr open" id="v1-hdr" onclick="toggleTheory('v1')">
+  <div class="theory-hdr" id="v1-hdr" onclick="toggleTheory('v1')">
     <span>1 · Grid — the identity injection</span><span class="arrow">▶</span>
   </div>
-  <div class="theory-body open" id="v1-body">
+  <div class="theory-body" id="v1-body">
     <div class="prose">
       Grid is the trivial case: the index pair is used as a coordinate directly, scaled to the plate. With plate
       side p and cell pitch <b>δ = p/G</b>, cell (r, M) has its centre at
@@ -935,10 +962,10 @@ body.is-fs .figcap{display:none}
     </div>
   </div>
 
-  <div class="theory-hdr open" id="v2-hdr" onclick="toggleTheory('v2')">
+  <div class="theory-hdr" id="v2-hdr" onclick="toggleTheory('v2')">
     <span>2 · Ring — residues as roots of unity</span><span class="arrow">▶</span>
   </div>
-  <div class="theory-body open" id="v2-body">
+  <div class="theory-body" id="v2-body">
     <div class="prose">
       Ring sends M to a radius and r to an angle:
     </div>
@@ -975,10 +1002,10 @@ body.is-fs .figcap{display:none}
     <div class="note">None of the three is the "right" one. wrap is right if you are looking at ℤ/Mℤ; clamp is right if you are looking at Farey fractions; unit is right if you want to compare the same r across rings.</div>
   </div>
 
-  <div class="theory-hdr open" id="v3-hdr" onclick="toggleTheory('v3')">
+  <div class="theory-hdr" id="v3-hdr" onclick="toggleTheory('v3')">
     <span>3 · Cayley — the Möbius image, derived in full</span><span class="arrow">▶</span>
   </div>
-  <div class="theory-body open" id="v3-body">
+  <div class="theory-body" id="v3-body">
     <div class="prose">
       Cayley takes the ring point as a complex number and applies a Möbius transformation. The radius is first
       remapped by a fixed affine rule, then:
@@ -1014,10 +1041,10 @@ body.is-fs .figcap{display:none}
     </div>
   </div>
 
-  <div class="theory-hdr open" id="v4-hdr" onclick="toggleTheory('v4')">
+  <div class="theory-hdr" id="v4-hdr" onclick="toggleTheory('v4')">
     <span>4 · What the Cayley view currently gets wrong</span><span class="arrow">▶</span>
   </div>
-  <div class="theory-body open" id="v4-body">
+  <div class="theory-body" id="v4-body">
     <div class="prose">
       The formula (1 + ρ)/|1 − ρ| decides everything, and the radius spread ρ ∈ [0.4, 2.2] <b>straddles ρ = 1</b>.
       At the outer ring ρ = 2.2 the bound is 3.2/1.2 = 2.667, which is a comfortable, finite number — and it is the
@@ -1062,10 +1089,10 @@ body.is-fs .figcap{display:none}
 <div class="sect" id="claim">
   <div class="sect-hdr">The claim</div>
 
-  <div class="theory-hdr open" id="th1-hdr" onclick="toggleTheory('th1')">
+  <div class="theory-hdr" id="th1-hdr" onclick="toggleTheory('th1')">
     <span>1 · Why strip c is full exactly on primes</span><span class="arrow">▶</span>
   </div>
-  <div class="theory-body open" id="th1-body">
+  <div class="theory-body" id="th1-body">
     <div class="prose">
       <b>c</b> is fully lit exactly when <b>g</b> is prime — it spans one whole period of gcd(·, g) minus the single
       point r = g, so it holds precisely φ(g) coprime points.
@@ -1073,10 +1100,10 @@ body.is-fs .figcap{display:none}
     <div class="formula-block">gcd(r, M) on r + M = g &nbsp;=&nbsp; gcd(r, g − r) &nbsp;=&nbsp; gcd(r, g) &nbsp;→&nbsp; #coprime = φ(g), full ⟺ φ(g) = g − 1 ⟺ g prime</div>
   </div>
 
-  <div class="theory-hdr open" id="th2-hdr" onclick="toggleTheory('th2')">
+  <div class="theory-hdr" id="th2-hdr" onclick="toggleTheory('th2')">
     <span>2 · Why strip d leaks below the threshold</span><span class="arrow">▶</span>
   </div>
-  <div class="theory-body open" id="th2-body">
+  <div class="theory-body" id="th2-body">
     <div class="prose">
       <b>d</b> is fully lit whenever <b>s</b> is prime, but it samples only g−1 residues of the longer period s, so
       below the threshold it can come up full on a composite s.
@@ -1084,10 +1111,10 @@ body.is-fs .figcap{display:none}
     <div class="formula-block coral" style="border-left-color:var(--coral);background:rgba(224,80,96,.08);color:var(--coral)">d spans r = 1 … g−1 against period s = E − g &nbsp;→&nbsp; a partial window, not a full period</div>
   </div>
 
-  <div class="theory-hdr open" id="th3-hdr" onclick="toggleTheory('th3')">
+  <div class="theory-hdr" id="th3-hdr" onclick="toggleTheory('th3')">
     <span>3 · Why the leak closes above g &gt; √E</span><span class="arrow">▶</span>
   </div>
-  <div class="theory-body open" id="th3-body">
+  <div class="theory-body" id="th3-body">
     <div class="prose">
       For <b>g &gt; √E</b> the leak closes: a composite s has a prime factor ≤ √s, which a window of g−1 consecutive
       integers cannot miss. There, both strips full ⟺ <b>g and s both prime</b>.
@@ -1601,7 +1628,18 @@ function paintGrid(ctx,px,G,g){
   // so crowding is the same everywhere and one size is the right answer.
   const gate=13*Math.max(0.5,Math.min(1.7,S.lblScale));
   if(S.lbl!=='off'&&cell>=gate){
-    ctx.font=`${Math.min(cell*0.34,15)*S.lblScale}px "JetBrains Mono",monospace`;
+    // Font size fills the cell rather than capping at a fixed px. The old cap
+    // (15px) meant a small G with huge cells still drew tiny labels lost in
+    // the corner. Instead, size against the widest label that will actually
+    // appear (G,G for the rM pair; G alone otherwise) so every box gets type
+    // as large as it can hold without the longest label overflowing it.
+    const sample=S.lbl==='rM'?(G+','+G):(''+G);
+    let fs=cell*0.62*S.lblScale;
+    ctx.font=`${fs}px "JetBrains Mono",monospace`;
+    const maxW=cell*0.86, w=ctx.measureText(sample).width;
+    if(w>maxW) fs*=maxW/w;
+    fs=Math.max(4,Math.min(fs,cell*0.82));
+    ctx.font=`${fs}px "JetBrains Mono",monospace`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     const onStrip=new Set((!S.multi&&gapOn)?stripPoints(G,g).map(p=>p[0]+','+p[1]):[]);
     for(let m=1;m<=G;m++) for(let r=1;r<=G;r++){
@@ -2534,6 +2572,10 @@ function setGapN(v){
   buildRows(); renderTable(); scrollToSelected();
 }
 /* ── prose accordions ────────────────────────────────────────────── */
+function toggleGrp(id){
+  document.getElementById(id+'-hdr').classList.toggle('open');
+  document.getElementById(id+'-body').classList.toggle('open');
+}
 function toggleReading(){
   document.getElementById('reading-hdr').classList.toggle('open');
   document.getElementById('reading-body').classList.toggle('open');
@@ -2760,6 +2802,73 @@ function setLensZoom(z){
     lx=Math.max(4,Math.min(maxX,lx));
     lens.style.left=lx+'px'; lens.style.top=ly+'px';
   }
+  // Labels inside the lens. The lens already shows a magnified blit of the main
+  // canvas; this adds the (r,m) reading for every point that lands inside it, so
+  // zooming in answers "which point is that" without a click. Density is
+  // self-gating on font size — below ~8 lens-px the text would overlap, so it's
+  // skipped and the lens falls back to the plain magnified dots (unaffected).
+  function mEstRing(x,y,G,px){
+    const cx=px/2, cy=px/2, Rmax=ringScale(px);
+    return Math.hypot(x-cx,y-cy)/Rmax*G;
+  }
+  function mEstCayley(x,y,G,px){
+    const cx=px/2, cy=px/2, Rc=cayleyScale(px);
+    const u=(x-cx)/Rc, v=-(y-cy)/Rc;
+    const den=(1-u)*(1-u)+v*v;
+    if(den<1e-9) return null;
+    const zr=(1-u*u-v*v)/den, zi=(2*v)/den;
+    return ((Math.hypot(zr,zi)-0.4)/1.8)*G;
+  }
+  function drawLensLabels(sX,sY,srcSize,k){
+    const G=S.G, px=cv.width;
+    const cell=px/G;
+    const fs=Math.max(0,Math.min(15,cell*k*0.32));
+    if(fs<8) return;                          // too dense to label — leave the dots
+    const c=lens.width/2, R=c-2;
+    const mode=S.lbl==='off'?'rM':S.lbl;
+    const textOf=(r,m)=>mode==='M'?''+m:mode==='rM'?r+','+m:mode==='gcd'?''+gcd(r,m):''+r;
+    const dotR=Math.max(1.2,k*cell*0.05);
+    lctx.font=`${fs}px "JetBrains Mono",monospace`;
+    lctx.textAlign='center'; lctx.textBaseline='middle';
+    let drawn=0;
+    const put=(r,m,x,y)=>{
+      const lx=(x-sX)*k, ly=(y-sY)*k, dx=lx-c, dy=ly-c;
+      if(dx*dx+dy*dy>R*R) return;
+      if(drawn++>600) return;
+      const co=gcd(r,m)===1;
+      lctx.fillStyle=co?'rgba(255,255,255,.9)':'rgba(255,255,255,.28)';
+      lctx.beginPath(); lctx.arc(lx,ly,dotR,0,Math.PI*2); lctx.fill();
+      lctx.fillStyle=co?'rgba(200,168,74,.95)':'rgba(255,255,255,.4)';
+      lctx.shadowColor='rgba(4,4,13,.9)'; lctx.shadowBlur=fs*0.7;
+      lctx.fillText(textOf(r,m),lx,ly-fs*0.85);
+      lctx.shadowBlur=0;
+    };
+    if(S.view==='grid'){
+      const r0=Math.max(1,Math.floor(sX/cell)), r1=Math.min(G,Math.ceil((sX+srcSize)/cell)+1);
+      const m0=Math.max(1,Math.floor(sY/cell)), m1=Math.min(G,Math.ceil((sY+srcSize)/cell)+1);
+      for(let m=m0;m<=m1;m++) for(let r=r0;r<=r1;r++) put(r,m,(r-0.5)*cell,(m-0.5)*cell);
+      return;
+    }
+    // Ring/Cayley have no uniform pitch, so instead of scanning the whole
+    // lattice: estimate which rings (m) the window's four corners land on,
+    // then only walk r=1…G on that thin band of rings — same trick ringHit/
+    // cayleyHit use for a single point, just applied to a window's extent.
+    const mEstFn=S.view==='ring'?mEstRing:mEstCayley;
+    const proj=S.view==='ring'?ringXY:cayleyXY;
+    const corners=[[sX,sY],[sX+srcSize,sY],[sX,sY+srcSize],[sX+srcSize,sY+srcSize]];
+    let m0=Infinity,m1=-Infinity;
+    for(const [x,y] of corners){ const e=mEstFn(x,y,G,px); if(e==null) continue; m0=Math.min(m0,e); m1=Math.max(m1,e); }
+    if(!isFinite(m0)) return;
+    m0=Math.max(1,Math.floor(m0)-2); m1=Math.min(G,Math.ceil(m1)+2);
+    for(let m=m0;m<=m1;m++){
+      for(let r=1;r<=G;r++){
+        if(drawn>600) return;
+        const [x,y]=proj(r,m,G,px);
+        if(x<sX-2||x>sX+srcSize+2||y<sY-2||y>sY+srcSize+2) continue;
+        put(r,m,x,y);
+      }
+    }
+  }
   // The source window is deliberately NOT clamped inside the canvas any more.
   // Clamping it meant that near an edge the window slid back inward, so the
   // crosshair stopped marking the point under the finger and the outermost
@@ -2793,6 +2902,7 @@ function setLensZoom(z){
     lctx.setLineDash([lens.width/40,lens.width/40]);
     lctx.strokeRect((0-sX)*k,(0-sY)*k,cv.width*k,cv.height*k);
     lctx.setLineDash([]);
+    drawLensLabels(sX,sY,srcSize,k);
     const c=lens.width/2;
     lctx.strokeStyle='rgba(200,168,74,.85)'; lctx.lineWidth=1;
     lctx.beginPath(); lctx.moveTo(c-8,c); lctx.lineTo(c+8,c); lctx.moveTo(c,c-8); lctx.lineTo(c,c+8); lctx.stroke();
