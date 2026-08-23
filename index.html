@@ -412,10 +412,11 @@ body.is-fs #figure-sect{order:1;position:sticky;top:calc(var(--wg-navh,0px) + va
 }
 body.is-fs #density-bar{order:2}
 body.is-fs #reading{order:3}
-body.is-fs #controls{order:4}
-body.is-fs #drawer{order:5}
-body.is-fs #claim{order:6}
-  body.is-fs #views{order:7}
+body.is-fs #multitop{order:4}
+body.is-fs #controls{order:5}
+body.is-fs #drawer{order:6}
+body.is-fs #claim{order:7}
+  body.is-fs #views{order:8}
 body.is-fs #plate{max-width:min(92vw,58vh)}
 body.is-fs .figcap{display:none}
 
@@ -686,6 +687,8 @@ body.is-fs .figcap{display:none}
   <div class="db-item"><span class="db-lbl">s = E − g</span><span class="db-val" id="rd-s">197</span></div>
   <div class="db-item"><span class="db-lbl">Goldbach pairs</span><span class="db-val lime" id="rd-gb">—</span></div>
   <div class="db-item"><span class="db-lbl">√E threshold</span><span class="db-val" id="rd-thr">—</span></div>
+  <div class="db-item"><span class="db-lbl">gcd=1 / total</span><span class="db-val teal" id="rd-cop">—</span></div>
+  <div class="db-item"><span class="db-lbl">vs 1/ζ(2)</span><span class="db-val" id="rd-zdiff">—</span></div>
 </div>
 
 <!-- ══════════ CONTROLS ══════════ -->
@@ -2263,6 +2266,13 @@ function setG(v){
   slg.value=S.g; document.getElementById('in-g').value=S.g;
   document.getElementById('rd-G').textContent=G;
   document.getElementById('rd-E').textContent=2*(G+1);
+  // Whole-lattice coprime density vs the classical limit 1/ζ(2)=6/π². Lives in
+  // the same stat bar as the other per-G readouts, so it updates wherever G does.
+  const ds=coprimeDensityStat(G);
+  document.getElementById('rd-cop').textContent=`${ds.cnt}/${ds.total}`;
+  document.getElementById('rd-cop').title=`density ${(ds.density*100).toFixed(3)}%`;
+  document.getElementById('rd-zdiff').textContent=(ds.errPct>=0?'+':'')+ds.errPct.toFixed(2)+'%';
+  document.getElementById('rd-zdiff').title=`1/ζ(2) = ${ds.zc.toFixed(4)}`;
   syncMirrors();
   // A running Play-G sweep drives G through this same function on every tick.
   // Only a *manual* G change (slider drag, preset, typed value) should cancel
@@ -2649,7 +2659,10 @@ let LENS_SUPPRESS_CLICK=false;
     const r=Math.floor((e.clientX-b.left)/cell)+1, m=Math.floor((e.clientY-b.top)/cell)+1;
     if(r<1||r>S.G||m<1||m>S.G) return;
     const sum=r+m, E=2*(S.G+1);
-    // clicking a cell jumps to the gap whose sum strip runs through it
+    // clicking a cell jumps to the gap whose sum strip runs through it. If the
+    // multi-pair overlay is on, the point they clicked is one of many —
+    // dropping to single-gap view is what actually shows the partition they picked.
+    if(S.multi) toggleMulti();
     setGap(Math.max(1,Math.min(S.G-1, sum<=S.G? sum : E-sum)));
   });
 })();
@@ -2763,6 +2776,10 @@ function setLensZoom(z){
     const hit=hitAt(sx,sy);
     if(!hit) return;
     const [r,m]=hit, G=S.G, E=2*(G+1), sum=r+m;
+    // same drop-out-of-overlay behaviour as Grid's plain click, so releasing
+    // the lens on a point shows that point's own partition, not the pile of
+    // strips the overlay was drawing.
+    if(S.multi) toggleMulti();
     setGap(Math.max(1,Math.min(G-1, sum<=G? sum : E-sum)));
     showPulse(r,m);
   }
