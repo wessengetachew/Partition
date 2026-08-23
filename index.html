@@ -463,6 +463,8 @@ body.is-fs .figcap{display:none}
   <span class="wg-brand">WESSEN GETACHEW</span>
   <a class="pl" style="--c:#3dc8b8" href="https://wessengetachew.github.io/smith/page5.html" target="_blank" title="Gap Diagonal Identity — Page 5, the identity this page grew out of">P5</a>
   <span class="pl cur" style="--c:#c8a84a" title="You are here">The extension of the strip diagonal of the block coprimality C(n) framework</span>
+  <a class="pl" style="--c:#7ec87a" href="page2.html" title="The Density Bridge — does the Farey slice make this page asymptotic? Page 2">P2 · Density Bridge</a>
+  <a class="pl" style="--c:#9b7fe8" href="page3.html" title="The Cayley Plate — which Möbius map should the third view use? Page 3">P3 · Cayley Plate</a>
 </div>
 
 <!-- ══════════ STICKY INSTRUMENT BAR ══════════ -->
@@ -475,18 +477,18 @@ body.is-fs .figcap{display:none}
 
     <span class="nb2-lbl">G</span>
     <button class="nb2-step" onclick="setG(S.G-1)" title="G − 1">−</button>
-    <input class="nb2-num gold" id="nb2-G" type="number" min="1" max="4096" value="121" oninput="setG(+this.value)" title="Lattice side G">
+    <input class="nb2-num gold" id="nb2-G" type="number" min="1" max="4096" value="194" oninput="setG(+this.value)" title="Lattice side G">
     <button class="nb2-step" onclick="setG(S.G+1)" title="G + 1">+</button>
 
     <div class="nb2-sep"></div>
 
     <span class="nb2-lbl">g</span>
     <button class="nb2-step" onclick="setGap(S.g-1)" title="g − 1">−</button>
-    <input class="nb2-num" id="nb2-g" type="number" min="1" max="4097" value="61" oninput="setGap(+this.value)" title="Gap g">
+    <input class="nb2-num" id="nb2-g" type="number" min="1" max="4097" value="193" oninput="setGap(+this.value)" title="Gap g">
     <button class="nb2-step" onclick="setGap(S.g+1)" title="g + 1">+</button>
 
     <div class="nb2-sep"></div>
-    <span id="nb2-E">244 = 61 + 183</span>
+    <span id="nb2-E">390 = 193 + 197</span>
     <div class="nb2-sep"></div>
     <span id="nb2-verdict">—</span>
 
@@ -553,7 +555,7 @@ body.is-fs .figcap{display:none}
       <div class="gitem" data-sym="r" onclick="focusSym('r')">
         <div class="ghead">
           <svg class="gly" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x=".5" y=".5" width="17" height="17" stroke="rgba(255,255,255,.14)"/><path d="M2 9H15" stroke="#c8a84a" stroke-width="1.5"/><path d="M11.5 5.5 15 9l-3.5 3.5" stroke="#c8a84a" stroke-width="1.5"/></svg>
-          <span class="gkey">r</span><span class="gval">1…<b id="gv-Gr">121</b></span>
+          <span class="gkey">r</span><span class="gval">1…<b id="gv-Gr">194</b></span>
         </div>
         the lattice's horizontal coordinate. One of the two numbers gcd() is taken of.
       </div>
@@ -645,7 +647,7 @@ body.is-fs .figcap{display:none}
   <div id="view-bar">
     <button class="vm-btn active" id="vw-grid" onclick="setView('grid')" title="Square lattice — the original (r,M) grid, one cell per point.">Grid</button>
     <button class="vm-btn" id="vw-ring" onclick="setView('ring')" title="Concentric rings — ring M at radius M/G, point r at angle 2πr/M. Only r&lt;M sits within one turn; r&gt;M wraps past 2π onto the same ring, so nothing is dropped.">Ring</button>
-    <button class="vm-btn" id="vw-cayley" onclick="setView('cayley')" title="The same ring points, 1:1, run through the Cayley/Möbius map Γ(z)=(z−1)/(z+1).">Cayley</button>
+    <button class="vm-btn" id="vw-cayley" onclick="setView('cayley')" title="The same ring points, 1:1, run through the Cayley/Möbius map Γ(z)=(z−1)/(z+1). Unbounded: the ring M=G/3 contains the pole z=−1, so ~6.2% of the lattice is off-plate at the default zoom (8× leaves 1.5%).">Cayley</button>
   </div>
 
   <div id="figure">
@@ -669,10 +671,10 @@ body.is-fs .figcap{display:none}
 </div>
 
 <div class="density-bar" id="density-bar">
-  <div class="db-item"><span class="db-lbl">Side G</span><span class="db-val gold" id="rd-G">121</span></div>
-  <div class="db-item"><span class="db-lbl">E = 2(G+1)</span><span class="db-val" id="rd-E">244</span></div>
-  <div class="db-item"><span class="db-lbl">gap g</span><span class="db-val teal" id="rd-g">61</span></div>
-  <div class="db-item"><span class="db-lbl">s = E − g</span><span class="db-val" id="rd-s">183</span></div>
+  <div class="db-item"><span class="db-lbl">Side G</span><span class="db-val gold" id="rd-G">194</span></div>
+  <div class="db-item"><span class="db-lbl">E = 2(G+1)</span><span class="db-val" id="rd-E">390</span></div>
+  <div class="db-item"><span class="db-lbl">gap g</span><span class="db-val teal" id="rd-g">193</span></div>
+  <div class="db-item"><span class="db-lbl">s = E − g</span><span class="db-val" id="rd-s">197</span></div>
   <div class="db-item"><span class="db-lbl">Goldbach pairs</span><span class="db-val lime" id="rd-gb">—</span></div>
   <div class="db-item"><span class="db-lbl">√E threshold</span><span class="db-val" id="rd-thr">—</span></div>
 </div>
@@ -704,22 +706,30 @@ body.is-fs .figcap{display:none}
           <input type="range" id="sl-prot" min="0" max="359" step="1" value="0" oninput="setPolarRot(+this.value)">
           <input type="number" id="in-prot" min="0" max="359" value="0" style="width:50px" oninput="setPolarRot(+this.value)">
         </div>
-        <div class="note" id="polar-note">Zoom and θ are kept per view — Ring and Cayley each remember their own. Cayley starts at zoom-out 4×, which is where the whole Möbius image fits the plate.</div>
+        <div class="row">
+          <span class="lab">θ map</span>
+          <select id="sel-theta" onchange="setThetaMode(this.value)" style="flex:1">
+            <option value="wrap" selected>wrap · θ = 2πr/M</option>
+            <option value="clamp">clamp · min(r/M, 1)</option>
+            <option value="unit">unit · θ = 2πr/G</option>
+          </select>
+        </div>
+        <div class="note" id="theta-note">Zoom and θ are kept per view — Ring and Cayley each remember their own. Cayley starts at zoom-out <b>4×</b>, which shows |Γ| &lt; 4.35 and so retains about <b>93.8%</b> of the lattice — <b>not</b> the whole image. The Möbius map is unbounded here: max|Γ| on ring ρ is (1+ρ)/|1−ρ|, which diverges at ρ = 1, i.e. at <b>M = G/3</b>, where the pole z = −1 sits. No zoom setting fits everything. 8× retains ~98.5%. See <i>How the three views are built</i> below.<br><br><b>θ map</b> decides what happens past one turn. <b>wrap</b> is the original: θ = 2πr/M runs unbounded, so r &gt; M keeps going round and r/M = 1.3 lands on top of r/M = 0.3 — the multiplicative path folds back on itself and the two are no longer distinguishable. <b>clamp</b> refuses the fold: θ = 2π·min(r/M,1), so the fractions r/M ∈ (0,1) — the Farey side of the ring — get the whole circle to themselves, and everything with r ≥ M piles onto the 360° spoke. That spoke's thickness at each M is then a direct count of how far past one turn that ring reaches. <b>unit</b> budgets the turn by G instead of M: every ring spends exactly one revolution over r = 1…G, so a given r sits at the same angle on every ring and coprimality reads as radial spokes.</div>
       </div>
       <div class="row">
         <span class="lab">Grid G</span>
-        <input type="range" id="sl-G" min="1" max="1024" step="1" value="121" oninput="setG(+this.value)" title="Slides 1–1024 for fine control. Type into the box on the right to go higher, up to 4096.">
-        <input type="number" id="in-G" min="1" max="4096" value="121" style="width:56px" oninput="setG(+this.value)">
+        <input type="range" id="sl-G" min="1" max="1024" step="1" value="194" oninput="setG(+this.value)" title="Slides 1–1024 for fine control. Type into the box on the right to go higher, up to 4096.">
+        <input type="number" id="in-G" min="1" max="4096" value="194" style="width:56px" oninput="setG(+this.value)">
         <button class="chip" id="ch-playG" onclick="toggleSweepG()" title="Play G: climbs from 1 up to whatever G is currently set, then descends back down to 1, back and forth. Runs independently of Play g / Play pairs — both keep sweeping while G moves.">▶ Play G</button>
       </div>
       <div class="row">
         <span class="lab">Gap g</span>
-        <input type="range" class="tl" id="sl-g" min="1" max="122" step="1" value="61" oninput="setGap(+this.value)">
-        <input type="number" id="in-g" min="1" max="4097" value="61" style="width:56px" oninput="setGap(+this.value)">
+        <input type="range" class="tl" id="sl-g" min="1" max="193" step="1" value="193" oninput="setGap(+this.value)">
+        <input type="number" id="in-g" min="1" max="4097" value="193" style="width:56px" oninput="setGap(+this.value)">
       </div>
       <div class="row">
         <span class="lab">Even E</span>
-        <span class="val" id="v-E" style="flex:1;text-align:left">244 = g + s</span>
+        <span class="val" id="v-E" style="flex:1;text-align:left">390 = g + s</span>
         <button class="chip" onclick="stepPair(-1)" title="Previous Goldbach pair">◀ pair</button>
         <button class="chip" onclick="stepPair(1)" title="Next Goldbach pair">pair ▶</button>
       </div>
@@ -737,7 +747,15 @@ body.is-fs .figcap{display:none}
         <button class="chip" id="lz-6" onclick="setLensZoom(6)" style="flex:1">6×</button>
         <button class="chip" id="lz-10" onclick="setLensZoom(10)" style="flex:1">10×</button>
       </div>
-      <div class="note">Press and hold a point on the lattice, drag to pan the lens, release to jump the gap there.</div>
+      <div class="row" style="margin-top:8px">
+        <span class="lab">Park</span>
+        <button class="chip on" id="lp-auto" onclick="setLensPin('auto')" style="flex:1.4">auto</button>
+        <button class="chip" id="lp-tl" onclick="setLensPin('tl')" style="flex:1" title="Pin to top-left">↖</button>
+        <button class="chip" id="lp-tr" onclick="setLensPin('tr')" style="flex:1" title="Pin to top-right">↗</button>
+        <button class="chip" id="lp-bl" onclick="setLensPin('bl')" style="flex:1" title="Pin to bottom-left">↙</button>
+        <button class="chip" id="lp-br" onclick="setLensPin('br')" style="flex:1" title="Pin to bottom-right">↘</button>
+      </div>
+      <div class="note">Press and hold a point on the lattice, drag to pan the lens, release to jump the gap there.<br><br><b>auto</b> keeps the lens above your finger and slides it sideways when it runs out of headroom — continuously, so it never jumps across the pointer the way it used to at mid-plate. Pin it to a corner if you would rather it never moved at all.<br><br>The lens now centres on the true point everywhere, including the outermost row, column and all four corners. Past the lattice edge the view goes empty and the dashed gold line marks where the boundary falls — that emptiness is the edge, not a rendering fault.</div>
     </div>
 
     <div class="grp">
@@ -812,7 +830,18 @@ body.is-fs .figcap{display:none}
           <option value="off">off</option>
         </select>
       </div>
-      <div class="note">Grid: labels draw only where a cell clears 13&nbsp;px, so they never pile up. Above roughly <b>G = 320</b> the canvas switches to a one-pixel-per-cell buffer and scales it without smoothing.<br><br>Ring / Cayley: the current strip points are always labelled; the rest of the lattice joins in once there's room for it — <b>G ≤ 64</b>, or the zoom-in slider past <b>2×</b>.</div>
+      <div class="row">
+        <span class="lab">Size</span>
+        <input type="range" id="sl-lblsize" min="0.5" max="2.2" step="0.05" value="1" oninput="setLblScale(+this.value)" title="Type size for every label, in all three views. Turning it down also lowers Grid's pile-up gate, so smaller type buys labels at a larger G rather than only shrinking the ones already there.">
+        <span class="val" id="v-lblsize" style="width:40px">1.00×</span>
+        <button class="chip" onclick="setLblScale(1)" title="Back to 1×">⟲</button>
+      </div>
+      <div class="row" id="lbladapt-row" style="display:none">
+        <span class="lab">Grade</span>
+        <input type="range" id="sl-lbladapt" min="0" max="100" step="5" value="55" oninput="setLblAdapt(+this.value)" title="Ring/Cayley only. Grades label size by distance from the centre: inner labels shrink, rim labels grow. 0% is one size everywhere.">
+        <span class="val" id="v-lbladapt" style="width:40px">55%</span>
+      </div>
+      <div class="note">Grid: labels draw only where a cell clears the pile-up gate (13&nbsp;px at size 1×, scaled with the slider), so they never collide. Above roughly <b>G = 320</b> the canvas switches to a one-pixel-per-cell buffer and scales it without smoothing.<br><br>Ring / Cayley: the current strip points are always labelled; the rest of the lattice joins in once there's room for it — <b>G ≤ 256</b>, the zoom-in slider past <b>2×</b>, or size at <b>0.7×</b> or below. Each label claims the rectangle it actually measures, so nothing overlaps at any size.<br><br><b>Grade</b> exists because crowding in the polar views is a function of radius, not a constant. At <b>G = 20…30</b> every point has room and 0% — one size everywhere — is right. By <b>G ≈ 200</b> the inner rings are a smear while the rim is still half empty; grading spends small type on the packed middle and full type on the open rim, which raises the number of readable labels instead of trading one zone off against the other.</div>
     </div>
 
     <div class="grp">
@@ -871,6 +900,165 @@ body.is-fs .figcap{display:none}
 </div>
 
 <!-- ══════════ THE CLAIM ══════════ -->
+<!-- ══════════ HOW THE VIEWS ARE BUILT ══════════ -->
+<div class="sect" id="views">
+  <div class="sect-hdr">How the three views are built</div>
+
+  <div class="card">
+    <div class="prose">
+      All three views draw the <b>same set</b>: the G² ordered pairs (r, M) with 1 ≤ r, M ≤ G, each carrying the
+      single bit gcd(r, M) = 1. Nothing is added, removed, or recomputed between them. What changes is only the
+      injection of that index set into the plate — one affine, one polar, one Möbius. Everything below is the
+      actual arithmetic the canvas runs, stated so the pictures can be checked rather than trusted.
+    </div>
+  </div>
+
+  <div class="theory-hdr open" id="v1-hdr" onclick="toggleTheory('v1')">
+    <span>1 · Grid — the identity injection</span><span class="arrow">▶</span>
+  </div>
+  <div class="theory-body open" id="v1-body">
+    <div class="prose">
+      Grid is the trivial case: the index pair is used as a coordinate directly, scaled to the plate. With plate
+      side p and cell pitch <b>δ = p/G</b>, cell (r, M) has its centre at
+    </div>
+    <div class="formula-block">(x, y) = ((r − ½)·δ, (M − ½)·δ),&nbsp;&nbsp;δ = p/G</div>
+    <div class="prose">
+      The map is injective, affine, orientation-preserving in x and flipped in y only because the canvas puts y
+      downward. Because it is affine, <b>straight lines stay straight</b> — which is the whole reason the four
+      strips read as strips here. Constant difference M − r = g and constant sum r + M = g are lines of slope +1
+      and −1, so a, b, c, d appear as four straight segments and "fully coprime" is a property you can check by
+      running your eye along one of them. No other view has that property.
+    </div>
+    <div class="prose">
+      The cost is that Grid has no way to express the multiplicative structure of a pair. r = 7, M = 21 and
+      r = 1, M = 3 are the same reduced fraction and sit in unrelated corners of the square.
+    </div>
+  </div>
+
+  <div class="theory-hdr open" id="v2-hdr" onclick="toggleTheory('v2')">
+    <span>2 · Ring — residues as roots of unity</span><span class="arrow">▶</span>
+  </div>
+  <div class="theory-body open" id="v2-body">
+    <div class="prose">
+      Ring sends M to a radius and r to an angle:
+    </div>
+    <div class="formula-block teal">ρ = M/G ∈ (0, 1],&nbsp;&nbsp;θ = 2π·r/M&nbsp;&nbsp;⟹&nbsp;&nbsp;(x, y) = (c + R·ρ·cos θ, c − R·ρ·sin θ)</div>
+    <div class="prose">
+      The angle is the point of the construction. θ = 2πr/M depends on r <b>only through r mod M</b>, so ring M is
+      the cyclic group ℤ/Mℤ drawn as M equally spaced marks, and the plotted point is the complex number
+      e<sup>2πir/M</sup> — an M-th root of unity. The coprimality bit then has an exact meaning in the picture:
+    </div>
+    <div class="formula-block">e<sup>2πir/M</sup> is a <b>primitive</b> M-th root of unity &nbsp;⟺&nbsp; gcd(r, M) = 1</div>
+    <div class="prose">
+      So the lit points of ring M are precisely its primitive roots — the generators of ℤ/Mℤ — and there are φ(M)
+      of them per turn. Summing that over the rings recovers the classical count, which is the same 6/π² that runs
+      through the rest of the suite:
+    </div>
+    <div class="formula-block teal">Σ<sub>M ≤ G</sub> φ(M) = (3/π²)·G² + O(G log G)&nbsp;&nbsp;⟹&nbsp;&nbsp;density of coprime pairs in the square → 6/π² = 1/ζ(2)</div>
+    <div class="prose" style="margin-top:16px">
+      <b>What happens past one turn.</b> r runs to G, not to M, so for M &lt; G the angle formula runs past 2π and a
+      decision has to be made. The θ map control makes that decision explicit; all three are exact, and they differ
+      in what they throw away.
+    </div>
+    <div class="formula-block">
+      wrap&nbsp;&nbsp; θ = 2πr/M&nbsp;&nbsp;— surjective onto the M-th roots; each root receives ⌊G/M⌋ or ⌈G/M⌉ values of r<br>
+      clamp&nbsp; θ = 2π·min(r/M, 1)&nbsp;&nbsp;— injective on r &lt; M; the G − M + 1 values r ≥ M all collapse to the θ = 0 spoke<br>
+      unit&nbsp;&nbsp; θ = 2πr/G&nbsp;&nbsp;— injective in r on every ring, but the roots are now G-th roots on every ring, not M-th
+    </div>
+    <div class="prose">
+      <b>wrap</b> keeps the root-of-unity meaning and loses injectivity: r and r + M land on the same pixel and
+      cannot be told apart. <b>clamp</b> keeps injectivity on the genuine fractions r/M ∈ (0, 1) — the Farey side —
+      and pays for it with a spoke whose thickness at ring M is exactly G − M + 1. <b>unit</b> keeps injectivity
+      everywhere and loses the arithmetic: the angle no longer knows what M is, so gcd(r, M) = 1 shows up as
+      radial spokes rather than as a per-ring pattern.
+    </div>
+    <div class="note">None of the three is the "right" one. wrap is right if you are looking at ℤ/Mℤ; clamp is right if you are looking at Farey fractions; unit is right if you want to compare the same r across rings.</div>
+  </div>
+
+  <div class="theory-hdr open" id="v3-hdr" onclick="toggleTheory('v3')">
+    <span>3 · Cayley — the Möbius image, derived in full</span><span class="arrow">▶</span>
+  </div>
+  <div class="theory-body open" id="v3-body">
+    <div class="prose">
+      Cayley takes the ring point as a complex number and applies a Möbius transformation. The radius is first
+      remapped by a fixed affine rule, then:
+    </div>
+    <div class="formula-block violet">z = ρ·e<sup>iθ</sup>,&nbsp;&nbsp;ρ = 0.4 + 1.8·(M/G) ∈ [0.4, 2.2],&nbsp;&nbsp;w = Γ(z) = (z − 1)/(z + 1)</div>
+    <div class="prose">
+      Γ is a genuine Cayley transform — it carries the right half-plane Re z &gt; 0 bijectively onto the unit disk,
+      and its inverse is z = (1 + w)/(1 − w), which is what the click hit-test inverts. To see what it does to the
+      rings, impose |z| = ρ on the inverse. Writing w = u + iv:
+    </div>
+    <div class="formula-block">
+      |z| = ρ&nbsp;⟺&nbsp;|1 + w| = ρ|1 − w|&nbsp;⟺&nbsp;(1+u)² + v² = ρ²[(1−u)² + v²]
+    </div>
+    <div class="prose">
+      Expanding and collecting gives (1 − ρ²)(u² + v²) + 2u(1 + ρ²) + (1 − ρ²) = 0, and for ρ ≠ 1 dividing by
+      (1 − ρ²) puts it in circle form:
+    </div>
+    <div class="formula-block violet">
+      centre&nbsp; −(1 + ρ²)/(1 − ρ²)&nbsp; on the real axis&nbsp;&nbsp;·&nbsp;&nbsp;radius&nbsp; 2ρ/|1 − ρ²|
+    </div>
+    <div class="prose">
+      These are the <b>Apollonius circles</b> of the point pair ±1: each is the locus where |z−1|/|z+1| is
+      constant. The rays θ = const map to the orthogonal family, arcs running from Γ(0) = −1 to Γ(∞) = +1. Adding
+      centre and radius gives the furthest point of each ring image, and it simplifies cleanly:
+    </div>
+    <div class="formula-block violet">
+      max |Γ| on ring ρ&nbsp; = &nbsp;(1 + ρ²)/|1 − ρ²| + 2ρ/|1 − ρ²|&nbsp; = &nbsp;(1 + ρ)²/|1 − ρ²|&nbsp; = &nbsp;(1 + ρ)/|1 − ρ|
+    </div>
+    <div class="prose">
+      One locus is not a circle: |z| = 1 forces |1 + w| = |1 − w|, whose solution set is the line u = 0. The unit
+      circle maps to the <b>imaginary axis</b>, which is unbounded. Equivalently |Γ(z)| = 1 ⟺ Re z = 0, so the
+      reference circle drawn on the Cayley plate is exactly the image of the two rays θ = ±π/2.
+    </div>
+  </div>
+
+  <div class="theory-hdr open" id="v4-hdr" onclick="toggleTheory('v4')">
+    <span>4 · What the Cayley view currently gets wrong</span><span class="arrow">▶</span>
+  </div>
+  <div class="theory-body open" id="v4-body">
+    <div class="prose">
+      The formula (1 + ρ)/|1 − ρ| decides everything, and the radius spread ρ ∈ [0.4, 2.2] <b>straddles ρ = 1</b>.
+      At the outer ring ρ = 2.2 the bound is 3.2/1.2 = 2.667, which is a comfortable, finite number — and it is the
+      figure this page's own code comment used to quote for the whole image. It is not the whole image. The bound
+      diverges as ρ → 1, and
+    </div>
+    <div class="formula-block coral" style="border-left-color:var(--coral);background:rgba(224,80,96,.08);color:var(--coral)">
+      0.4 + 1.8·(M/G) = 1&nbsp;&nbsp;⟺&nbsp;&nbsp;M = G/3
+    </div>
+    <div class="prose">
+      so the pole z = −1 sits on the ring M ≈ G/3, at the angle θ = π, i.e. at r ≈ M/2. Measured over the full
+      lattice, the largest image modulus lands there every time: 17.7 at G = 30, 402 at G = 121 (r=20, M=40),
+      852 at G = 512 (r=85, M=170), 1708 at G = 1024 (r=171, M=342). Three consequences, stated plainly:
+    </div>
+    <div class="prose">
+      <b>The picture is unbounded, so some of it is always missing.</b> The default zoom-out of 4× shows
+      |Γ| &lt; 4.35, which retains about 93.8% of the lattice. The other <b>6.2%</b> is clipped every frame, and it
+      is not a random 6.2% — it is one ring being discarded. Going to 8× retains 98.5%; no setting reaches 100%.
+    </div>
+    <div class="prose">
+      <b>The singular ring is arithmetically meaningless.</b> M = G/3 is an artefact of the constants 0.4 and 1.8.
+      Nothing about coprimality, Farey structure, or the strips distinguishes that ring; a different pair of
+      constants would put the singularity somewhere else entirely.
+    </div>
+    <div class="prose">
+      <b>The pole used to be drawn at a real point.</b> When 3 ∣ G and G/3 is even, z = −1 is hit exactly. The
+      guard formerly placed that point at the plate centre — but the plate centre is Γ(1) = 0, which genuine
+      lattice points occupy. A pole and a zero were rendered on the same pixel. The guard now pushes the point off
+      the plate instead, so it is honestly absent rather than dishonestly present.
+    </div>
+    <div class="prose">
+      The transformation itself is correct — Γ, its inverse, and the complex division are all exact, and the θ map
+      is irrelevant to the problem: the singularity survives wrap, clamp and unit alike, because it is a property
+      of the <b>domain</b>, not of the angle. Whether Γ on a straddling annulus is the right choice of domain is a
+      separate question, worked through side by side against two bounded alternatives in
+      <a href="cayley-compare.html" style="color:var(--gold)">the Cayley plate comparison</a>.
+    </div>
+  </div>
+
+</div>
+
 <div class="sect" id="claim">
   <div class="sect-hdr">The claim</div>
 
@@ -1017,19 +1205,33 @@ function stripsAt(G,g){
 }
 
 /* ── state ───────────────────────────────────────────────────────── */
-// cayleyZoom is the Cayley zoom-OUT divisor (1/2/4/8); the Möbius image of the
-// 0.4…2.2 ring spread reaches ~2.67 in |Γ|, so 4× is the default that actually
-// fits the whole picture on the plate. ringZoom / cayleyIn are the zoom-IN
+// cayleyZoom is the Cayley zoom-OUT divisor (1/2/4/8). 4× is the default, but
+// NOT because it fits the whole picture — it does not, and no finite zoom does.
+// max|Γ| on ring ρ is (1+ρ)/|1−ρ|, which is 2.667 at the outer ring ρ=2.2 (the
+// figure this comment used to quote for the whole image) but diverges as ρ→1,
+// i.e. at M = G/3, where the pole z = −1 sits. Measured max|Γ| over the lattice
+// is 402 at G=121 and 1708 at G=1024. 4× shows |Γ| < 4.35, which retains ~93.8%
+// of the points; the rest is clipped. See the "How the three views are built"
+// section — this is documented rather than hidden. ringZoom / cayleyIn are the zoom-IN
 // multipliers (1…10) driven by the polar zoom slider, and ringRot / cayleyRot
 // the per-view θ offsets. All four feed ringXY/cayleyXY, so all four must be
 // part of polarBaseLayer's cache key — otherwise the all-pairs backdrop stays
 // frozen at whatever zoom/rotation it was first built at while the strip
 // points move over it.
-const S={G:121,g:61,col:'sector',lbl:'r',dim:0.45,view:'grid',
+// lblScale is a straight multiplier on every label's type size (0.5…2.2×).
+// lblAdapt is the radial correction that only Ring/Cayley need: the projection
+// crushes small-M points into the middle of the plate and fans large-M points
+// out at the rim, so at G≈200 the inner labels collide long before the outer
+// ones are anywhere near touching. At 0 every label is the same size (what
+// small G wants — at G≤30 there is room for uniform type everywhere); turned
+// up, inner labels shrink and rim labels grow, so both zones stay legible in
+// one frame. thetaMode picks the angular map — see thetaOf().
+const S={G:194,g:193,col:'sector',lbl:'r',dim:0.45,view:'grid',
+         lblScale:1,lblAdapt:0.55,thetaMode:'wrap',
          cayleyZoom:4,cayleyRot:0,cayleyIn:1,ringZoom:1,ringRot:0,focus:null,
          show:{sum:true,diff:true,frame:true,diag:false},
          filter:'gold',rows:[],sel:null,gapN:1,
-         multi:false,multiMode:'pairs',batch:1,page:0,items:[],pairIdx:new Map()};
+         multi:true,multiMode:'pairs',batch:0,page:0,items:[],pairIdx:new Map()};
 const BR={a:[61,200,184],b:[155,127,232],c:[200,168,74],d:[224,80,96]};
 const KIND_RGB={gOnly:[200,168,74],sOnly:[61,200,184],none:[58,58,70]};
 const KIND_ALPHA={gOnly:.55,sOnly:.55,none:.28};
@@ -1041,6 +1243,8 @@ const PRESETS=[
   {E:106,  t:'106',  why:'E = 2·53, the balanced partition 53+53'},
   {E:210,  t:'210',  why:'primorial 2·3·5·7 — maximal small-prime support'},
   {E:244,  t:'244',  why:'square grid: g = (G+1)/2 makes the frame a square'},
+  {E:390,  t:'390',  why:'the default — 27 Goldbach pairs, the richest E under G = 200'},
+  {E:630,  t:'630',  why:'41 pairs — the densest E below 700'},
   {E:1000, t:'1000', why:'scale check'},
   {E:2048, t:'2048', why:'power of two — no odd prime support'}
 ];
@@ -1174,8 +1378,11 @@ let PBASE=null, PBASE_KEY='', PBUF={canvas:null,ctx:null,img:null,W:0};
 // while the strip points — projected live — slid over it. Zoom, rotation and
 // the buffer size now all take part in the key.
 function polarKeyBits(view){
-  return view==='ring' ? S.ringZoom+'/'+S.ringRot
-                       : S.cayleyZoom+'/'+S.cayleyIn+'/'+S.cayleyRot;
+  // thetaMode belongs here for the same reason zoom and θ do: it changes where
+  // every backdrop point lands, so a cached layer built under one map is wrong
+  // under another.
+  return (view==='ring' ? S.ringZoom+'/'+S.ringRot
+                        : S.cayleyZoom+'/'+S.cayleyIn+'/'+S.cayleyRot)+'/'+S.thetaMode;
 }
 function polarBaseLayer(G,view,px){
   // Match the target size instead of a fixed 1024: this layer is a scatter of
@@ -1387,9 +1594,14 @@ function paintGrid(ctx,px,G,g){
     ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(px,px); ctx.stroke();
   }
 
-  // labels only where a cell clears 13 px, so they can never pile up
-  if(S.lbl!=='off'&&cell>=13){
-    ctx.font=`${Math.min(cell*0.34,15)}px "JetBrains Mono",monospace`;
+  // Labels only where a cell clears the pile-up gate. The gate tracks the size
+  // slider — smaller type genuinely fits in smaller cells, so turning the
+  // slider down should buy labels at a larger G, not just shrink the ones
+  // already there. Grid needs no radial grading: its cells are a regular pitch,
+  // so crowding is the same everywhere and one size is the right answer.
+  const gate=13*Math.max(0.5,Math.min(1.7,S.lblScale));
+  if(S.lbl!=='off'&&cell>=gate){
+    ctx.font=`${Math.min(cell*0.34,15)*S.lblScale}px "JetBrains Mono",monospace`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     const onStrip=new Set((!S.multi&&gapOn)?stripPoints(G,g).map(p=>p[0]+','+p[1]):[]);
     for(let m=1;m<=G;m++) for(let r=1;r<=G;r++){
@@ -1559,22 +1771,53 @@ function drawFocus(ctx,px,G,g,view){
 // high zoom are simply clipped — that's what zooming in means here.
 function ringScale(px){ return px*0.46*Math.max(0.25,S.ringZoom); }
 function cayleyScale(px){ return px*0.46*Math.max(0.25,S.cayleyIn)/Math.max(1,S.cayleyZoom); }
-function ringXY(r,m,G,px){
-  const cx=px/2, cy=px/2, Rmax=ringScale(px);
-  const theta=2*Math.PI*r/m + S.ringRot*Math.PI/180;
-  const rho=(m/G)*Rmax;
+// θ map — the one decision that separates the three angular modes.
+//   wrap  θ = 2πr/M, unbounded. r>M runs past a full turn and keeps going;
+//         the circle is periodic so nothing is lost, but a point at r/M = 1.3
+//         is drawn on top of one at 0.3 and the two are indistinguishable.
+//   clamp θ = 2π·min(r/M, 1). No wrap: one turn is the whole of the range, and
+//         every r ≥ M is pinned at the 360° limit. The r < M half — the
+//         genuine fractions r/M ∈ (0,1), i.e. the Farey side of the ring — is
+//         the only part that spreads, and the pile-up on the θ=0 spoke is a
+//         direct read of how many points overshoot one turn at each M.
+//   unit  θ = 2πr/G. Also unwrapped, but the turn is budgeted by G instead of
+//         M, so every ring spends exactly one revolution over r = 1…G and the
+//         same r sits at the same angle on every ring — coprimality then reads
+//         as radial spokes rather than as an M-dependent scatter.
+function thetaOf(r,m,G){
+  switch(S.thetaMode){
+    case 'clamp': return 2*Math.PI*Math.min(r/m,1);
+    case 'unit':  return 2*Math.PI*(r/Math.max(1,G));
+    default:      return 2*Math.PI*(r/m);
+  }
+}
+// Point maps taken from an angle directly, so anything that wants a locus at a
+// given θ (the reference circles) is independent of which θ mode is live.
+function ringFromTheta(theta,m,G,px){
+  const cx=px/2, cy=px/2, rho=(m/G)*ringScale(px);
   return [cx+rho*Math.cos(theta), cy-rho*Math.sin(theta)];
 }
-function cayleyXY(r,m,G,px){
+function cayleyFromTheta(theta,m,G,px){
   const cx=px/2, cy=px/2, Rc=cayleyScale(px);
-  const theta=2*Math.PI*r/m + S.cayleyRot*Math.PI/180;
   const normR=0.4+(m/G)*1.8; // same 0.4…2.2 spread the hero Cayley view uses
   const zx=normR*Math.cos(theta), zy=normR*Math.sin(theta);
   const ar=zx-1, ai=zy, br=zx+1, bi=zy, d=br*br+bi*bi;
-  if(d<1e-9) return [cx,cy];
+  // z = −1 is a pole: Γ(z) → ∞. This used to return the plate centre, but the
+  // plate centre is Γ(1) = 0 — a point real lattice cells land on whenever
+  // 3 ∣ G. That drew a pole and a zero on the same pixel. Push it far off the
+  // plate instead, so every bounds check downstream drops it: absent and
+  // honest beats present and wrong.
+  if(d<1e-9) return [cx+1e9,cy];
   const u=(ar*br+ai*bi)/d, v=(ai*br-ar*bi)/d;
   return [cx+u*Rc, cy-v*Rc];
 }
+const THETA_CAPTION={
+  wrap:'θ=2πr/M (wraps past 2π for r>M)',
+  clamp:'θ=2π·min(r/M,1) — no wrap, r≥M pinned at the 360° limit',
+  unit:'θ=2πr/G — no wrap, one turn per ring'
+};
+function ringXY(r,m,G,px){ return ringFromTheta(thetaOf(r,m,G)+S.ringRot*Math.PI/180,m,G,px); }
+function cayleyXY(r,m,G,px){ return cayleyFromTheta(thetaOf(r,m,G)+S.cayleyRot*Math.PI/180,m,G,px); }
 function paintPolar(ctx,px,G,g,view){
   const proj = view==='ring' ? ringXY : cayleyXY;
   ctx.save();
@@ -1591,14 +1834,17 @@ function paintPolar(ctx,px,G,g,view){
   // reference rings — faint circles at a handful of M levels for scale,
   // mapped through the same projection so Cayley shows their Möbius image
   const refMs=new Set([Math.round(G*0.25),Math.round(G*0.5),Math.round(G*0.75),G]);
+  // Sampled straight in θ rather than by inverting r/M, so these circles are
+  // the same locus under all three angular modes — they mark where ring M sits,
+  // not where any particular r lands on it.
+  const fromTheta=view==='ring'?ringFromTheta:cayleyFromTheta;
+  const refRot=(view==='ring'?S.ringRot:S.cayleyRot)*Math.PI/180;
   refMs.forEach(M=>{
     if(M<2) return;
     ctx.strokeStyle='rgba(255,255,255,.07)'; ctx.lineWidth=Math.max(1,px/1400);
     ctx.beginPath();
     for(let a=0;a<=200;a++){
-      const th=a/200*2*Math.PI;
-      const r=Math.max(1,Math.round((th/(2*Math.PI))*M));
-      const [x,y]=proj(r||1,M,G,px);
+      const [x,y]=fromTheta(a/200*2*Math.PI+refRot,M,G,px);
       a===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
     }
     ctx.stroke();
@@ -1643,7 +1889,8 @@ function paintPolar(ctx,px,G,g,view){
   paintPolarLabels(ctx,px,G,g,proj);
   ctx.font=`${Math.max(9,px*0.013)}px "JetBrains Mono",monospace`;
   ctx.fillStyle='rgba(106,101,96,.9)'; ctx.textAlign='left'; ctx.textBaseline='top';
-  ctx.fillText(view==='ring'?'Ring: M=ring radius, θ=2πr/M (wraps past 2π for r>M)':'Cayley: Γ(z)=(z−1)/(z+1) of the same ring points',px*0.02,px*0.02);
+  ctx.fillText(view==='ring'?'Ring: M=ring radius, '+THETA_CAPTION[S.thetaMode]
+                            :'Cayley: Γ(z)=(z−1)/(z+1) of the same ring points · '+THETA_CAPTION[S.thetaMode],px*0.02,px*0.02);
   drawFocus(ctx,px,G,g,view);
   ctx.restore();
 }
@@ -1655,38 +1902,74 @@ function paintPolar(ctx,px,G,g,view){
 // wins its slots, then the rest of the lattice fills whatever is left. That
 // makes the label density self-regulating as the zoom slider opens the
 // picture up — more room, more labels, never a pile-up.
+// Two knobs feed this: S.lblScale (a flat multiplier, the size slider) and
+// S.lblAdapt (how hard type is graded by radius). Grading matters because the
+// crowding here is not uniform — it is a function of how far a point lands from
+// the centre. At G ≤ 30 the whole plate has room and adapt can sit at 0; by
+// G ≈ 200 the inner rings are a solid smear while the rim is still half empty,
+// and a single size can only serve one of the two. Grading solves it by
+// spending small type where the points are packed and full type where they are
+// not, so the count of readable labels goes up without any of them touching.
+function polarLabelFS(px,rho,Rref){
+  const base=Math.max(6,Math.min(20,px*0.0145))*S.lblScale;
+  if(S.lblAdapt<=0.001) return base;
+  const t=Math.max(0,Math.min(1,rho/Math.max(1,Rref)));       // 0 centre → 1 rim
+  // eased so the shrink is concentrated in the crowded inner third rather than
+  // spread evenly across the radius
+  const f=(1-S.lblAdapt*0.58)+S.lblAdapt*0.86*Math.pow(t,0.7);
+  return base*f;
+}
 function paintPolarLabels(ctx,px,G,g,proj){
   if(S.lbl==='off') return;
-  const fs=Math.max(7,Math.min(17,px*0.0145));
+  const cx=px/2, cy=px/2;
+  const Rref=S.view==='ring'?ringScale(px):cayleyScale(px);
+  const fsBase=Math.max(6,Math.min(20,px*0.0145))*S.lblScale;
   ctx.save();
-  ctx.font=`${fs}px "JetBrains Mono",monospace`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  const cw=fs*(S.lbl==='rM'?5.4:3.4), ch=fs*2.4;
-  const cols=Math.max(1,Math.ceil(px/cw)), rows=Math.max(1,Math.ceil(px/ch));
+  // Variable type means the old fixed-pitch occupancy grid no longer describes
+  // a label's footprint, so the grid goes fine and each label claims the actual
+  // measured rectangle it occupies. Same first-come-first-served rule, but now
+  // a small inner label only blocks the space it really covers, which is the
+  // whole point of shrinking it.
+  const u=Math.max(3,fsBase*0.42);
+  const cols=Math.max(1,Math.ceil(px/u)), rows=Math.max(1,Math.ceil(px/u));
   const occ=new Uint8Array(cols*rows);
-  const MAXL=340;
+  const MAXL=900;
   let drawn=0;
+  const claim=(x,y,w,h)=>{
+    const i0=Math.max(0,((x-w/2)/u)|0), i1=Math.min(cols-1,((x+w/2)/u)|0);
+    const j0=Math.max(0,((y-h/2)/u)|0), j1=Math.min(rows-1,((y+h/2)/u)|0);
+    for(let j=j0;j<=j1;j++){ const rowo=j*cols; for(let i=i0;i<=i1;i++) if(occ[rowo+i]) return false; }
+    for(let j=j0;j<=j1;j++){ const rowo=j*cols; for(let i=i0;i<=i1;i++) occ[rowo+i]=1; }
+    return true;
+  };
   const put=(r,m,strong)=>{
     if(drawn>=MAXL) return false;
     const t=labelOf(r,m); if(!t) return false;
     const [x,y]=proj(r,m,G,px);
+    const fs=polarLabelFS(px,Math.hypot(x-cx,y-cy),Rref);
+    if(fs<4.5) return false;                       // past legibility — skip
     if(!(x>fs&&x<px-fs&&y>fs*1.6&&y<px-fs)) return false;
-    const k=((y/ch)|0)*cols+((x/cw)|0);
-    if(occ[k]) return false;
-    occ[k]=1; drawn++;
+    ctx.font=`${fs}px "JetBrains Mono",monospace`;
+    const ly=y-fs*0.85;
+    if(!claim(x,ly,ctx.measureText(t).width+fs*0.5,fs*1.25)) return false;
+    drawn++;
     if(strong){ ctx.shadowColor='rgba(4,4,13,.95)'; ctx.shadowBlur=fs*0.8; }
     ctx.fillStyle=strong?'rgba(255,255,255,.95)'
                        :(gcd(r,m)===1?'rgba(255,255,255,.34)':'rgba(255,255,255,.13)');
-    ctx.fillText(t,x,y-fs*0.85);
+    ctx.fillText(t,x,ly);
     ctx.shadowBlur=0;
     return true;
   };
   if(!S.multi&&g>=1) for(const [r,m] of stripPoints(G,g)){ if(drawn>=MAXL) break; put(r,m,true); }
   // The strips are always labelled; the rest of the lattice only once there's
-  // genuinely room for it — a small G, or the zoom slider opened up past 2×.
-  // This is the polar analogue of Grid's "cells must clear 13 px" gate.
+  // genuinely room for it — a small G, the zoom slider opened up past 2×, or
+  // the size slider turned down far enough that small type buys the room.
   const zin=S.view==='ring'?S.ringZoom:S.cayleyIn;
-  if(G<=64||zin>=2){
+  // Raised from 64 to 256: with the measured-rectangle packer, overlap is
+  // impossible at any G, so this gate is now purely a cost gate on the O(G²)
+  // projection scan. 256² ≈ 65k trig pairs per frame is cheap; 1024² is not.
+  if(G<=256||zin>=2||S.lblScale<=0.7){
     outer: for(let m=1;m<=G;m++){ for(let r=1;r<=G;r++){ if(drawn>=MAXL) break outer; put(r,m,false); } }
   }
   ctx.restore();
@@ -2163,6 +2446,9 @@ function setView(v){
   document.getElementById('view-note').style.display=v==='grid'?'none':'block';
   document.getElementById('polar-extra').style.display=v==='grid'?'none':'block';
   document.getElementById('cz-row').style.display=v==='cayley'?'flex':'none';
+  // Grid's cells are a regular pitch, so radial grading has nothing to grade
+  // there — the row only means something under Ring/Cayley.
+  document.getElementById('lbladapt-row').style.display=v==='grid'?'none':'flex';
   syncPolarControls();
   const expBox=document.getElementById('exp-'+v);
   if(expBox) expBox.checked=true;
@@ -2178,6 +2464,8 @@ function syncPolarControls(){
   document.getElementById('v-pzoom').textContent=z.toFixed(1)+'×';
   document.getElementById('sl-prot').value=rot;
   document.getElementById('in-prot').value=rot;
+  const th=document.getElementById('sel-theta');
+  if(th) th.value=S.thetaMode;
 }
 function setPolarZoom(v){
   const z=Math.max(1,Math.min(10,+v||1));
@@ -2209,6 +2497,29 @@ function focusSym(sym){
   render();
 }
 function setLbl(v){ S.lbl=v; render(); }
+function setLblScale(v){
+  const z=Math.max(0.5,Math.min(2.2,+v||1));
+  S.lblScale=z;
+  document.getElementById('sl-lblsize').value=z;
+  document.getElementById('v-lblsize').textContent=z.toFixed(2)+'×';
+  render();
+}
+function setLblAdapt(pct){
+  const p=Math.max(0,Math.min(100,Math.round(+pct||0)));
+  S.lblAdapt=p/100;
+  document.getElementById('sl-lbladapt').value=p;
+  document.getElementById('v-lbladapt').textContent=p+'%';
+  render();
+}
+// Changing the angular map moves every backdrop point, so the cached polar
+// layer has to be given up — polarKeyBits carries thetaMode, so the next
+// render rebuilds it rather than sliding live strip points over a stale cloud.
+function setThetaMode(v){
+  S.thetaMode=(v==='clamp'||v==='unit')?v:'wrap';
+  const sel=document.getElementById('sel-theta');
+  if(sel) sel.value=S.thetaMode;
+  render();
+}
 function setFilter(f){
   S.filter=f;
   ['all','gold','full','gap2n'].forEach(k=>document.getElementById('f-'+k).classList.toggle('on',k===f));
@@ -2310,6 +2621,17 @@ let LENS_SUPPRESS_CLICK=false;
    their projections to find the nearest (r,m) instead of only doing the
    uniform-grid math Grid could get away with. */
 let LENS_ZOOM=3;
+// 'auto' follows the pointer with the continuous rule in place(); the four
+// corner values park the lens permanently, which is the reliable way to
+// inspect an edge without the lens ever covering the thing being inspected.
+let LENS_PIN='auto';
+function setLensPin(v){
+  LENS_PIN=v;
+  ['auto','tl','tr','bl','br'].forEach(k=>{
+    const el=document.getElementById('lp-'+k);
+    if(el) el.classList.toggle('on',k===v);
+  });
+}
 function setLensZoom(z){
   LENS_ZOOM=z;
   [2,3,4,6,10].forEach(k=>{ const b=document.getElementById('lz-'+k); if(b) b.classList.toggle('on',k===z); });
@@ -2335,18 +2657,29 @@ function setLensZoom(z){
     const cell=px/G, r=Math.floor(sx/cell)+1, m=Math.floor(sy/cell)+1;
     return (r<1||r>G||m<1||m>G) ? null : [r,m];
   }
+  // Which r values could have produced this angle depends on the θ map, so the
+  // candidate list is generated per mode. wrap has many preimages per ring (the
+  // k loop walks each turn); clamp has one below r=M plus the whole r≥M block
+  // collapsed on the 360° spoke, represented by its first member; unit has
+  // exactly one, and it is the same r on every ring.
   function nearestByAngle(thetaRaw,mLo,mHi,G,px,proj,tx,ty){
     let best=null,bestD=Infinity;
+    const frac=(((thetaRaw/(2*Math.PI))%1)+1)%1;
+    const test=(r,m)=>{
+      if(r<1||r>G) return;
+      const [x,y]=proj(r,m,G,px);
+      const d=(x-tx)*(x-tx)+(y-ty)*(y-ty);
+      if(d<bestD){ bestD=d; best=[r,m]; }
+    };
     for(let m=Math.max(1,mLo); m<=Math.min(G,mHi); m++){
-      const frac=(((thetaRaw/(2*Math.PI))%1)+1)%1;
-      const maxK=Math.ceil(G/m);
-      for(let k=0;k<=maxK;k++){
-        const r=Math.round((frac+k)*m);
-        if(r<1||r>G) continue;
-        const [x,y]=proj(r,m,G,px);
-        const d=(x-tx)*(x-tx)+(y-ty)*(y-ty);
-        if(d<bestD){ bestD=d; best=[r,m]; }
+      if(S.thetaMode==='unit'){ test(Math.round(frac*G)||1,m); continue; }
+      if(S.thetaMode==='clamp'){
+        test(Math.round(frac*m)||1,m);
+        if(frac>0.94||frac<0.06) test(m,m);   // the pinned r≥M spoke
+        continue;
       }
+      const maxK=Math.ceil(G/m);
+      for(let k=0;k<=maxK;k++) test(Math.round((frac+k)*m),m);
     }
     return best;
   }
@@ -2396,14 +2729,45 @@ function setLensZoom(z){
     const b=plate.getBoundingClientRect();
     return Math.max(120,Math.min(240,Math.round(Math.min(b.width,b.height)*0.5)));
   }
+  // Where the lens parks. The old rule put it a fixed 0.65·size above the
+  // finger and, the moment that would clip the top, HARD-SWITCHED to below the
+  // finger. With size ≈ half the plate that switch fires around the plate's
+  // vertical midpoint, so dragging upward made the lens leap across the finger
+  // — the "it repositions once I cross the midpoint" jump.
+  //
+  // The fix is to make the escape continuous. The lens still prefers to sit
+  // above; when it runs out of headroom it slides SIDEWAYS in proportion to
+  // exactly how much headroom is missing. Every term below is continuous in
+  // the pointer position, so there is no threshold anywhere to cross.
+  // LENS_PIN overrides all of it with a fixed corner for people who would
+  // rather the lens simply never moved.
   function place(clientX,clientY){
     const pb=plate.getBoundingClientRect(), size=lens.clientWidth;
-    let lx=clientX-pb.left-size/2, ly=clientY-pb.top-size/2-size*0.65;
-    if(ly<4) ly=Math.min(pb.height-size-4, clientY-pb.top+22);
-    lx=Math.max(4,Math.min(pb.width-size-4,lx));
-    ly=Math.max(4,Math.min(pb.height-size-4,ly));
+    const cx=clientX-pb.left, cy=clientY-pb.top;
+    const maxX=Math.max(4,pb.width-size-4), maxY=Math.max(4,pb.height-size-4);
+    if(LENS_PIN!=='auto'){
+      const lx=LENS_PIN.includes('l')?4:maxX, ly=LENS_PIN.includes('t')?4:maxY;
+      lens.style.left=lx+'px'; lens.style.top=ly+'px';
+      return;
+    }
+    let ly=cy-size/2-size*0.65;
+    const deficit=Math.max(0,4-ly);          // headroom missing, ≥ 0, continuous
+    ly=Math.max(4,Math.min(maxY,ly));
+    // push away from whichever vertical edge the pointer is nearer, so the
+    // lens never ends up under the finger
+    const dir=cx>pb.width/2?-1:1;
+    let lx=cx-size/2+dir*Math.min(size*1.05,deficit);
+    lx=Math.max(4,Math.min(maxX,lx));
     lens.style.left=lx+'px'; lens.style.top=ly+'px';
   }
+  // The source window is deliberately NOT clamped inside the canvas any more.
+  // Clamping it meant that near an edge the window slid back inward, so the
+  // crosshair stopped marking the point under the finger and the outermost
+  // row, column and all four corners could never be centred — the lattice
+  // boundary was permanently unreachable. Now the window is centred on the
+  // true point wherever it is, whatever part of it overhangs the canvas is
+  // simply empty, and the canvas edge is drawn in so the emptiness reads as
+  // "this is the edge of the lattice" rather than as a glitch.
   function draw(clientX,clientY){
     const b=cv.getBoundingClientRect();
     const fx=Math.max(b.left,Math.min(b.right,clientX));
@@ -2411,12 +2775,24 @@ function setLensZoom(z){
     const sx=(fx-b.left)/b.width*cv.width, sy=(fy-b.top)/b.height*cv.height;
     lastSX=sx; lastSY=sy;
     const srcSize=Math.min(cv.width,cv.height)/LENS_ZOOM;
-    let sX=sx-srcSize/2, sY=sy-srcSize/2;
-    sX=Math.max(0,Math.min(cv.width-srcSize,sX));
-    sY=Math.max(0,Math.min(cv.height-srcSize,sY));
+    const sX=sx-srcSize/2, sY=sy-srcSize/2;
+    const k=lens.width/srcSize;              // source px → lens px
     lctx.imageSmoothingEnabled=false;
     lctx.clearRect(0,0,lens.width,lens.height);
-    lctx.drawImage(cv,sX,sY,srcSize,srcSize,0,0,lens.width,lens.height);
+    lctx.fillStyle='#04040d'; lctx.fillRect(0,0,lens.width,lens.height);
+    // the overlap of the source window with the canvas, blitted to the matching
+    // sub-rectangle of the lens
+    const ix0=Math.max(0,sX), iy0=Math.max(0,sY);
+    const ix1=Math.min(cv.width,sX+srcSize), iy1=Math.min(cv.height,sY+srcSize);
+    if(ix1>ix0&&iy1>iy0){
+      lctx.drawImage(cv,ix0,iy0,ix1-ix0,iy1-iy0,
+                        (ix0-sX)*k,(iy0-sY)*k,(ix1-ix0)*k,(iy1-iy0)*k);
+    }
+    // the lattice boundary, wherever it falls inside the lens
+    lctx.strokeStyle='rgba(200,168,74,.5)'; lctx.lineWidth=Math.max(1,lens.width/240);
+    lctx.setLineDash([lens.width/40,lens.width/40]);
+    lctx.strokeRect((0-sX)*k,(0-sY)*k,cv.width*k,cv.height*k);
+    lctx.setLineDash([]);
     const c=lens.width/2;
     lctx.strokeStyle='rgba(200,168,74,.85)'; lctx.lineWidth=1;
     lctx.beginPath(); lctx.moveTo(c-8,c); lctx.lineTo(c+8,c); lctx.moveTo(c,c-8); lctx.lineTo(c,c+8); lctx.stroke();
@@ -2645,7 +3021,7 @@ function doExportCombined(px,views){
       const fy=canvasH-footerH+Math.round(px*0.008);
       ctx.font=`${Math.round(px*0.0105)}px "JetBrains Mono",monospace`;
       ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle='#6a6560';
-      ctx.fillText(`a M−r=g  ·  b r−M=g  ·  c r+M=g  ·  d r+M=E−g   ·   anti-diagonal g+s=E   ·   mode ${S.col}   ·   labels ${S.lbl}`,M,fy);
+      ctx.fillText(`a M−r=g  ·  b r−M=g  ·  c r+M=g  ·  d r+M=E−g   ·   anti-diagonal g+s=E   ·   mode ${S.col}   ·   labels ${S.lbl}   ·   θ ${S.thetaMode}`,M,fy);
       ctx.textAlign='right';
       ctx.fillText('wessengetachew.github.io',px-M,fy);
     }
@@ -2747,7 +3123,7 @@ function doExport(px,viewOverride){
     if(!bare){
       ctx.font=`${Math.round(px*0.0105)}px "JetBrains Mono",monospace`;
       ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle='#6a6560';
-      ctx.fillText(`a M−r=g  ·  b r−M=g  ·  c r+M=g  ·  d r+M=E−g   ·   anti-diagonal g+s=E   ·   mode ${S.col}   ·   labels ${S.lbl}   ·   view ${S.view}`,M,px-Math.round(px*0.030));
+      ctx.fillText(`a M−r=g  ·  b r−M=g  ·  c r+M=g  ·  d r+M=E−g   ·   anti-diagonal g+s=E   ·   mode ${S.col}   ·   labels ${S.lbl}   ·   θ ${S.thetaMode}   ·   view ${S.view}`,M,px-Math.round(px*0.030));
       ctx.textAlign='right';
       ctx.fillText('wessengetachew.github.io',px-M,px-Math.round(px*0.030));
     }
@@ -2839,6 +3215,8 @@ function doReportPDF(){
         ['view',S.view,'active projection'],
         ['colour mode',S.col,'rendering'],
         ['label mode',S.lbl,'per-cell label'],
+        ['label size',`${S.lblScale.toFixed(2)}× · grade ${Math.round(S.lblAdapt*100)}%`,'type size · radial grading'],
+        ['θ map',S.thetaMode,THETA_CAPTION[S.thetaMode]||''],
         ['dim off',Math.round(S.dim*100)+'%',"non-strip cells' wash"],
         ['strips shown',shownStr,''],
         ['ring',`zoom ${S.ringZoom}× · rotate ${S.ringRot}°`,'projection controls'],
@@ -2846,7 +3224,7 @@ function doReportPDF(){
         ['multi-pair overlay',S.multi?`on · ${S.multiMode==='pairs'?'Goldbach pairs':'all partitions'}`:'off',
           S.multi?`batch ${S.batch||'all'} · page ${S.page+1}/${totalPages()}`:'single gap g'],
         ['partition filter',S.filter,`n=${S.gapN} (gap = 2n)`],
-        ['magnifier',`${LENS_ZOOM}×`,'press-hold lens']
+        ['magnifier',`${LENS_ZOOM}× · park ${LENS_PIN}`,'press-hold lens']
       ];
       const rh=Math.round(px*0.024), colA=Math.round(px*0.15), colB=Math.round(px*0.22);
       ctx.font=`${Math.round(px*0.0115)}px "JetBrains Mono",monospace`;
@@ -2943,6 +3321,29 @@ function doReportPDF(){
     else if(e.key==='Escape'&&S.focus) focusSym(S.focus);
   });
   syncPolarControls();
+  setLblScale(S.lblScale);
+  setLblAdapt(Math.round(S.lblAdapt*100));
+  // The page now opens in overlay mode on E = 390, which carries 27 Goldbach
+  // pairs — the richest even number under G = 200, and divisible by 6, so it
+  // draws primes from both residue classes mod 3. The old default E = 244 had
+  // only 9 pairs and opened in single-gap mode, which showed one line rather
+  // than the structure the page is about. S.multi is already true, so the
+  // panel rows and the button label have to be brought into agreement here
+  // rather than waiting for a click on the toggle.
+  if(S.multi){
+    const b=document.getElementById('ch-multi');
+    b.textContent='On — overlay'; b.classList.add('on');
+    ['mp-mode-row','mp-batch-row','mp-pager-row'].forEach(id=>{
+      document.getElementById(id).style.display='flex';
+    });
+    document.getElementById('mp-note').style.display='block';
+    ['sl-g','in-g'].forEach(id=>{
+      const el=document.getElementById(id);
+      el.disabled=true; el.style.opacity=.4;
+    });
+    setMultiMode(S.multiMode);
+    setBatchSize(S.batch);
+  }
   syncMirrors();
   // Keep --wg-navh equal to the live height of the sticky page nav so #nbar2
   // parks directly beneath it at any viewport width (the nav wraps to 2–3
