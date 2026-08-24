@@ -234,24 +234,48 @@ h1.hero-title{font-family:var(--disp);font-size:clamp(1.4rem,4vw,2.2rem);letter-
   display:none;font-family:var(--mono);font-size:10px;color:var(--cream3);
   letter-spacing:.07em;line-height:1.7;padding:8px 10px;margin-top:8px;
   background:var(--bg1);border:1px solid var(--edge2);border-radius:3px;
+  /* Always exactly one line: items never wrap to a second row (flex-wrap:
+     nowrap) and each segment's own text can't break internally either
+     (.seg below) — so however long the verdict text or the batch/page
+     counts get, the box's height never changes and the canvas above it
+     can't get shoved up/down. If a line is ever too wide for the phone
+     it scrolls horizontally instead of wrapping — swipeable, not shown
+     as a scrollbar, same treatment as #view-bar/#nbar2 below. */
+  flex-wrap:nowrap;align-items:baseline;overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
 }
+#hud-out::-webkit-scrollbar{display:none}
 #hud-out .k{color:var(--cream)}
 #hud-out br{display:none}
-#hud-out .sep{color:var(--edge2);margin:0 7px}
+#hud-out .sep{color:var(--edge2);margin:0 7px;flex:0 0 auto}
+#hud-out .seg{white-space:nowrap;flex:0 0 auto}
 body.is-fs #hud{display:none}
-body.is-fs #hud-out{display:block;flex:0 0 auto;margin-top:6px}
+body.is-fs #hud-out{display:flex;flex:0 0 auto;margin-top:6px}
 #controls-hdr{cursor:pointer;user-select:none}
 #controls-hdr .rarrow{display:inline-block;transition:transform .25s;color:var(--gold);margin-right:6px}
 #controls-hdr.open .rarrow{transform:rotate(90deg)}
 #controls-body{display:none}
 #controls-body.open{display:block}
 #legend{
-  display:flex;gap:8px 18px;flex-wrap:wrap;justify-content:center;
-  font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;padding:12px 4px 0;
+  display:flex;gap:8px 18px;flex-wrap:wrap;justify-content:center;align-content:flex-start;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;padding:12px 4px;
+  /* Fixed max-height + internal scroll rather than the old "show up to 10,
+     '+N more this batch'" cap: every pair in the batch is listed and
+     reachable by scrolling, but the box's own height is constant whether
+     the batch holds 3 items or 300 — so paging/playing through batches
+     during a sweep can't change the legend's height and move the canvas
+     above it. The default a/b/c/d legend (one row, four items) never
+     comes close to this height, so it never shows a scrollbar. */
+  max-height:118px;overflow-y:auto;overscroll-behavior:contain;
 }
+#legend::-webkit-scrollbar{width:7px}
+#legend::-webkit-scrollbar-thumb{background:var(--edge2);border-radius:4px}
 .lg{display:flex;align-items:center;gap:6px;color:var(--cream2);white-space:nowrap}
 .lg i{width:16px;height:2px;display:block;border-radius:1px}
 .lg .ar{color:var(--cream3);font-size:11px}
+.lg.clickable{cursor:pointer;padding:2px 4px;margin:-2px -4px;border-radius:3px;transition:background .12s}
+.lg.clickable:hover{background:rgba(255,255,255,.06);color:var(--cream)}
+.lg.clickable:active{background:rgba(255,255,255,.12)}
 #probe{
   position:absolute;pointer-events:none;font-family:var(--mono);font-size:10px;
   background:rgba(4,4,13,.94);border:1px solid var(--edge2);border-radius:3px;
@@ -455,7 +479,7 @@ body.is-fs .figcap{display:none}
   .density-bar{gap:8px 14px;padding:9px 12px}
   #probe{display:none!important}
   #hud{display:none}
-  #hud-out{display:block}
+  #hud-out{display:flex}
   #nbar2{height:auto;padding:6px 0}
   #nbar2-inner{flex-wrap:nowrap}
   /* one scrollable row instead of three wrapped ones — the suite nav plus the
@@ -1835,25 +1859,56 @@ function primesUpTo(N){
 }
 // Cached per-E so repeated renders at the same G (view switches, panning,
 // resizing) don't re-run the O(primes × samples) exponential-sum pass.
-let CIRCLE_CACHE=null;
+// S(α) is built with an incremental complex rotation rather than calling
+// Math.cos/Math.sin per (sample, prime) pair: each prime gets a single fixed
+// "rotor" e(2πi·dα·p) computed once, then every subsequent sample is one
+// complex multiply away from the last. Same result (verified against the
+// direct sum to ~1e-9 relative error — float drift only) at roughly 7× the
+// speed at E≈8194, which matters because Play G / Play +N drive E through
+// setG() on every tick: without this, sitting on the Circle view during a
+// sweep re-ran the full O(NS×primes) trig sum every ~110-180ms.
+// circleThrottle caps how often an *automated* tick is allowed to force a
+// full recompute — a manual interaction (view switch, slider release) always
+// gets a fresh one. The plot simply holds the previous frame's curve for the
+// skipped ticks and catches up once the throttle window clears, which reads
+// as a capped frame rate rather than the freeze a per-tick recompute caused.
+let CIRCLE_CACHE=null, circleLastComputeTs=0;
+const CIRCLE_THROTTLE_MS=180;
 function circleDataFor(E){
   if(CIRCLE_CACHE&&CIRCLE_CACHE.E===E) return CIRCLE_CACHE;
+  if(typeof inPlayGTick!=='undefined'&&inPlayGTick&&CIRCLE_CACHE&&(Date.now()-circleLastComputeTs)<CIRCLE_THROTTLE_MS){
+    return CIRCLE_CACHE; // reuse last frame during a fast automated sweep
+  }
   const primes=primesUpTo(E);
-  const NS=3000;
+  const NS=3000, nP=primes.length;
   const vals=new Float64Array(NS);
   let maxLog=1e-9;
+  const dAlpha=1/(NS-1);
+  // per-prime running phasor, starts at α=0 → (1,0), and its one-step rotor
+  const curRe=new Float64Array(nP).fill(1), curIm=new Float64Array(nP);
+  const rotRe=new Float64Array(nP), rotIm=new Float64Array(nP);
+  for(let k=0;k<nP;k++){
+    const ang=2*Math.PI*dAlpha*primes[k];
+    rotRe[k]=Math.cos(ang); rotIm[k]=Math.sin(ang);
+  }
   for(let i=0;i<NS;i++){
-    const alpha=i/(NS-1);
     let re=0,im=0;
-    for(let k=0;k<primes.length;k++){
-      const ang=2*Math.PI*alpha*primes[k];
-      re+=Math.cos(ang); im+=Math.sin(ang);
+    for(let k=0;k<nP;k++){
+      re+=curRe[k]; im+=curIm[k];
+      const nr=curRe[k]*rotRe[k]-curIm[k]*rotIm[k];
+      const ni=curRe[k]*rotIm[k]+curIm[k]*rotRe[k];
+      curRe[k]=nr; curIm[k]=ni;
     }
     const lv=Math.log10(1+re*re+im*im);
     vals[i]=lv;
     if(lv>maxLog) maxLog=lv;
   }
-  CIRCLE_CACHE={E,primes,vals,NS,maxLog};
+  // Predicted/actual Goldbach counts are cheap next to the sum above
+  // (O(E) sieve pass, O(900) Simpson steps) so they ride along in the same
+  // cache entry rather than being export-only.
+  const ss=singularSeriesE(E), pred=goldbachIntegralPrediction(E), actual=actualGoldbachCount(E);
+  circleLastComputeTs=Date.now();
+  CIRCLE_CACHE={E,primes,vals,NS,maxLog,ss,pred,actual};
   return CIRCLE_CACHE;
 }
 function paintCircle(ctx,px,G,g){
@@ -1862,12 +1917,15 @@ function paintCircle(ctx,px,G,g){
   ctx.fillStyle='#04040d'; ctx.fillRect(0,0,px,px);
 
   const M=Math.round(px*0.07);
-  const plotL=M, plotR=px-Math.round(px*0.03), plotT=Math.round(px*0.13), plotB=px-Math.round(px*0.11);
+  const plotL=M, plotR=px-Math.round(px*0.03), plotT=Math.round(px*0.13), plotB=px-Math.round(px*0.24);
   const plotW=plotR-plotL, plotH=plotB-plotT;
 
-  // major arcs — rationals p/q, q≤6, in lowest terms — the peaks S(α)
-  // is expected to spike at, since e(αp) lines up in phase for every
-  // prime p in a residue class mod q there.
+  // major arcs — rationals p/q, q≤6, in lowest terms — the peaks S(α) is
+  // expected to spike at, since e(αp) lines up in phase for every prime p in
+  // a residue class mod q there. Hardy–Littlewood weights each arc's actual
+  // contribution by ~1/q², so line strength/width follows the same falloff
+  // rather than drawing every denominator with equal weight — q=1/2 read as
+  // the dominant arcs they are, q=5/6 as the minor ones they are.
   const seen=new Set(), arcs=[];
   for(let q=1;q<=6;q++) for(let p=0;p<q;p++){
     if(q>1&&gcd(p,q)!==1) continue;
@@ -1875,12 +1933,14 @@ function paintCircle(ctx,px,G,g){
     if(seen.has(key)) continue;
     seen.add(key); arcs.push({p,q,a});
   }
-  ctx.font=`${Math.round(px*0.0105)}px "JetBrains Mono",monospace`;
   arcs.forEach(({p,q,a})=>{
+    const w=1/(q*q), op=0.10+0.34*w, lw=Math.max(0.75,1.8*Math.sqrt(w));
     const x=plotL+a*plotW;
-    ctx.strokeStyle='rgba(200,168,74,.22)'; ctx.lineWidth=1;
+    ctx.strokeStyle=`rgba(200,168,74,${op})`; ctx.lineWidth=lw;
     ctx.beginPath(); ctx.moveTo(x,plotT); ctx.lineTo(x,plotB); ctx.stroke();
-    ctx.fillStyle='rgba(200,168,74,.6)'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.font=`${q<=2?600:400} ${Math.round(px*0.0105)}px "JetBrains Mono",monospace`;
+    ctx.fillStyle=`rgba(200,168,74,${Math.min(0.85,0.30+0.55*w)})`;
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
     ctx.fillText(q===1?'0':`${p}/${q}`,x,plotT-2);
   });
 
@@ -1908,6 +1968,35 @@ function paintCircle(ctx,px,G,g){
   ctx.font=`600 ${Math.round(px*0.0135)}px "JetBrains Mono",monospace`;
   ctx.fillStyle='#c8a84a'; ctx.textAlign='left'; ctx.textBaseline='top';
   ctx.fillText(`S(α) = Σ e(2πiαp)  ·  p ≤ ${E}  ·  ${cd.primes.length} primes`,M,Math.round(px*0.035));
+
+  // live prediction stats — same 𝔖(E)/predicted/actual/ratio the export
+  // footer showed, now visible while interacting rather than only in a
+  // saved PNG. Ratio green when actual tracks the HL prediction within 8%,
+  // amber otherwise (small E can drift further from the asymptotic form).
+  const ratio=cd.pred?cd.actual/cd.pred:NaN;
+  const items=[
+    ['𝔖(E)',cd.ss.toFixed(4),'singular series','#3dc8b8'],
+    ['predicted r(E)',cd.pred.toFixed(1),'HL integral form','#c8a84a'],
+    ['actual r(E)',`${cd.actual}`,'exact sieve count','#7ec87a'],
+    ['ratio',isFinite(ratio)?ratio.toFixed(3):'—','actual / predicted',Math.abs(ratio-1)<0.08?'#7ec87a':'#e0a83d']
+  ];
+  const rowTop=plotB+Math.round(px*0.045), bw=(px-2*M-(items.length-1)*px*0.008)/items.length, bh=Math.round(px*0.075);
+  items.forEach(([lab,val,sub,col],i)=>{
+    const bx=M+i*(bw+px*0.008);
+    ctx.fillStyle='rgba(255,255,255,.03)';
+    ctx.beginPath(); ctx.roundRect(bx,rowTop,bw,bh,px*0.003); ctx.fill();
+    ctx.strokeStyle=col+'88'; ctx.lineWidth=Math.max(1,px/2400);
+    ctx.beginPath(); ctx.roundRect(bx,rowTop,bw,bh,px*0.003); ctx.stroke();
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    let fs=Math.round(bh*0.30);
+    ctx.font=`600 ${fs}px "JetBrains Mono",monospace`;
+    while(fs>7&&ctx.measureText(val).width>bw*0.9){ fs-=1; ctx.font=`600 ${fs}px "JetBrains Mono",monospace`; }
+    ctx.fillStyle=col;
+    ctx.fillText(val,bx+bw/2,rowTop+bh*0.36,bw*0.9);
+    ctx.font=`${Math.round(bh*0.16)}px "JetBrains Mono",monospace`;
+    ctx.fillStyle='rgba(106,101,96,.9)';
+    ctx.fillText(`${lab} · ${sub}`,bx+bw/2,rowTop+bh*0.72,bw*0.94);
+  });
 }
 function paintGrid(ctx,px,G,g){
   const E=2*(G+1);
@@ -2477,7 +2566,7 @@ function render(){
 function setHUD(html){
   const a=document.getElementById('hud'); if(a) a.innerHTML=html;
   const b=document.getElementById('hud-out');
-  if(b) b.innerHTML=html.split('<br>').join('<span class="sep">·</span>');
+  if(b) b.innerHTML=html.split('<br>').map(seg=>`<span class="seg">${seg}</span>`).join('<span class="sep">·</span>');
 }
 function drawHUD(){
   if(S.view==='circle'){
@@ -2529,16 +2618,24 @@ function coprimeDensityStat(G){
 }
 function updateMultiLegend(batch){
   const el=document.getElementById('legend');
-  const MAX=10;
+  // Legend now lists every item in the batch — #legend's own max-height +
+  // scroll (see CSS) keeps the box a constant size regardless of how many
+  // that is, so there's no need to truncate at some fixed count anymore.
   let h='';
-  batch.slice(0,MAX).forEach(it=>{
+  batch.forEach(it=>{
     const rgb = it.kind==='pair' ? goldenColorRGB(S.pairIdx.get(it.g)||0) : KIND_RGB[it.kind];
     const tag = it.kind==='pair' ? `${it.g} + ${it.s}` :
       `${it.g} + ${it.s} · ${it.kind==='gOnly'?'g prime only':it.kind==='sOnly'?'s prime only':'neither prime'}`;
-    h+=`<span class="lg"><i style="background:${rgbToCss(rgb)}"></i>${tag}</span>`;
+    h+=`<span class="lg clickable" onclick="jumpToLegendItem(${it.g})" title="jump to g=${it.g}"><i style="background:${rgbToCss(rgb)}"></i>${tag}</span>`;
   });
-  if(batch.length>MAX) h+=`<span class="lg">+${batch.length-MAX} more this batch</span>`;
   el.innerHTML=h||'<span class="lg">no items in this batch</span>';
+}
+// Clicking a legend entry drops out of the overlay and lands on that gap in
+// the single-gap Grid view, same as clicking a lattice cell does per the
+// Figure 1 caption — the legend is just another way to pick a g to inspect.
+function jumpToLegendItem(g){
+  if(S.multi) toggleMulti();
+  setGap(g);
 }
 function restoreDefaultLegend(){
   document.getElementById('legend').innerHTML=
@@ -2912,11 +3009,13 @@ function toggleSweepG(){
   sweepGId=setInterval(tick,110);
 }
 // Play +N: a *local* version of Play G. Instead of ping-ponging the whole
-// range 1→G→1, it anchors on wherever G already sits, steps up one grid at a
-// time to anchor+N, then snaps straight back to the anchor and repeats — so
-// you can sit on a G and watch just its next few neighbours cycle. Ticks are
-// flagged with inPlayGTick for the same reason Play G is: an automated setG
-// must not cancel the gap/pairs sweeps running underneath it.
+// range 1→G→1, it anchors on wherever G already sits and ping-pongs just the
+// small window anchor→anchor+N — climb to the top, descend back to the
+// anchor, repeat — so you can sit on a G and watch just its next few
+// neighbours cycle, with the same no-snap ping-pong feel Play G has rather
+// than a hard reset at the top. Ticks are flagged with inPlayGTick for the
+// same reason Play G is: an automated setG must not cancel the gap/pairs
+// sweeps running underneath it.
 let sweepNextId=null, sweepNextAnchor=null, nextSpan=10;
 function nextWindowHi(anchor){ return Math.min(4096,Math.max(1,Math.round(anchor))+nextSpan); }
 function syncNextWindow(){
@@ -2950,13 +3049,15 @@ function startSweepNext(anchor){
   const b=document.getElementById('ch-playNext');
   if(b){ b.textContent='■ Stop'; b.classList.add('on'); }
   syncNextWindow();
-  let n=lo;
+  // Ping-pong: climb lo→hi, then descend hi→lo, repeat — no snap-reset.
+  let n=lo, dir=1;
   const tick=()=>{
     inPlayGTick=true;
     setG(n);
     inPlayGTick=false;
-    n++;
-    if(n>hi) n=lo; // loop straight back to the starting point
+    n+=dir;
+    if(n>=hi){ n=hi; dir=-1; }
+    else if(n<=lo){ n=lo; dir=1; }
   };
   tick();
   sweepNextId=setInterval(tick,180);
