@@ -226,6 +226,25 @@ h1.hero-title{font-family:var(--disp);font-size:clamp(1.4rem,4vw,2.2rem);letter-
   background:rgba(4,4,13,.5);padding:4px 7px;border-radius:3px;
 }
 #hud .k{color:var(--cream)}
+/* Same content as #hud, placed under the plate instead of over it. On a phone
+   the on-canvas box covers the top-left corner of the lattice, which is where
+   the small-r, small-M cells sit; in full screen the canvas is doing all the
+   work and the text is competing with it. Both cases swap to this. */
+#hud-out{
+  display:none;font-family:var(--mono);font-size:10px;color:var(--cream3);
+  letter-spacing:.07em;line-height:1.7;padding:8px 10px;margin-top:8px;
+  background:var(--bg1);border:1px solid var(--edge2);border-radius:3px;
+}
+#hud-out .k{color:var(--cream)}
+#hud-out br{display:none}
+#hud-out .sep{color:var(--edge2);margin:0 7px}
+body.is-fs #hud{display:none}
+body.is-fs #hud-out{display:block;flex:0 0 auto;margin-top:6px}
+#controls-hdr{cursor:pointer;user-select:none}
+#controls-hdr .rarrow{display:inline-block;transition:transform .25s;color:var(--gold);margin-right:6px}
+#controls-hdr.open .rarrow{transform:rotate(90deg)}
+#controls-body{display:none}
+#controls-body.open{display:block}
 #legend{
   display:flex;gap:8px 18px;flex-wrap:wrap;justify-content:center;
   font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;padding:12px 4px 0;
@@ -435,6 +454,8 @@ body.is-fs .figcap{display:none}
   #legend{gap:6px 12px}
   .density-bar{gap:8px 14px;padding:9px 12px}
   #probe{display:none!important}
+  #hud{display:none}
+  #hud-out{display:block}
   #nbar2{height:auto;padding:6px 0}
   #nbar2-inner{flex-wrap:nowrap}
   /* one scrollable row instead of three wrapped ones — the suite nav plus the
@@ -667,6 +688,7 @@ body.is-fs .figcap{display:none}
       <div id="hud"></div>
       <div id="probe"></div>
     </div>
+    <div id="hud-out"></div>
     <div id="legend">
       <span class="lg"><i style="background:var(--teal)"></i>a &nbsp;M−r=g<span class="ar">↘</span></span>
       <span class="lg"><i style="background:var(--violet)"></i>b &nbsp;r−M=g<span class="ar">↘</span></span>
@@ -728,13 +750,18 @@ body.is-fs .figcap{display:none}
 </div>
 
 <div class="sect" id="controls">
-  <div class="sect-hdr">Instrument</div>
+  <div class="sect-hdr open" id="controls-hdr" onclick="toggleControls()"><span class="rarrow">▸</span>Instrument</div>
+  <div id="controls-body" class="open">
   <div class="panels">
 
     <div class="grp">
       <h4>Lattice</h4>
       <div class="note" id="view-note" style="display:none;margin-top:0;margin-bottom:9px">Ring/Cayley plot the same a/b/c/d strip points as Grid, just re-projected — the underlying (r,M) data is identical.</div>
       <div id="polar-extra" style="display:none">
+        <div class="row grp-hdr" id="grp-polaradv-hdr" onclick="toggleGrp('grp-polaradv')" style="cursor:pointer;user-select:none">
+          <span class="rarrow">▸</span><span class="lab" style="min-width:auto">Advanced (Ring / Cayley)</span>
+        </div>
+        <div class="grp-body" id="grp-polaradv-body">
         <div id="cmap-block" style="display:none">
           <div class="row">
             <span class="lab">Möbius map</span>
@@ -748,10 +775,6 @@ body.is-fs .figcap{display:none}
             <span class="lab">Plate</span>
             <span id="v-cstat" style="flex:1;font-family:var(--mono);font-size:9px;letter-spacing:.03em;color:var(--cream3)">—</span>
           </div>
-          <div class="row grp-hdr" id="grp-spacing-hdr" onclick="toggleGrp('grp-spacing')" style="cursor:pointer;user-select:none">
-            <span class="rarrow">▸</span><span class="lab" style="min-width:auto">Spacing</span>
-          </div>
-          <div class="grp-body" id="grp-spacing-body">
             <div id="sp-A">
               <div class="row" style="margin-top:8px">
                 <span class="lab" style="color:var(--gold)">ρ₀</span>
@@ -798,7 +821,6 @@ body.is-fs .figcap{display:none}
               <div class="row"><button class="chip" id="ch-cmir" onclick="toggleCMirror()" style="flex:1">Mirror off — lower half only</button></div>
               <div class="note" id="kap-note"></div>
             </div>
-          </div>
         </div>
         <div class="row" id="cz-row" style="display:none">
           <span class="lab">Zoom out</span>
@@ -826,8 +848,15 @@ body.is-fs .figcap{display:none}
             <option value="unit">unit · θ = 2πr/G</option>
           </select>
         </div>
-        <div class="note" id="theta-note">Zoom and θ are kept per view — Ring and Cayley each remember their own. <span id="cayley-lead"></span><br><br><b>θ map</b> decides what happens past one turn. <b>wrap</b> is the original: θ = 2πr/M runs unbounded, so r &gt; M keeps going round and r/M = 1.3 lands on top of r/M = 0.3 — the multiplicative path folds back on itself and the two are no longer distinguishable. <b>clamp</b> refuses the fold: θ = 2π·min(r/M,1), so the fractions r/M ∈ (0,1) — the Farey side of the ring — get the whole circle to themselves, and everything with r ≥ M piles onto the 360° spoke. That spoke's thickness at each M is then a direct count of how far past one turn that ring reaches. <b>unit</b> budgets the turn by G instead of M: every ring spends exactly one revolution over r = 1…G, so a given r sits at the same angle on every ring and coprimality reads as radial spokes.</div>
+        <div class="row">
+          <span class="lab">Show</span>
+          <button class="chip on" id="cp-all" onclick="setCopOnly(false)" style="flex:1">all pairs</button>
+          <button class="chip" id="cp-cop" onclick="setCopOnly(true)" style="flex:1">coprime only</button>
+        </div>
+        <div class="note" id="theta-note">Zoom and θ are kept per view — Ring and Cayley each remember their own. <span id="cayley-lead"></span><br><br><b>θ map</b> decides what happens past one turn. <b>wrap</b> is the original: θ = 2πr/M runs unbounded, so r &gt; M keeps going round and r/M = 1.3 lands on top of r/M = 0.3 — the multiplicative path folds back on itself and the two are no longer distinguishable. <b>clamp</b> refuses the fold: θ = 2π·min(r/M,1), so the fractions r/M ∈ (0,1) — the Farey side of the ring — get the whole circle to themselves, and everything with r ≥ M piles onto the 360° spoke. That spoke's thickness at each M is then a direct count of how far past one turn that ring reaches. <b>unit</b> budgets the turn by G instead of M: every ring spends exactly one revolution over r = 1…G, so a given r sits at the same angle on every ring and coprimality reads as radial spokes.<br><br><b>Show</b> drops every non-coprime cell from the backdrop entirely rather than just painting it dark, so the coprime/Farey skeleton under the current map is visible with no clutter. Applies to whichever map (A/B/C) is live — the filter sits in the shared point loop, not inside any one map's code.</div>
+        </div>
       </div>
+
       <div class="row">
         <span class="lab">Grid G</span>
         <button class="chip" onclick="setG(S.G-1)" title="G − 1">−</button>
@@ -976,6 +1005,7 @@ body.is-fs .figcap{display:none}
       </div>
     </div>
 
+  </div>
   </div>
 </div>
 
@@ -1390,6 +1420,7 @@ const S={G:194,g:193,col:'sector',lbl:'r',dim:0.45,view:'grid',
          //   B  φₐ(z)=(z−a)/(1−āz) on z = (M/G)·e^{iθ}, a = ba·e^{i·baAng}
          //   C  K(z)=(z−i)/(z+i)   on z = r/M + i·hgain·M^{−kap}
          cmap:'A',rho0:0.4,rhoD:1.8,ba:0.45,baAng:0,kap:1,hgain:1,cmirror:false,
+         copOnly:false,
          show:{sum:true,diff:true,frame:true,diag:false},
          filter:'gold',rows:[],sel:null,gapN:1,
          multi:true,multiMode:'pairs',batch:0,page:0,items:[],pairIdx:new Map()};
@@ -1553,8 +1584,10 @@ function polarKeyBits(view){
   return mp+'/'+cayleyZoomEff()+'/'+S.cayleyIn+'/'+S.cayleyRot+'/'+S.thetaMode;
 }
 // Filled by polarBaseLayer's O(G²) pass so the plate readout costs no second
-// sweep of the lattice. Null until a Cayley backdrop has been built.
-let CSTAT=null;
+// sweep of the lattice. Null until a Cayley backdrop has been built. CSTAT_V
+// counts rebuilds: the readout only rewrites itself when that number moves, so
+// a gap sweep — which leaves the backdrop cached — does no DOM work per frame.
+let CSTAT=null, CSTAT_V=0;
 function polarBaseLayer(G,view,px){
   // Match the target size instead of a fixed 1024: this layer is a scatter of
   // one-pixel points, so any nearest-neighbour *downscale* silently throws
@@ -1562,7 +1595,7 @@ function polarBaseLayer(G,view,px){
   // the cloud). Drawn 1:1, every plotted point survives. Capped at 2048 so the
   // O(G²) pass stays cheap on 4K/8K exports.
   const W=Math.min(2048,Math.max(256,Math.round(px||1024)));
-  const key=G+'|'+view+'|'+S.col+'|'+polarKeyBits(view)+'|'+W;
+  const key=G+'|'+view+'|'+S.col+'|'+polarKeyBits(view)+'|'+(S.copOnly?'cop':'all')+'|'+W;
   if(PBASE&&PBASE_KEY===key) return PBASE;
   const mask=coprimeMask(G);
   // The zoom and θ sliders rebuild this on every input event, so the canvas
@@ -1585,49 +1618,65 @@ function polarBaseLayer(G,view,px){
   // the Cayley readout is accumulated here rather than in a second pass: the
   // largest image modulus and where it lands, how much falls outside the plate,
   // how much is piled against the rim. Measured, not asserted.
-  const isCay=view==='cayley', Rc=isCay?cayleyScale(W):1;
-  const lim=isCay?cayleyZoomEff()/Math.max(0.25,S.cayleyIn):0;
+  const isCay=view==='cayley';
+  const half=W/2, invRc=isCay?1/cayleyScale(W):0;
+  const lim=isCay?cayleyZoomEff()/Math.max(0.25,S.cayleyIn):0, lim2=lim*lim, rim2=0.81*lim2;
   const mir=isCay&&cayleyMirrorOn();
-  let cMax=0,cAt=null,cOff=0,cRim=0,cPole=0;
+  let cMax=0,cAt=null,cOff=0,cRim=0,cPole=0,cMax2=0,cN=0;
   for(let m=1;m<=G;m++){
     for(let r=1;r<=G;r++){
       const cop=mask[(r-1)*G+(m-1)];
-      const [x,y]=proj(r,m,G,W);
+      // coprime-only filter: skip non-coprime cells before the projection and
+      // Cayley-stat work below, so the plate readout (max modulus, % off-plate,
+      // pole count) describes exactly the sublattice actually shown, not the
+      // full lattice with the rest merely painted dark.
+      if(S.copOnly&&!cop) continue;
+      cN++;
+      const xy=proj(r,m,G,W), x=xy[0], y=xy[1];
       if(isCay){
-        const mag=Math.hypot((x-W/2)/Rc,(y-W/2)/Rc);
-        if(mag>1e7) cPole++;
+        // Squared magnitudes throughout: the comparisons are all monotone in
+        // |w|, so the per-cell square root is only needed once at the end.
+        const dx=(x-half)*invRc, dy=(y-half)*invRc, q=dx*dx+dy*dy;
+        if(q>1e14) cPole++;
         else {
-          if(mag>cMax){ cMax=mag; cAt=[r,m]; }
-          if(mag>lim) cOff++;
-          if(mag>0.9*lim) cRim++;
+          if(q>cMax2){ cMax2=q; cAt=[r,m]; }
+          if(q>lim2) cOff++;
+          if(q>rim2) cRim++;
         }
       }
       const px_=x|0, py_=y|0;
+      const inB=(px_>=0&&px_<W&&py_>=0&&py_<W);
+      let mxi=0,myi=0,inM=false;
+      if(mir){
+        const mp=cayleyXYMirror(r,m,G,W);
+        mxi=mp[0]|0; myi=mp[1]|0;
+        inM=(mxi>=0&&mxi<W&&myi>=0&&myi<W);
+      }
+      // Nothing to draw: skip the colour work entirely. Under an unbounded map
+      // a large share of the lattice lands off the plate, and costing a hue
+      // lookup for every one of those was the bulk of the added time.
+      if(!inB&&!inM) continue;
       let R,Gc,B;
       if(!cop){ R=24; Gc=13; B=32; }
       else if(sector){
-        const dy=m-cx0; let a=Math.atan2(dy,r-cx0)*57.29577951308232+360; const hi=(a|0)%360;
+        const dy2=m-cx0; let a=Math.atan2(dy2,r-cx0)*57.29577951308232+360; const hi=(a|0)%360;
         R=lut[hi*3]; Gc=lut[hi*3+1]; B=lut[hi*3+2];
       } else if(spf){
         const hi=((SPF[r]||2)*47)%360;
         R=lut[hi*3]; Gc=lut[hi*3+1]; B=lut[hi*3+2];
       } else if(gcdm){ R=200; Gc=168; B=74; }
       else { R=61; Gc=200; B=184; }
-      if(px_>=0&&px_<W&&py_>=0&&py_<W){
+      if(inB){
         const idx=(py_*W+px_)*4;
         D[idx]=R; D[idx+1]=Gc; D[idx+2]=B; D[idx+3]=cop?215:120;
       }
-      if(mir){
-        const mp=cayleyXYMirror(r,m,G,W);
-        const mxi=mp[0]|0, myi=mp[1]|0;
-        if(mxi>=0&&mxi<W&&myi>=0&&myi<W){
-          const j=(myi*W+mxi)*4;
-          D[j]=(R*0.45)|0; D[j+1]=(Gc*0.55)|0; D[j+2]=(B*0.75)|0; D[j+3]=cop?110:60;
-        }
+      if(inM){
+        const j=(myi*W+mxi)*4;
+        D[j]=(R*0.45)|0; D[j+1]=(Gc*0.55)|0; D[j+2]=(B*0.75)|0; D[j+3]=cop?110:60;
       }
     }
   }
-  if(isCay) CSTAT={n:G*G,max:cMax,at:cAt,off:cOff,rim:cRim,pole:cPole,lim};
+  if(isCay){ cMax=Math.sqrt(cMax2); CSTAT={n:cN,max:cMax,at:cAt,off:cOff,rim:cRim,pole:cPole,lim}; CSTAT_V++; }
   octx.putImageData(img,0,0);
   PBASE_KEY=key; return PBASE=off;
 }
@@ -2135,8 +2184,17 @@ function wMapB(theta,m,G){
 // sign −1 is the branch −r/M + iy. K(−x+iy) = conj K(x+iy) exactly, so that
 // branch is the reflection of the plotted point across the real axis. C has no
 // pre-image angle, so the rotate control can only act on the finished disk.
+// The Ford height depends on M alone, but wMapC is called once per r with M
+// fixed, so a one-entry memo removes a Math.pow from every cell of the pass.
+let CY_M=-1, CY_K=-1, CY_G=-1, CY_Y=0;
+function fordY(m){
+  if(m!==CY_M||S.kap!==CY_K||S.hgain!==CY_G){
+    CY_M=m; CY_K=S.kap; CY_G=S.hgain; CY_Y=S.hgain*Math.pow(m,-S.kap);
+  }
+  return CY_Y;
+}
 function wMapC(r,m,sign){
-  const y=S.hgain*Math.pow(m,-S.kap);
+  const y=fordY(m);
   const zx=(sign===-1?-1:1)*r/m, zy=y;
   const nr=zx, ni=zy-1;                          // z − i
   const dr=zx, di=zy+1;                          // z + i
@@ -2386,7 +2444,18 @@ function paintPolarLabels(ctx,px,G,g,proj){
   // Raised from 64 to 256: with the measured-rectangle packer, overlap is
   // impossible at any G, so this gate is now purely a cost gate on the O(G²)
   // projection scan. 256² ≈ 65k trig pairs per frame is cheap; 1024² is not.
-  if(G<=256||zin>=2||S.lblScale<=0.7){
+  // The background pass has no memory between frames — every tick it rebuilds
+  // the occupancy grid from scratch and re-runs the same first-come-first-served
+  // claim in raster (m,r) order. During a Play sweep, G (or the strip's g)
+  // changes every ~110ms, so which points win their slot shifts frame to
+  // frame — that's what reads as labels "jumping around" as the animation
+  // runs. The strip labels above are unaffected (they're always drawn first
+  // and there are only O(G) of them), so suppressing just the background
+  // pass while a sweep is live removes the flicker without losing the labels
+  // that actually matter mid-animation; the full lattice relabels again the
+  // instant playback stops.
+  const sweepLive=!!(sweepGId||sweepNextId||sweepId);
+  if(!sweepLive&&(G<=256||zin>=2||S.lblScale<=0.7)){
     outer: for(let m=1;m<=G;m++){ for(let r=1;r<=G;r++){ if(drawn>=MAXL) break outer; put(r,m,false); } }
   }
   ctx.restore();
@@ -2397,28 +2466,37 @@ function render(){
   ctx.setTransform(1,0,0,1,0,0);
   paint(ctx,CSS_SIZE*dpr,S.G,S.g);
   drawHUD();
-  // CSTAT is filled by the backdrop pass this paint just ran, so the plate
-  // readout is refreshed after it rather than before.
-  if(S.view==='cayley') syncCayleyNotes();
+  // CSTAT is filled by the backdrop pass this paint just ran, so the readout is
+  // refreshed after it — but only the one line, and only when the measurement
+  // behind it was actually recomputed.
+  if(S.view==='cayley') syncCayleyStat();
+}
+// One string, two homes: the box over the canvas and the row under it. Which
+// one is visible is a CSS decision (phone width, or full screen), so this never
+// has to know which mode it is in.
+function setHUD(html){
+  const a=document.getElementById('hud'); if(a) a.innerHTML=html;
+  const b=document.getElementById('hud-out');
+  if(b) b.innerHTML=html.split('<br>').join('<span class="sep">·</span>');
 }
 function drawHUD(){
   if(S.view==='circle'){
     const E=2*(S.G+1);
     const ss=singularSeriesE(E), pred=goldbachIntegralPrediction(E), actual=actualGoldbachCount(E);
     const ratio=pred?actual/pred:NaN, close=Math.abs(ratio-1)<0.08;
-    document.getElementById('hud').innerHTML=
+    setHUD(
       `<span class="k">${E}</span> even &nbsp; 𝔖(E) = <span class="k">${ss.toFixed(4)}</span><br>`+
       `predicted r(E) ≈ <span class="k">${pred.toFixed(1)}</span> &nbsp; actual = <span class="k">${actual}</span><br>`+
-      `<span style="color:${close?'#7ec87a':'#c8a84a'}">ratio ${isFinite(ratio)?ratio.toFixed(3):'—'}</span>`;
+      `<span style="color:${close?'#7ec87a':'#c8a84a'}">ratio ${isFinite(ratio)?ratio.toFixed(3):'—'}</span>`);
     syncVerdict(`𝔖(E) = ${ss.toFixed(3)}`,'n');
     return;
   }
   if(S.multi){
     const E=2*(S.G+1), nPair=S.multiMode==='pairs'?S.items.length:S.items.filter(x=>x.kind==='pair').length;
     const batch=currentBatch();
-    document.getElementById('hud').innerHTML=
+    setHUD(
       `<span class="k">${E}</span> even &nbsp; r(E) = <span class="k">${nPair}</span> pairs<br>`+
-      `batch <span class="k">${S.page+1}</span> of ${totalPages()} &nbsp; · &nbsp; ${batch.length} of ${S.items.length} shown`;
+      `batch <span class="k">${S.page+1}</span> of ${totalPages()} &nbsp; · &nbsp; ${batch.length} of ${S.items.length} shown`);
     updateMultiLegend(batch);
     const pg=document.getElementById('mp-pg');
     if(pg) pg.textContent=`batch ${S.page+1} / ${totalPages()}`;
@@ -2429,12 +2507,12 @@ function drawHUD(){
   const thr=Math.sqrt(st.E);
   const v=verdict(st,thr);
   const merged=st.s===st.g;
-  document.getElementById('hud').innerHTML=
+  setHUD(
     `<span class="k">${st.E}</span> = ${st.g} + ${st.s}${merged?' &nbsp;<span style="color:#6a6560">balanced</span>':''}<br>`+
     (merged
       ? `c = d <span class="k">${st.cCop}/${st.cTot}</span> &nbsp;<span style="color:#6a6560">one central strip</span><br>`
       : `c <span class="k">${st.cCop}/${st.cTot}</span> &nbsp; d <span class="k">${st.dCop}/${st.dTot}</span><br>`)+
-    `<span style="color:${v.col}">${v.short}</span>`;
+    `<span style="color:${v.col}">${v.short}</span>`);
   syncVerdict(v.short,v.k);
 }
 function rgbToCss(rgb){ return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`; }
@@ -3071,23 +3149,28 @@ function syncCayleyNotes(){
         ? '<b>Mirror is on.</b> The upper half is the branch −r/M + iy, and K(−x+iy) = conj K(x+iy) holds exactly, so every mirrored point is a point already on the plate. It is drawn dimmer, and it is neither labelled nor selectable.'
         : 'The upper half of the disk is structurally empty: every r/M is positive, and K sends the positive reals to the lower half of the boundary circle. Mirror fills it by reflection.');
   }
-  const cs=document.getElementById('v-cstat');
-  if(cs){
-    const st=CSTAT;
-    if(!st||S.view!=='cayley'){ cs.textContent='—'; cs.style.color='var(--cream3)'; }
-    else {
-      const pct=x=>(100*x/st.n).toFixed(2)+'%';
-      const mx=st.max>1e4?st.max.toExponential(2):st.max.toFixed(3);
-      let t='max |w| '+mx+(st.at?' @ ('+st.at[0]+','+st.at[1]+')':'')+
-            ' · off-plate '+(st.off?pct(st.off):'0')+
-            ' · rim '+pct(st.rim);
-      if(st.pole) t+=' · poles '+st.pole;
-      cs.textContent=t;
-      cs.style.color=(st.off||st.pole)?'var(--coral)':'var(--lime)';
-    }
-  }
+  syncCayleyStat(true);
   const tn=document.getElementById('cayley-lead');
   if(tn) tn.innerHTML=CAYLEY_LEAD[S.cmap];
+}
+// The one line that changes with the measurement. Called every frame, so it
+// returns immediately unless the backdrop pass behind it has run again.
+let CSTAT_SHOWN=-1;
+function syncCayleyStat(force){
+  if(!force&&CSTAT_SHOWN===CSTAT_V) return;
+  const cs=document.getElementById('v-cstat');
+  if(!cs) return;
+  CSTAT_SHOWN=CSTAT_V;
+  const st=CSTAT;
+  if(!st||S.view!=='cayley'){ cs.textContent='—'; cs.style.color='var(--cream3)'; return; }
+  const pct=x=>(100*x/st.n).toFixed(2)+'%';
+  const mx=st.max>1e4?st.max.toExponential(2):st.max.toFixed(3);
+  let t='max |w| '+mx+(st.at?' @ ('+st.at[0]+','+st.at[1]+')':'')+
+        ' · off-plate '+(st.off?pct(st.off):'0')+
+        ' · rim '+pct(st.rim);
+  if(st.pole) t+=' · poles '+st.pole;
+  cs.textContent=t;
+  cs.style.color=(st.off||st.pole)?'var(--coral)':'var(--lime)';
 }
 const CAYLEY_LEAD={
   A:'<b>A · Γ(z) = (z−1)/(z+1)</b> on z = ρ·e<sup>iθ</sup>, ρ = ρ₀ + Δρ·M/G. A genuine Cayley transform, but fed an annulus rather than a half-plane: bounded only while that annulus stays clear of ρ = 1, unbounded the moment it contains it. Both constants sit on the Spacing panel, and the plate readout gives the measured maximum against the analytic ceiling.',
@@ -3132,6 +3215,12 @@ function setThetaMode(v){
   if(sel) sel.value=S.thetaMode;
   render();
 }
+function setCopOnly(v){
+  S.copOnly=!!v;
+  document.getElementById('cp-all').classList.toggle('on',!S.copOnly);
+  document.getElementById('cp-cop').classList.toggle('on',S.copOnly);
+  render();
+}
 function setFilter(f){
   S.filter=f;
   ['all','gold','full','gap2n'].forEach(k=>document.getElementById('f-'+k).classList.toggle('on',k===f));
@@ -3146,6 +3235,10 @@ function setGapN(v){
   buildRows(); renderTable(); scrollToSelected();
 }
 /* ── prose accordions ────────────────────────────────────────────── */
+function toggleControls(){
+  document.getElementById('controls-hdr').classList.toggle('open');
+  document.getElementById('controls-body').classList.toggle('open');
+}
 function toggleGrp(id){
   document.getElementById(id+'-hdr').classList.toggle('open');
   document.getElementById(id+'-body').classList.toggle('open');
@@ -3659,6 +3752,45 @@ function drawMultiHeader(ctx,px,top,M){
   top=ly+lineH*0.9;
   return {top,pages};
 }
+// The single-gap partition readout: "E = g + s · strip c · strip d" line plus
+// the six stat boxes (g, s, strip c, strip d, a=b, verdict). Shared by the
+// single-view PNG export and the combined-views export so a viewer opening
+// either file can tell which partition (g,s) the strips shown actually belong
+// to, instead of only the bare G/E/g numbers.
+function drawGapStatBoxes(ctx,px,top,M){
+  const st=stripsAt(S.G,S.g), thr=Math.sqrt(st.E), v=verdict(st,thr);
+  ctx.font=`${Math.round(px*0.0155)}px "JetBrains Mono",monospace`;
+  ctx.fillStyle='#3dc8b8'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(`${st.E} = ${st.g} + ${st.s}   ·   c : r+M=${st.g}   ·   d : r+M=${st.s}`,M,top);
+  top+=Math.round(px*0.034);
+  const items=[
+    ['g',`${st.g}`,isPrime(st.g)?'prime':'composite','#c8a84a'],
+    ['s = E−g',`${st.s}`,isPrime(st.s)?'prime':'composite','#e05060'],
+    ['strip c',`${st.cCop}/${st.cTot}`,st.cFull?'fully lit':'short','#c8a84a'],
+    ['strip d',`${st.dCop}/${st.dTot}`,st.dFull?'fully lit':'short','#e05060'],
+    ['a = b',`${st.aCop}/${st.aTot}`,'difference pair','#3dc8b8'],
+    ['verdict',v.short,`g ${st.g>thr?'>':'≤'} √E = ${thr.toFixed(1)}`,v.col]
+  ];
+  const bw=(px-2*M-(items.length-1)*px*0.008)/items.length, bh=Math.round(px*0.062);
+  items.forEach(([lab,val,sub,col],i)=>{
+    const bx=M+i*(bw+px*0.008);
+    ctx.fillStyle='rgba(255,255,255,.03)';
+    ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.fill();
+    ctx.strokeStyle=col+'88'; ctx.lineWidth=Math.max(1,px/2400);
+    ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.stroke();
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    let fs=Math.round(bh*0.36);
+    ctx.font=`600 ${fs}px "JetBrains Mono",monospace`;
+    while(fs>7&&ctx.measureText(val).width>bw*0.9){ fs-=1; ctx.font=`600 ${fs}px "JetBrains Mono",monospace`; }
+    ctx.fillStyle=col;
+    ctx.fillText(val,bx+bw/2,top+bh*0.36,bw*0.9);
+    ctx.font=`${Math.round(bh*0.19)}px "JetBrains Mono",monospace`;
+    ctx.fillStyle='rgba(106,101,96,.9)';
+    ctx.fillText(`${lab} · ${sub}`,bx+bw/2,top+bh*0.72,bw*0.94);
+  });
+  top+=bh+Math.round(px*0.018);
+  return top;
+}
 // Tiles 2 or 3 views into a single canvas and downloads it as one PNG.
 // 2 views  → side-by-side pair.
 // 3 views  → triangle: one panel centered on top (apex), the other two
@@ -3704,6 +3836,11 @@ function doExportCombined(px,views){
       if(S.multi){
         const r=drawMultiHeader(ctx,px,top,M);
         top=r.top;
+      } else {
+        // Same partition readout the single-view export shows — otherwise a
+        // combined Grid+Ring+Cayley plate only carries G/E/g and the viewer
+        // has no way to tell which g,s pair the a/b/c/d strips belong to.
+        top=drawGapStatBoxes(ctx,px,top,M);
       }
       return top;
     }
@@ -3853,37 +3990,7 @@ function doExport(px,viewOverride){
         top=r.top;
         fname=`goldbach-multi-G${S.G}-${S.multiMode}-batch${S.page+1}of${r.pages}${vtag}-${px}.png`;
       } else {
-        const st=stripsAt(S.G,S.g), thr=Math.sqrt(st.E), v=verdict(st,thr);
-        ctx.font=`${Math.round(px*0.0155)}px "JetBrains Mono",monospace`;
-        ctx.fillStyle='#3dc8b8'; ctx.textAlign='left';
-        ctx.fillText(`${st.E} = ${st.g} + ${st.s}   ·   c : r+M=${st.g}   ·   d : r+M=${st.s}`,M,top);
-        top+=Math.round(px*0.034);
-        const items=[
-          ['g',`${st.g}`,isPrime(st.g)?'prime':'composite','#c8a84a'],
-          ['s = E−g',`${st.s}`,isPrime(st.s)?'prime':'composite','#e05060'],
-          ['strip c',`${st.cCop}/${st.cTot}`,st.cFull?'fully lit':'short','#c8a84a'],
-          ['strip d',`${st.dCop}/${st.dTot}`,st.dFull?'fully lit':'short','#e05060'],
-          ['a = b',`${st.aCop}/${st.aTot}`,'difference pair','#3dc8b8'],
-          ['verdict',v.short,`g ${st.g>thr?'>':'≤'} √E = ${thr.toFixed(1)}`,v.col]
-        ];
-        const bw=(px-2*M-(items.length-1)*px*0.008)/items.length, bh=Math.round(px*0.062);
-        items.forEach(([lab,val,sub,col],i)=>{
-          const bx=M+i*(bw+px*0.008);
-          ctx.fillStyle='rgba(255,255,255,.03)';
-          ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.fill();
-          ctx.strokeStyle=col+'88'; ctx.lineWidth=Math.max(1,px/2400);
-          ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.stroke();
-          ctx.textAlign='center'; ctx.textBaseline='middle';
-          let fs=Math.round(bh*0.36);
-          ctx.font=`600 ${fs}px "JetBrains Mono",monospace`;
-          while(fs>7&&ctx.measureText(val).width>bw*0.9){ fs-=1; ctx.font=`600 ${fs}px "JetBrains Mono",monospace`; }
-          ctx.fillStyle=col;
-          ctx.fillText(val,bx+bw/2,top+bh*0.36,bw*0.9);
-          ctx.font=`${Math.round(bh*0.19)}px "JetBrains Mono",monospace`;
-          ctx.fillStyle='rgba(106,101,96,.9)';
-          ctx.fillText(`${lab} · ${sub}`,bx+bw/2,top+bh*0.72,bw*0.94);
-        });
-        top+=bh+Math.round(px*0.018);
+        top=drawGapStatBoxes(ctx,px,top,M);
         fname=`goldbach-diagonal-G${S.G}-g${S.g}${vtag}-${px}.png`;
       }
     } else {
