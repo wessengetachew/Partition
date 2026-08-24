@@ -657,7 +657,7 @@ body.is-fs .figcap{display:none}
   <div id="view-bar">
     <button class="vm-btn active" id="vw-grid" onclick="setView('grid')" title="Square lattice — the original (r,M) grid, one cell per point.">Grid</button>
     <button class="vm-btn" id="vw-ring" onclick="setView('ring')" title="Concentric rings — ring M at radius M/G, point r at angle 2πr/M. Only r&lt;M sits within one turn; r&gt;M wraps past 2π onto the same ring, so nothing is dropped.">Ring</button>
-    <button class="vm-btn" id="vw-cayley" onclick="setView('cayley')" title="The same ring points, 1:1, run through the Cayley/Möbius map Γ(z)=(z−1)/(z+1). Unbounded: the ring M=G/3 contains the pole z=−1, so ~6.2% of the lattice is off-plate at the default zoom (8× leaves 1.5%).">Cayley</button>
+    <button class="vm-btn" id="vw-cayley" onclick="setView('cayley')" title="The same ring points, 1:1, run through a Möbius map. Three are selectable in the Instrument panel: Γ(z)=(z−1)/(z+1) on an annulus, the Blaschke automorphism φₐ on the disk, and K(z)=(z−i)/(z+i) on Ford coordinates. The plate readout gives the measured maximum and what falls outside it.">Cayley</button>
     <button class="vm-btn" id="vw-circle" onclick="setView('circle')" title="The Hardy–Littlewood exponential sum S(α) = Σ e(2πiαp) over primes p ≤ E, plotted across α ∈ [0,1). Peaks at rationals p/q (major arcs) are where the circle method predicts Goldbach representations come from. Depends only on E, not on the current g.">Circle</button>
   </div>
 
@@ -735,6 +735,71 @@ body.is-fs .figcap{display:none}
       <h4>Lattice</h4>
       <div class="note" id="view-note" style="display:none;margin-top:0;margin-bottom:9px">Ring/Cayley plot the same a/b/c/d strip points as Grid, just re-projected — the underlying (r,M) data is identical.</div>
       <div id="polar-extra" style="display:none">
+        <div id="cmap-block" style="display:none">
+          <div class="row">
+            <span class="lab">Möbius map</span>
+            <select id="sel-cmap" onchange="setCMap(this.value)" style="flex:1" title="Which Möbius map the plate applies. Each takes its own parameters — they are on the Spacing panel below, and only the live map's are shown.">
+              <option value="A" selected>A · Γ(z) = (z−1)/(z+1) · annulus</option>
+              <option value="B">B · φₐ(z) = (z−a)/(1−āz) · disk</option>
+              <option value="C">C · K(z) = (z−i)/(z+i) · Ford</option>
+            </select>
+          </div>
+          <div class="row">
+            <span class="lab">Plate</span>
+            <span id="v-cstat" style="flex:1;font-family:var(--mono);font-size:9px;letter-spacing:.03em;color:var(--cream3)">—</span>
+          </div>
+          <div class="row grp-hdr" id="grp-spacing-hdr" onclick="toggleGrp('grp-spacing')" style="cursor:pointer;user-select:none">
+            <span class="rarrow">▸</span><span class="lab" style="min-width:auto">Spacing</span>
+          </div>
+          <div class="grp-body" id="grp-spacing-body">
+            <div id="sp-A">
+              <div class="row" style="margin-top:8px">
+                <span class="lab" style="color:var(--gold)">ρ₀</span>
+                <input type="range" id="sl-rho0" min="0" max="3" step="0.05" value="0.4" oninput="setRho0(+this.value)">
+                <span class="val" id="v-rho0" style="width:42px">0.40</span>
+              </div>
+              <div class="row">
+                <span class="lab" style="color:var(--gold)">Δρ</span>
+                <input type="range" id="sl-rhoD" min="0.05" max="3" step="0.05" value="1.8" oninput="setRhoD(+this.value)">
+                <span class="val" id="v-rhoD" style="width:42px">1.80</span>
+              </div>
+              <div class="row">
+                <button class="chip" onclick="setRhoPair(0.4,1.8)" style="flex:1" title="ρ ∈ [0.40, 2.20] — the interval this view opens on">0.4 · 1.8</button>
+                <button class="chip" onclick="setRhoPair(1.5,1.5)" style="flex:1" title="Interval clears ρ = 1 from above">1.5 · 1.5</button>
+                <button class="chip" onclick="setRhoPair(0.1,0.7)" style="flex:1" title="Interval stays below ρ = 1">0.1 · 0.7</button>
+              </div>
+              <div class="note" id="rho-note"></div>
+            </div>
+            <div id="sp-B" style="display:none">
+              <div class="row" style="margin-top:8px">
+                <span class="lab" style="color:var(--teal)">|a|</span>
+                <input type="range" id="sl-ba" min="0" max="0.95" step="0.01" value="0.45" oninput="setBA(+this.value)">
+                <span class="val" id="v-ba" style="width:42px">0.45</span>
+              </div>
+              <div class="row">
+                <span class="lab" style="color:var(--teal)">arg a</span>
+                <input type="range" id="sl-baang" min="0" max="359" step="1" value="0" oninput="setBAAng(+this.value)">
+                <span class="val" id="v-baang" style="width:42px">0°</span>
+              </div>
+              <div class="row"><button class="chip" onclick="setBA(0)" style="flex:1" title="The identity — this reproduces Ring exactly">a = 0</button></div>
+              <div class="note">a = 0 reproduces the Ring view exactly, so B is a continuous deformation of Ring rather than a separate picture. Moving a is a hyperbolic translation: it magnifies the neighbourhood of a and compresses the far rim, and it is an isometry of the Poincaré metric, so no hyperbolic distance is distorted. The only pole sits at 1/ā, of modulus 1/|a| &gt; 1 — outside the disk — so |w| ≤ 1 holds everywhere and nothing can leave the plate. The zoom-out divisor is disabled here because there is nothing to zoom out from. φₐ is <b>not</b> a Cayley transform, and the plate caption reads Blaschke while it is live.</div>
+            </div>
+            <div id="sp-C" style="display:none">
+              <div class="row" style="margin-top:8px">
+                <span class="lab" style="color:var(--violet)">κ</span>
+                <input type="range" id="sl-kap" min="0" max="1.4" step="0.05" value="1" oninput="setKap(+this.value)">
+                <span class="val" id="v-kap" style="width:42px">1.00</span>
+              </div>
+              <div class="row">
+                <span class="lab" style="color:var(--violet)">gain</span>
+                <input type="range" id="sl-hgain" min="0.2" max="6" step="0.1" value="1" oninput="setHGain(+this.value)">
+                <span class="val" id="v-hgain" style="width:42px">1.0</span>
+              </div>
+              <div class="row"><button class="chip" id="ch-cmir" onclick="toggleCMirror()" style="flex:1">Mirror off — lower half only</button></div>
+              <div class="note" id="kap-note"></div>
+            </div>
+          </div>
+        </div>
         <div class="row" id="cz-row" style="display:none">
           <span class="lab">Zoom out</span>
           <button class="chip" id="cz-1" onclick="setCayleyZoom(1)" style="flex:1">1×</button>
@@ -761,14 +826,26 @@ body.is-fs .figcap{display:none}
             <option value="unit">unit · θ = 2πr/G</option>
           </select>
         </div>
-        <div class="note" id="theta-note">Zoom and θ are kept per view — Ring and Cayley each remember their own. Cayley starts at zoom-out <b>4×</b>, which shows |Γ| &lt; 4.35 and so retains about <b>93.8%</b> of the lattice — <b>not</b> the whole image. The Möbius map is unbounded here: max|Γ| on ring ρ is (1+ρ)/|1−ρ|, which diverges at ρ = 1, i.e. at <b>M = G/3</b>, where the pole z = −1 sits. No zoom setting fits everything. 8× retains ~98.5%. See <i>How the three views are built</i> below.<br><br><b>θ map</b> decides what happens past one turn. <b>wrap</b> is the original: θ = 2πr/M runs unbounded, so r &gt; M keeps going round and r/M = 1.3 lands on top of r/M = 0.3 — the multiplicative path folds back on itself and the two are no longer distinguishable. <b>clamp</b> refuses the fold: θ = 2π·min(r/M,1), so the fractions r/M ∈ (0,1) — the Farey side of the ring — get the whole circle to themselves, and everything with r ≥ M piles onto the 360° spoke. That spoke's thickness at each M is then a direct count of how far past one turn that ring reaches. <b>unit</b> budgets the turn by G instead of M: every ring spends exactly one revolution over r = 1…G, so a given r sits at the same angle on every ring and coprimality reads as radial spokes.</div>
+        <div class="note" id="theta-note">Zoom and θ are kept per view — Ring and Cayley each remember their own. <span id="cayley-lead"></span><br><br><b>θ map</b> decides what happens past one turn. <b>wrap</b> is the original: θ = 2πr/M runs unbounded, so r &gt; M keeps going round and r/M = 1.3 lands on top of r/M = 0.3 — the multiplicative path folds back on itself and the two are no longer distinguishable. <b>clamp</b> refuses the fold: θ = 2π·min(r/M,1), so the fractions r/M ∈ (0,1) — the Farey side of the ring — get the whole circle to themselves, and everything with r ≥ M piles onto the 360° spoke. That spoke's thickness at each M is then a direct count of how far past one turn that ring reaches. <b>unit</b> budgets the turn by G instead of M: every ring spends exactly one revolution over r = 1…G, so a given r sits at the same angle on every ring and coprimality reads as radial spokes.</div>
       </div>
       <div class="row">
         <span class="lab">Grid G</span>
+        <button class="chip" onclick="setG(S.G-1)" title="G − 1">−</button>
         <input type="range" id="sl-G" min="1" max="1024" step="1" value="194" oninput="setG(+this.value)" title="Slides 1–1024 for fine control. Type into the box on the right to go higher, up to 4096.">
+        <button class="chip" onclick="setG(S.G+1)" title="G + 1">+</button>
         <input type="number" id="in-G" min="1" max="4096" value="194" style="width:56px" oninput="setG(+this.value)">
         <button class="chip" id="ch-playG" onclick="toggleSweepG()" title="Play G: climbs from 1 up to whatever G is currently set, then descends back down to 1, back and forth. Runs independently of Play g / Play pairs — both keep sweeping while G moves.">▶ Play G</button>
       </div>
+      <div class="row" id="row-playnext" style="flex-wrap:wrap">
+        <span class="lab">Next N</span>
+        <button class="chip" data-span="10" onclick="playNextSpan(10)" title="Walk the next 10 grids up from here, then loop back">+10</button>
+        <button class="chip" data-span="20" onclick="playNextSpan(20)" title="Walk the next 20 grids up from here, then loop back">+20</button>
+        <button class="chip" data-span="30" onclick="playNextSpan(30)" title="Walk the next 30 grids up from here, then loop back">+30</button>
+        <button class="chip" data-span="40" onclick="playNextSpan(40)" title="Walk the next 40 grids up from here, then loop back">+40</button>
+        <input type="number" id="in-Gspan" min="1" max="4096" value="10" style="width:52px" oninput="setNextSpan(+this.value)" title="Custom span: how many grids past the current G to play through">
+        <button class="chip" id="ch-playNext" onclick="toggleSweepNext()" title="Play the window G … G+N one step at a time, then jump straight back to the starting G and repeat. The starting point is fixed when you press play.">▶ Play +N</button>
+      </div>
+      <div class="note" id="note-playnext">Play <b>+N</b> is local: it anchors on whatever <b>G</b> you are on, steps up one grid at a time to <b>G + N</b>, then loops back to the anchor. <span id="pn-window">Window: 194 → 204</span>.</div>
       <div class="row">
         <span class="lab">Gap g</span>
         <input type="range" class="tl" id="sl-g" min="1" max="193" step="1" value="193" oninput="setGap(+this.value)">
@@ -1015,7 +1092,11 @@ body.is-fs .figcap{display:none}
       Cayley takes the ring point as a complex number and applies a Möbius transformation. The radius is first
       remapped by a fixed affine rule, then:
     </div>
-    <div class="formula-block violet">z = ρ·e<sup>iθ</sup>,&nbsp;&nbsp;ρ = 0.4 + 1.8·(M/G) ∈ [0.4, 2.2],&nbsp;&nbsp;w = Γ(z) = (z − 1)/(z + 1)</div>
+    <div class="formula-block violet">z = ρ·e<sup>iθ</sup>,&nbsp;&nbsp;ρ = ρ₀ + Δρ·(M/G),&nbsp;&nbsp;w = Γ(z) = (z − 1)/(z + 1)</div>
+    <div class="prose">
+      ρ₀ and Δρ are the two controls on the Spacing panel; the view opens on 0.4 and 1.8, giving ρ ∈ [0.4, 2.2].
+      The derivation below holds for any pair.
+    </div>
     <div class="prose">
       Γ is a genuine Cayley transform — it carries the right half-plane Re z &gt; 0 bijectively onto the unit disk,
       and its inverse is z = (1 + w)/(1 − w), which is what the click hit-test inverts. To see what it does to the
@@ -1047,45 +1128,86 @@ body.is-fs .figcap{display:none}
   </div>
 
   <div class="theory-hdr" id="v4-hdr" onclick="toggleTheory('v4')">
-    <span>4 · What the Cayley view currently gets wrong</span><span class="arrow">▶</span>
+    <span>4 · The pole, and the two bounded alternatives</span><span class="arrow">▶</span>
   </div>
   <div class="theory-body" id="v4-body">
     <div class="prose">
-      The formula (1 + ρ)/|1 − ρ| decides everything, and the radius spread ρ ∈ [0.4, 2.2] <b>straddles ρ = 1</b>.
-      At the outer ring ρ = 2.2 the bound is 3.2/1.2 = 2.667, which is a comfortable, finite number — and it is the
-      figure this page's own code comment used to quote for the whole image. It is not the whole image. The bound
-      diverges as ρ → 1, and
+      The formula (1 + ρ)/|1 − ρ| decides everything about Γ, and it diverges at ρ = 1. The view opens on
+      ρ ∈ [0.4, 2.2], which <b>straddles</b> that value. At the outer ring ρ = 2.2 the bound is 3.2/1.2 = 2.667 —
+      a comfortable finite number that describes one ring and not the image. Solving for the ring that carries the
+      singularity:
     </div>
     <div class="formula-block coral" style="border-left-color:var(--coral);background:rgba(224,80,96,.08);color:var(--coral)">
-      0.4 + 1.8·(M/G) = 1&nbsp;&nbsp;⟺&nbsp;&nbsp;M = G/3
+      ρ₀ + Δρ·(M/G) = 1&nbsp;&nbsp;⟺&nbsp;&nbsp;M = G·(1 − ρ₀)/Δρ&nbsp;&nbsp;— at the opening values, M = G/3
     </div>
     <div class="prose">
-      so the pole z = −1 sits on the ring M ≈ G/3, at the angle θ = π, i.e. at r ≈ M/2. Measured over the full
-      lattice, the largest image modulus lands there every time: 17.7 at G = 30, 402 at G = 121 (r=20, M=40),
-      852 at G = 512 (r=85, M=170), 1708 at G = 1024 (r=171, M=342). Three consequences, stated plainly:
+      so the pole z = −1 sits on that ring at the angle θ = π, i.e. at r ≈ M/2. Measured over the full lattice the
+      largest image modulus lands there every time: 17.7 at G = 30, 402 at G = 121 (r = 20, M = 40), 852 at
+      G = 512 (r = 85, M = 170), 1708 at G = 1024 (r = 171, M = 342). Two consequences follow.
     </div>
     <div class="prose">
-      <b>The picture is unbounded, so some of it is always missing.</b> The default zoom-out of 4× shows
-      |Γ| &lt; 4.35, which retains about 93.8% of the lattice. The other <b>6.2%</b> is clipped every frame, and it
-      is not a random 6.2% — it is one ring being discarded. Going to 8× retains 98.5%; no setting reaches 100%.
+      <b>The picture is unbounded, so some of it is always missing.</b> Whatever the zoom-out divisor is set to, it
+      draws a finite disk around a map with no finite maximum, and what lies beyond is clipped — not a random
+      selection, but one ring being discarded. The plate readout reports the measured maximum and the clipped
+      fraction for the settings that are live, rather than a figure fixed at one choice of constants.
     </div>
     <div class="prose">
-      <b>The singular ring is arithmetically meaningless.</b> M = G/3 is an artefact of the constants 0.4 and 1.8.
-      Nothing about coprimality, Farey structure, or the strips distinguishes that ring; a different pair of
-      constants would put the singularity somewhere else entirely.
+      <b>The singular ring is arithmetically meaningless.</b> M = G(1 − ρ₀)/Δρ is an artefact of the two spread
+      constants. Nothing about coprimality, Farey structure or the strips distinguishes that ring, and a different
+      pair puts the singularity somewhere else — or removes it, which is what the ρ₀ and Δρ controls are for. Push
+      ρ₀ above 1, or ρ₀ + Δρ below it, and the annulus no longer contains ρ = 1: Γ becomes bounded with the exact
+      ceiling (1 + ρ)/|1 − ρ| evaluated at whichever endpoint is nearer 1. The measured maximum then sits just
+      under that ceiling, because ρ₀ is approached and not attained — the innermost ring is M = 1, not M = 0 — and
+      the maximum on a ring requires θ = π to land on a lattice point.
     </div>
     <div class="prose">
-      <b>The pole used to be drawn at a real point.</b> When 3 ∣ G and G/3 is even, z = −1 is hit exactly. The
-      guard formerly placed that point at the plate centre — but the plate centre is Γ(1) = 0, which genuine
-      lattice points occupy. A pole and a zero were rendered on the same pixel. The guard now pushes the point off
-      the plate instead, so it is honestly absent rather than dishonestly present.
+      The transformation itself is correct: Γ, its inverse and the complex division are exact, and the θ map is
+      irrelevant to the problem — the singularity survives wrap, clamp and unit alike, because it is a property of
+      the <b>domain</b> rather than of the angle. That leaves the choice of domain as the open question, and two
+      bounded maps answer it differently. Both are on the map selector.
     </div>
     <div class="prose">
-      The transformation itself is correct — Γ, its inverse, and the complex division are all exact, and the θ map
-      is irrelevant to the problem: the singularity survives wrap, clamp and unit alike, because it is a property
-      of the <b>domain</b>, not of the angle. Whether Γ on a straddling annulus is the right choice of domain is a
-      separate question, worked through side by side against two bounded alternatives in
-      <a href="cayley-compare.html" style="color:var(--gold)">the Cayley plate comparison</a>.
+      <b>B · the Blaschke automorphism.</b> Put the ring where it already sits, z = (M/G)·e<sup>iθ</sup>, so the
+      lattice fills the closed unit disk and M = G is the unit circle. Then
+    </div>
+    <div class="formula-block teal">φ<sub>a</sub>(z) = (z − a)/(1 − āz),&nbsp;&nbsp;|a| &lt; 1</div>
+    <div class="prose">
+      maps the disk bijectively onto itself. Its only pole is at z = 1/ā, of modulus 1/|a| &gt; 1, outside the disk —
+      so no lattice point can blow up, |φ<sub>a</sub>| ≤ 1 holds everywhere, nothing is clipped, and the zoom-out
+      divisor has nothing to do. φ<sub>a</sub> is an isometry of the Poincaré metric: setting a ≠ 0 is a hyperbolic
+      translation that re-centres the disk on a, magnifying its neighbourhood and compressing the far rim without
+      distorting a single hyperbolic distance. At a = 0 it is the identity and the plate reproduces Ring exactly,
+      so this map is a continuous deformation of the second view rather than an unrelated third one. The cost is
+      the name: φ<sub>a</sub> is <b>not</b> a Cayley transform, and the plate caption reads Blaschke while it is
+      live.
+    </div>
+    <div class="prose">
+      <b>C · the classical Cayley transform, on Ford coordinates.</b> K(z) = (z − i)/(z + i) carries the upper
+      half-plane bijectively onto the disk, and its pole z = −i lies in the lower half, which the lattice never
+      reaches. The coordinates it is fed are the ones the modular group acts on:
+    </div>
+    <div class="formula-block violet">z = r/M + i·y ∈ ℍ,&nbsp;&nbsp;y = gain·M<sup>−κ</sup>,&nbsp;&nbsp;κ = 1 giving the Ford height 1/M</div>
+    <div class="prose">
+      The real part is the fraction r/M itself and the height is the Farey depth: larger denominators sit lower,
+      nearer the real line. This is the horocycle picture behind Ford circles — the circle tangent to ℝ at r/M with
+      radius 1/(2M²). Under K the real line maps to the boundary circle, so every reduced fraction lands on the rim
+      at a position given by its value, with the height controlling how far inside the rim it sits. At κ = 1 that
+      crushes almost the whole lattice against the boundary; lowering κ lifts the deep fractions inward and moves
+      no real part, so it distorts height alone. It is the one map of the three where gcd(r, M) = 1 has a direct
+      geometric meaning in the target picture.
+    </div>
+    <div class="prose">
+      Two things follow from C reading r/M as a <b>position</b> rather than an angle. The θ map has nothing to
+      choose between and is disabled while C is live, and the rotate control acts on the finished disk instead of
+      on a pre-image angle. The upper half of the plate is also structurally empty, since every r/M is positive and
+      K sends the positive reals to the lower half of the boundary circle. Mirror fills it with the branch
+      −r/M + iy, and
+    </div>
+    <div class="formula-block violet">K(−x + iy) = conj K(x + iy)&nbsp;&nbsp;— exact, verified to 0 across the lattice</div>
+    <div class="prose">
+      so the filled half is the reflection of the drawn one. That is symmetry, not information: every mirrored
+      point is a point already on the plate. It is drawn dimmer for that reason, and it is neither labelled nor
+      selectable.
     </div>
   </div>
 
@@ -1237,14 +1359,16 @@ function stripsAt(G,g){
 }
 
 /* ── state ───────────────────────────────────────────────────────── */
-// cayleyZoom is the Cayley zoom-OUT divisor (1/2/4/8). 4× is the default, but
-// NOT because it fits the whole picture — it does not, and no finite zoom does.
-// max|Γ| on ring ρ is (1+ρ)/|1−ρ|, which is 2.667 at the outer ring ρ=2.2 (the
-// figure this comment used to quote for the whole image) but diverges as ρ→1,
-// i.e. at M = G/3, where the pole z = −1 sits. Measured max|Γ| over the lattice
-// is 402 at G=121 and 1708 at G=1024. 4× shows |Γ| < 4.35, which retains ~93.8%
-// of the points; the rest is clipped. See the "How the three views are built"
-// section — this is documented rather than hidden. ringZoom / cayleyIn are the zoom-IN
+// cayleyZoom is the Cayley zoom-OUT divisor (1/2/4/8), and it applies to map A
+// alone: 4× is the default, but NOT because it fits the whole picture — under A
+// nothing does. max|Γ| on ring ρ is (1+ρ)/|1−ρ|, which is 2.667 at the outer
+// ring ρ=2.2 but diverges as ρ→1, i.e. at M = G(1−ρ₀)/Δρ, where the pole z = −1
+// sits. Measured max|Γ| over the lattice is 402 at G=121 and 1708 at G=1024
+// while the annulus straddles that value; the ρ₀/Δρ controls exist to move the
+// interval clear of it, at which point Γ is bounded and nothing is clipped. The
+// plate readout measures both, so no percentage is hardcoded here or anywhere
+// else. Maps B and C are bounded by construction, so cayleyZoomEff() forces the
+// divisor to 1 for them. ringZoom / cayleyIn are the zoom-IN
 // multipliers (1…10) driven by the polar zoom slider, and ringRot / cayleyRot
 // the per-view θ offsets. All four feed ringXY/cayleyXY, so all four must be
 // part of polarBaseLayer's cache key — otherwise the all-pairs backdrop stays
@@ -1261,6 +1385,11 @@ function stripsAt(G,g){
 const S={G:194,g:193,col:'sector',lbl:'r',dim:0.45,view:'grid',
          lblScale:1,lblAdapt:0.55,thetaMode:'wrap',
          cayleyZoom:4,cayleyRot:0,cayleyIn:1,ringZoom:1,ringRot:0,focus:null,
+         // Cayley plate: which Möbius map is live, and the parameters each takes.
+         //   A  Γ(z)=(z−1)/(z+1)   on z = ρ·e^{iθ}, ρ = rho0 + rhoD·M/G
+         //   B  φₐ(z)=(z−a)/(1−āz) on z = (M/G)·e^{iθ}, a = ba·e^{i·baAng}
+         //   C  K(z)=(z−i)/(z+i)   on z = r/M + i·hgain·M^{−kap}
+         cmap:'A',rho0:0.4,rhoD:1.8,ba:0.45,baAng:0,kap:1,hgain:1,cmirror:false,
          show:{sum:true,diff:true,frame:true,diag:false},
          filter:'gold',rows:[],sel:null,gapN:1,
          multi:true,multiMode:'pairs',batch:0,page:0,items:[],pairIdx:new Map()};
@@ -1413,9 +1542,19 @@ function polarKeyBits(view){
   // thetaMode belongs here for the same reason zoom and θ do: it changes where
   // every backdrop point lands, so a cached layer built under one map is wrong
   // under another.
-  return (view==='ring' ? S.ringZoom+'/'+S.ringRot
-                        : S.cayleyZoom+'/'+S.cayleyIn+'/'+S.cayleyRot)+'/'+S.thetaMode;
+  if(view==='ring') return S.ringZoom+'/'+S.ringRot+'/'+S.thetaMode;
+  // Each map reads a different set of parameters and every one of them moves
+  // points, so all of them belong here. A key naming only the zoom would put
+  // this layer back where the zoom bug left it: a frozen cloud with live strip
+  // points sliding over it.
+  const mp=S.cmap==='A' ? 'A/'+S.rho0+'/'+S.rhoD
+         : S.cmap==='B' ? 'B/'+S.ba+'/'+S.baAng
+         : 'C/'+S.kap+'/'+S.hgain+'/'+(S.cmirror?'m':'-');
+  return mp+'/'+cayleyZoomEff()+'/'+S.cayleyIn+'/'+S.cayleyRot+'/'+S.thetaMode;
 }
+// Filled by polarBaseLayer's O(G²) pass so the plate readout costs no second
+// sweep of the lattice. Null until a Cayley backdrop has been built.
+let CSTAT=null;
 function polarBaseLayer(G,view,px){
   // Match the target size instead of a fixed 1024: this layer is a scatter of
   // one-pixel points, so any nearest-neighbour *downscale* silently throws
@@ -1442,12 +1581,28 @@ function polarBaseLayer(G,view,px){
   const sector=S.col==='sector', spf=S.col==='spf', gcdm=S.col==='gcd';
   const lut=hueTable(sector?52:58, sector?52:58);
   const cx0=(G+1)/2;
+  // This is already the only full sweep of the lattice per settings change, so
+  // the Cayley readout is accumulated here rather than in a second pass: the
+  // largest image modulus and where it lands, how much falls outside the plate,
+  // how much is piled against the rim. Measured, not asserted.
+  const isCay=view==='cayley', Rc=isCay?cayleyScale(W):1;
+  const lim=isCay?cayleyZoomEff()/Math.max(0.25,S.cayleyIn):0;
+  const mir=isCay&&cayleyMirrorOn();
+  let cMax=0,cAt=null,cOff=0,cRim=0,cPole=0;
   for(let m=1;m<=G;m++){
     for(let r=1;r<=G;r++){
       const cop=mask[(r-1)*G+(m-1)];
       const [x,y]=proj(r,m,G,W);
+      if(isCay){
+        const mag=Math.hypot((x-W/2)/Rc,(y-W/2)/Rc);
+        if(mag>1e7) cPole++;
+        else {
+          if(mag>cMax){ cMax=mag; cAt=[r,m]; }
+          if(mag>lim) cOff++;
+          if(mag>0.9*lim) cRim++;
+        }
+      }
       const px_=x|0, py_=y|0;
-      if(px_<0||px_>=W||py_<0||py_>=W) continue;
       let R,Gc,B;
       if(!cop){ R=24; Gc=13; B=32; }
       else if(sector){
@@ -1458,10 +1613,21 @@ function polarBaseLayer(G,view,px){
         R=lut[hi*3]; Gc=lut[hi*3+1]; B=lut[hi*3+2];
       } else if(gcdm){ R=200; Gc=168; B=74; }
       else { R=61; Gc=200; B=184; }
-      const idx=(py_*W+px_)*4;
-      D[idx]=R; D[idx+1]=Gc; D[idx+2]=B; D[idx+3]=cop?215:120;
+      if(px_>=0&&px_<W&&py_>=0&&py_<W){
+        const idx=(py_*W+px_)*4;
+        D[idx]=R; D[idx+1]=Gc; D[idx+2]=B; D[idx+3]=cop?215:120;
+      }
+      if(mir){
+        const mp=cayleyXYMirror(r,m,G,W);
+        const mxi=mp[0]|0, myi=mp[1]|0;
+        if(mxi>=0&&mxi<W&&myi>=0&&myi<W){
+          const j=(myi*W+mxi)*4;
+          D[j]=(R*0.45)|0; D[j+1]=(Gc*0.55)|0; D[j+2]=(B*0.75)|0; D[j+3]=cop?110:60;
+        }
+      }
     }
   }
+  if(isCay) CSTAT={n:G*G,max:cMax,at:cAt,off:cOff,rim:cRim,pole:cPole,lim};
   octx.putImageData(img,0,0);
   PBASE_KEY=key; return PBASE=off;
 }
@@ -1940,7 +2106,49 @@ function drawFocus(ctx,px,G,g,view){
 // S.ringZoom (1…10) and θ picks up S.ringRot. Points that leave the plate at
 // high zoom are simply clipped — that's what zooming in means here.
 function ringScale(px){ return px*0.46*Math.max(0.25,S.ringZoom); }
-function cayleyScale(px){ return px*0.46*Math.max(0.25,S.cayleyIn)/Math.max(1,S.cayleyZoom); }
+// B and C are bounded — |w| ≤ 1 by construction — so a zoom-out divisor has
+// nothing to divide, and applying one would only shrink a complete picture
+// into the middle of an empty plate. It belongs to A alone.
+function cayleyZoomEff(){ return S.cmap==='A'?Math.max(1,S.cayleyZoom):1; }
+function cayleyScale(px){ return px*0.46*Math.max(0.25,S.cayleyIn)/cayleyZoomEff(); }
+// The three maps, each returning w in its own units, unscaled. A and B read an
+// angle and a ring. C reads r and M directly, because r/M enters it as a
+// position on the real axis rather than as an angle — which is also why C
+// leaves the θ map with nothing to act on.
+function wMapA(theta,m,G){
+  const rho=S.rho0+S.rhoD*m/G;
+  const zx=rho*Math.cos(theta), zy=rho*Math.sin(theta);
+  const ar=zx-1, ai=zy, br=zx+1, bi=zy, d=br*br+bi*bi;
+  if(d<1e-9) return null;                        // the pole — genuinely undefined
+  return [(ar*br+ai*bi)/d,(ai*br-ar*bi)/d];
+}
+function wMapB(theta,m,G){
+  const rho=m/G;
+  const zx=rho*Math.cos(theta), zy=rho*Math.sin(theta);
+  const ang=S.baAng*Math.PI/180, ax=S.ba*Math.cos(ang), ay=S.ba*Math.sin(ang);
+  const nr=zx-ax, ni=zy-ay;                      // z − a
+  const dr=1-(ax*zx+ay*zy), di=-(ax*zy-ay*zx);   // 1 − conj(a)·z
+  const d=dr*dr+di*di;
+  if(d<1e-12) return null;                       // the pole 1/ā lies outside the disk
+  return [(nr*dr+ni*di)/d,(ni*dr-nr*di)/d];
+}
+// sign −1 is the branch −r/M + iy. K(−x+iy) = conj K(x+iy) exactly, so that
+// branch is the reflection of the plotted point across the real axis. C has no
+// pre-image angle, so the rotate control can only act on the finished disk.
+function wMapC(r,m,sign){
+  const y=S.hgain*Math.pow(m,-S.kap);
+  const zx=(sign===-1?-1:1)*r/m, zy=y;
+  const nr=zx, ni=zy-1;                          // z − i
+  const dr=zx, di=zy+1;                          // z + i
+  const d=dr*dr+di*di;
+  if(d<1e-12) return null;
+  let u=(nr*dr+ni*di)/d, v=(ni*dr-nr*di)/d;
+  if(S.cayleyRot){
+    const t=S.cayleyRot*Math.PI/180, c=Math.cos(t), s2=Math.sin(t);
+    const uu=u*c-v*s2; v=u*s2+v*c; u=uu;
+  }
+  return [u,v];
+}
 // θ map — the one decision that separates the three angular modes.
 //   wrap  θ = 2πr/M, unbounded. r>M runs past a full turn and keeps going;
 //         the circle is periodic so nothing is lost, but a point at r/M = 1.3
@@ -1967,27 +2175,47 @@ function ringFromTheta(theta,m,G,px){
   const cx=px/2, cy=px/2, rho=(m/G)*ringScale(px);
   return [cx+rho*Math.cos(theta), cy-rho*Math.sin(theta)];
 }
+// A and B only — C has no angle, so anything needing a locus at a given θ
+// (the reference rings) takes the C branch in paintPolar instead.
 function cayleyFromTheta(theta,m,G,px){
   const cx=px/2, cy=px/2, Rc=cayleyScale(px);
-  const normR=0.4+(m/G)*1.8; // same 0.4…2.2 spread the hero Cayley view uses
-  const zx=normR*Math.cos(theta), zy=normR*Math.sin(theta);
-  const ar=zx-1, ai=zy, br=zx+1, bi=zy, d=br*br+bi*bi;
+  const w=S.cmap==='B'?wMapB(theta,m,G):wMapA(theta,m,G);
   // z = −1 is a pole: Γ(z) → ∞. This used to return the plate centre, but the
   // plate centre is Γ(1) = 0 — a point real lattice cells land on whenever
   // 3 ∣ G. That drew a pole and a zero on the same pixel. Push it far off the
   // plate instead, so every bounds check downstream drops it: absent and
   // honest beats present and wrong.
-  if(d<1e-9) return [cx+1e9,cy];
-  const u=(ar*br+ai*bi)/d, v=(ai*br-ar*bi)/d;
-  return [cx+u*Rc, cy-v*Rc];
+  if(!w) return [cx+1e9,cy];
+  return [cx+w[0]*Rc, cy-w[1]*Rc];
 }
+// The mirrored branch of C, drawn dimmer and never labelled or hit-tested:
+// each of these points is the reflection of a point already on the plate.
+function cayleyXYMirror(r,m,G,px){
+  const cx=px/2, cy=px/2, Rc=cayleyScale(px);
+  const w=wMapC(r,m,-1);
+  if(!w) return [cx+1e9,cy];
+  return [cx+w[0]*Rc, cy-w[1]*Rc];
+}
+function cayleyMirrorOn(){ return S.cmap==='C'&&S.cmirror; }
 const THETA_CAPTION={
   wrap:'θ=2πr/M (wraps past 2π for r>M)',
   clamp:'θ=2π·min(r/M,1) — no wrap, r≥M pinned at the 360° limit',
   unit:'θ=2πr/G — no wrap, one turn per ring'
 };
+function CMAP_CAPTION(){
+  if(S.cmap==='B') return 'Blaschke: φₐ(z)=(z−a)/(1−āz) on z=(M/G)e^{iθ} · '+THETA_CAPTION[S.thetaMode];
+  if(S.cmap==='C') return 'Cayley: K(z)=(z−i)/(z+i) on z=r/M+i·'+S.hgain.toFixed(1)+'·M^−'+S.kap.toFixed(2)+' · no θ';
+  return 'Cayley: Γ(z)=(z−1)/(z+1), ρ='+S.rho0.toFixed(2)+'+'+S.rhoD.toFixed(2)+'·M/G · '+THETA_CAPTION[S.thetaMode];
+}
 function ringXY(r,m,G,px){ return ringFromTheta(thetaOf(r,m,G)+S.ringRot*Math.PI/180,m,G,px); }
-function cayleyXY(r,m,G,px){ return cayleyFromTheta(thetaOf(r,m,G)+S.cayleyRot*Math.PI/180,m,G,px); }
+function cayleyXY(r,m,G,px){
+  if(S.cmap==='C'){
+    const cx=px/2, cy=px/2, Rc=cayleyScale(px), w=wMapC(r,m,1);
+    if(!w) return [cx+1e9,cy];
+    return [cx+w[0]*Rc, cy-w[1]*Rc];
+  }
+  return cayleyFromTheta(thetaOf(r,m,G)+S.cayleyRot*Math.PI/180,m,G,px);
+}
 function paintPolar(ctx,px,G,g,view){
   const proj = view==='ring' ? ringXY : cayleyXY;
   ctx.save();
@@ -2009,13 +2237,26 @@ function paintPolar(ctx,px,G,g,view){
   // not where any particular r lands on it.
   const fromTheta=view==='ring'?ringFromTheta:cayleyFromTheta;
   const refRot=(view==='ring'?S.ringRot:S.cayleyRot)*Math.PI/180;
+  // Under C a fixed M is the horizontal line y = gain·M^(−κ) in the upper
+  // half-plane, and K sends that to a circle — but it has to be sampled in x
+  // over r = 1…G rather than in θ, because C has no θ.
+  const cRef=(view==='cayley'&&S.cmap==='C');
   refMs.forEach(M=>{
     if(M<2) return;
     ctx.strokeStyle='rgba(255,255,255,.07)'; ctx.lineWidth=Math.max(1,px/1400);
     ctx.beginPath();
-    for(let a=0;a<=200;a++){
-      const [x,y]=fromTheta(a/200*2*Math.PI+refRot,M,G,px);
-      a===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    if(cRef){
+      let started=false;
+      for(let a=0;a<=240;a++){
+        const [x,y]=cayleyXY(1+(G-1)*a/240,M,G,px);
+        if(!isFinite(x)||!isFinite(y)||Math.abs(x)>1e6){ started=false; continue; }
+        if(started) ctx.lineTo(x,y); else { ctx.moveTo(x,y); started=true; }
+      }
+    } else {
+      for(let a=0;a<=200;a++){
+        const [x,y]=fromTheta(a/200*2*Math.PI+refRot,M,G,px);
+        a===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      }
     }
     ctx.stroke();
     if(view==='ring'){
@@ -2049,18 +2290,24 @@ function paintPolar(ctx,px,G,g,view){
     }
     ctx.globalCompositeOperation='source-over';
   } else if(gapOn){
+    const mirOn=(view==='cayley'&&cayleyMirrorOn());
     for(const [r,m,br] of stripPoints(G,g)){
-      const q=BR[br];
+      const q=BR[br], cop=gcd(r,m)===1;
       const [x,y]=proj(r,m,G,px);
-      ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${gcd(r,m)===1?0.95:0.42})`;
-      ctx.beginPath(); ctx.arc(x,y,dotR*(gcd(r,m)===1?1.15:0.75),0,2*Math.PI); ctx.fill();
+      ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${cop?0.95:0.42})`;
+      ctx.beginPath(); ctx.arc(x,y,dotR*(cop?1.15:0.75),0,2*Math.PI); ctx.fill();
+      if(mirOn){
+        const mp=cayleyXYMirror(r,m,G,px);
+        ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${cop?0.30:0.14})`;
+        ctx.beginPath(); ctx.arc(mp[0],mp[1],dotR*(cop?1.15:0.75),0,2*Math.PI); ctx.fill();
+      }
     }
   }
   paintPolarLabels(ctx,px,G,g,proj);
   ctx.font=`${Math.max(9,px*0.013)}px "JetBrains Mono",monospace`;
   ctx.fillStyle='rgba(106,101,96,.9)'; ctx.textAlign='left'; ctx.textBaseline='top';
   ctx.fillText(view==='ring'?'Ring: M=ring radius, '+THETA_CAPTION[S.thetaMode]
-                            :'Cayley: Γ(z)=(z−1)/(z+1) of the same ring points · '+THETA_CAPTION[S.thetaMode],px*0.02,px*0.02);
+                            :CMAP_CAPTION(),px*0.02,px*0.02);
   drawFocus(ctx,px,G,g,view);
   ctx.restore();
 }
@@ -2150,6 +2397,9 @@ function render(){
   ctx.setTransform(1,0,0,1,0,0);
   paint(ctx,CSS_SIZE*dpr,S.G,S.g);
   drawHUD();
+  // CSTAT is filled by the backdrop pass this paint just ran, so the plate
+  // readout is refreshed after it rather than before.
+  if(S.view==='cayley') syncCayleyNotes();
 }
 function drawHUD(){
   if(S.view==='circle'){
@@ -2423,7 +2673,8 @@ function setG(v){
   // Only a *manual* G change (slider drag, preset, typed value) should cancel
   // the gap/pairs sweeps and the G sweep itself — an automated tick must not
   // stop either, or the two "loop" animations couldn't run together.
-  if(!inPlayGTick){ stopSweeps(false); stopSweepG(); }
+  if(!inPlayGTick){ stopSweeps(false); stopSweepG(); stopSweepNext(); }
+  else syncNextWindow();
   if(inPlayGTick){
     // Skip the full-screen "busy" overlay during an automated G sweep — it's
     // meant as a one-off cue for a slow manual rebuild, but toggling it every
@@ -2578,8 +2829,72 @@ function toggleSweepG(){
     if(n>=cap){ n=cap; dir=-1; }
     else if(n<=lo){ n=lo; dir=1; }
   };
+  stopSweepNext();
   tick();
   sweepGId=setInterval(tick,110);
+}
+// Play +N: a *local* version of Play G. Instead of ping-ponging the whole
+// range 1→G→1, it anchors on wherever G already sits, steps up one grid at a
+// time to anchor+N, then snaps straight back to the anchor and repeats — so
+// you can sit on a G and watch just its next few neighbours cycle. Ticks are
+// flagged with inPlayGTick for the same reason Play G is: an automated setG
+// must not cancel the gap/pairs sweeps running underneath it.
+let sweepNextId=null, sweepNextAnchor=null, nextSpan=10;
+function nextWindowHi(anchor){ return Math.min(4096,Math.max(1,Math.round(anchor))+nextSpan); }
+function syncNextWindow(){
+  const el=document.getElementById('pn-window');
+  if(!el) return;
+  const lo=sweepNextAnchor!=null?sweepNextAnchor:S.G;
+  el.textContent=`Window: ${lo} → ${nextWindowHi(lo)}`;
+}
+function setNextSpan(n){
+  nextSpan=Math.max(1,Math.min(4096,Math.round(+n||10)));
+  const el=document.getElementById('in-Gspan');
+  if(el&&document.activeElement!==el) el.value=nextSpan;
+  document.querySelectorAll('#row-playnext [data-span]').forEach(b=>{
+    b.classList.toggle('on',+b.dataset.span===nextSpan);
+  });
+  if(sweepNextId){ const a=sweepNextAnchor; stopSweepNext(); startSweepNext(a); }
+  else syncNextWindow();
+}
+function stopSweepNext(){
+  if(sweepNextId){ clearInterval(sweepNextId); sweepNextId=null; }
+  sweepNextAnchor=null;
+  const b=document.getElementById('ch-playNext');
+  if(b){ b.textContent='▶ Play +N'; b.classList.remove('on'); }
+  syncNextWindow();
+}
+function startSweepNext(anchor){
+  const lo=Math.max(1,Math.min(4096,Math.round(anchor||1)));
+  const hi=nextWindowHi(lo);
+  if(hi<=lo) return; // already at the ceiling — nothing to walk through
+  sweepNextAnchor=lo;
+  const b=document.getElementById('ch-playNext');
+  if(b){ b.textContent='■ Stop'; b.classList.add('on'); }
+  syncNextWindow();
+  let n=lo;
+  const tick=()=>{
+    inPlayGTick=true;
+    setG(n);
+    inPlayGTick=false;
+    n++;
+    if(n>hi) n=lo; // loop straight back to the starting point
+  };
+  tick();
+  sweepNextId=setInterval(tick,180);
+}
+function toggleSweepNext(){
+  if(sweepNextId){ stopSweepNext(); return; }
+  stopSweepG();
+  startSweepNext(S.G);
+}
+// The +10/+20/+30/+40 chips both pick the span and start the loop, so one tap
+// is enough; tapping a different chip mid-run re-windows without losing the
+// anchor you started from.
+function playNextSpan(n){
+  const running=!!sweepNextId;
+  setNextSpan(n);
+  if(!running){ stopSweepG(); startSweepNext(S.G); }
 }
 function toggleSweepPairs(){
   if(sweepId){ stopSweeps(false); return; }
@@ -2643,6 +2958,7 @@ function setView(v){
   noteEl.textContent=v==='circle'?CIRCLE_NOTE:POLAR_NOTE;
   document.getElementById('polar-extra').style.display=(v==='ring'||v==='cayley')?'block':'none';
   document.getElementById('cz-row').style.display=v==='cayley'?'flex':'none';
+  document.getElementById('cmap-block').style.display=v==='cayley'?'block':'none';
   // Grid's cells are a regular pitch, so radial grading has nothing to grade
   // there — the row only means something under Ring/Cayley. Circle has no
   // per-point labels at all.
@@ -2677,10 +2993,107 @@ function setPolarRot(deg){
   syncPolarControls(); render();
 }
 function setCayleyZoom(z){
+  if(S.cmap!=='A') return;   // bounded maps have nothing to zoom out from
   S.cayleyZoom=z;
   [1,2,4,8].forEach(k=>document.getElementById('cz-'+k).classList.toggle('on',k===z));
   render();
 }
+/* ── Cayley plate: which Möbius map, and its spacing ─────────────── */
+function setCMap(m){
+  S.cmap=m;
+  const sel=document.getElementById('sel-cmap');
+  if(sel&&sel.value!==m) sel.value=m;
+  // Only the live map's parameters are shown: the other two would be inert
+  // controls sitting under a heading that no longer applies to them.
+  ['A','B','C'].forEach(k=>{
+    document.getElementById('sp-'+k).style.display=(k===m)?'block':'none';
+  });
+  // Controls the live map leaves nothing for are disabled rather than left in
+  // place doing nothing: B and C are bounded, so the zoom-out divisor has no
+  // work; C reads r/M as a position, so there is no angle for the θ map to
+  // choose between.
+  const bounded=(m!=='A');
+  [1,2,4,8].forEach(k=>{ const b=document.getElementById('cz-'+k); if(b) b.disabled=bounded; });
+  const cz=document.getElementById('cz-row'); if(cz) cz.style.opacity=bounded?0.4:1;
+  const th=document.getElementById('sel-theta');
+  if(th){ th.disabled=(m==='C'); th.style.opacity=(m==='C')?0.4:1; }
+  syncCayleyNotes();
+  render();
+}
+function setRho0(v){ S.rho0=v; document.getElementById('v-rho0').textContent=v.toFixed(2); syncCayleyNotes(); render(); }
+function setRhoD(v){ S.rhoD=v; document.getElementById('v-rhoD').textContent=v.toFixed(2); syncCayleyNotes(); render(); }
+function setRhoPair(a,b){
+  S.rho0=a; S.rhoD=b;
+  document.getElementById('sl-rho0').value=a; document.getElementById('v-rho0').textContent=a.toFixed(2);
+  document.getElementById('sl-rhoD').value=b; document.getElementById('v-rhoD').textContent=b.toFixed(2);
+  syncCayleyNotes(); render();
+}
+function setBA(v){
+  S.ba=v;
+  document.getElementById('sl-ba').value=v;
+  document.getElementById('v-ba').textContent=v.toFixed(2);
+  render();
+}
+function setBAAng(v){ S.baAng=v; document.getElementById('v-baang').textContent=v+'°'; render(); }
+function setKap(v){ S.kap=v; document.getElementById('v-kap').textContent=v.toFixed(2); syncCayleyNotes(); render(); }
+function setHGain(v){ S.hgain=v; document.getElementById('v-hgain').textContent=v.toFixed(1); syncCayleyNotes(); render(); }
+function toggleCMirror(){
+  S.cmirror=!S.cmirror;
+  const b=document.getElementById('ch-cmir');
+  b.textContent=S.cmirror?'Mirror on — reflected into upper half':'Mirror off — lower half only';
+  b.classList.toggle('on',S.cmirror);
+  syncCayleyNotes(); render();
+}
+// The ceiling Γ obeys once its annulus clears ρ = 1. Null while the interval
+// still contains it, which is the unbounded case.
+function rhoCeiling(){
+  const lo=S.rho0, hi=S.rho0+S.rhoD;
+  if(lo<=1&&hi>=1) return null;
+  const p=hi<1?hi:lo;
+  return (1+p)/Math.abs(1-p);
+}
+// Every figure here is read off the pass polarBaseLayer already makes over the
+// lattice, so the numbers describe the settings that are live rather than the
+// ones this view happens to open on.
+function syncCayleyNotes(){
+  const rn=document.getElementById('rho-note');
+  if(rn){
+    const lo=S.rho0, hi=S.rho0+S.rhoD, pc=rhoCeiling();
+    const poleM=(S.rhoD>0)?(1-S.rho0)/S.rhoD:0;
+    rn.innerHTML='ρ runs over ['+lo.toFixed(2)+', '+hi.toFixed(2)+']. '+(pc===null
+      ? 'That interval contains <b>ρ = 1</b>, where max|Γ| = (1+ρ)/|1−ρ| diverges, so the pole z = −1 sits on the ring <b>M ≈ '+poleM.toFixed(3)+'·G</b> and the image is unbounded. No zoom setting fits it.'
+      : 'That interval clears <b>ρ = 1</b>, so Γ is bounded with ceiling (1+ρ)/|1−ρ| = <b>'+pc.toFixed(3)+'</b> at the endpoint nearer 1. The measured maximum sits just under it: ρ₀ is approached but not attained, since the innermost ring is M = 1, and the maximum on a ring needs θ = π to land on a lattice point.');
+  }
+  const kn=document.getElementById('kap-note');
+  if(kn){
+    kn.innerHTML='y = '+S.hgain.toFixed(1)+'·M<sup>−'+S.kap.toFixed(2)+'</sup>. κ = 1 is the Ford coordinate y = 1/M, which crushes almost the whole lattice against the rim; lowering κ lifts the deep fractions inward and touches no real part, so it moves height alone. '+
+      (S.cmirror
+        ? '<b>Mirror is on.</b> The upper half is the branch −r/M + iy, and K(−x+iy) = conj K(x+iy) holds exactly, so every mirrored point is a point already on the plate. It is drawn dimmer, and it is neither labelled nor selectable.'
+        : 'The upper half of the disk is structurally empty: every r/M is positive, and K sends the positive reals to the lower half of the boundary circle. Mirror fills it by reflection.');
+  }
+  const cs=document.getElementById('v-cstat');
+  if(cs){
+    const st=CSTAT;
+    if(!st||S.view!=='cayley'){ cs.textContent='—'; cs.style.color='var(--cream3)'; }
+    else {
+      const pct=x=>(100*x/st.n).toFixed(2)+'%';
+      const mx=st.max>1e4?st.max.toExponential(2):st.max.toFixed(3);
+      let t='max |w| '+mx+(st.at?' @ ('+st.at[0]+','+st.at[1]+')':'')+
+            ' · off-plate '+(st.off?pct(st.off):'0')+
+            ' · rim '+pct(st.rim);
+      if(st.pole) t+=' · poles '+st.pole;
+      cs.textContent=t;
+      cs.style.color=(st.off||st.pole)?'var(--coral)':'var(--lime)';
+    }
+  }
+  const tn=document.getElementById('cayley-lead');
+  if(tn) tn.innerHTML=CAYLEY_LEAD[S.cmap];
+}
+const CAYLEY_LEAD={
+  A:'<b>A · Γ(z) = (z−1)/(z+1)</b> on z = ρ·e<sup>iθ</sup>, ρ = ρ₀ + Δρ·M/G. A genuine Cayley transform, but fed an annulus rather than a half-plane: bounded only while that annulus stays clear of ρ = 1, unbounded the moment it contains it. Both constants sit on the Spacing panel, and the plate readout gives the measured maximum against the analytic ceiling.',
+  B:'<b>B · φₐ(z) = (z−a)/(1−āz)</b> on z = (M/G)·e<sup>iθ</sup>. A Möbius automorphism of the disk: |w| ≤ 1 everywhere, so nothing is clipped and no zoom-out is needed. Not a Cayley transform — the plate caption reads Blaschke while this map is live.',
+  C:'<b>C · K(z) = (z−i)/(z+i)</b> on z = r/M + i·gain·M<sup>−κ</sup>. The classical Cayley transform on the coordinates it was built for: the real part is the fraction r/M, the height is the Farey depth. Bounded, with the pole z = −i in the lower half-plane where the lattice never reaches. It reads r/M as a <b>position</b> rather than an angle, so the θ map has nothing to act on and is disabled, and rotate acts on the finished disk.'
+};
 // glossary term → canvas highlight; clicking the lit term clears it
 function focusSym(sym){
   S.focus = (S.focus===sym) ? null : sym;
@@ -2897,15 +3310,56 @@ function setLensZoom(z){
     const mEst=Math.round(rho/Rmax*G);
     return nearestByAngle(thetaRaw,mEst-1,mEst+1,G,px,ringXY,sx,sy);
   }
+  // Each map has its own inverse, so the pixel → (r,M) recovery branches with
+  // the map rather than assuming Γ. A and B land back on an angle and a ring
+  // and hand off to the shared angular search; C recovers M from the height
+  // and r from the real part directly, having no angle to search.
   function cayleyHit(sx,sy,G,px){
     const cx=px/2, cy=px/2, Rc=cayleyScale(px);
-    const u=(sx-cx)/Rc, v=-(sy-cy)/Rc;
-    const den=(1-u)*(1-u)+v*v;
-    if(den<1e-9) return null;
-    const zr=(1-u*u-v*v)/den, zi=(2*v)/den;
+    let u=(sx-cx)/Rc, v=-(sy-cy)/Rc;
+    if(S.cmap==='C'){
+      if(S.kap<=0.001) return null;    // constant height — M is unrecoverable
+      if(S.cayleyRot){                 // undo the image-plane rotation first
+        const t=-S.cayleyRot*Math.PI/180, c=Math.cos(t), s2=Math.sin(t);
+        const uu=u*c-v*s2; v=u*s2+v*c; u=uu;
+      }
+      // K⁻¹(w) = i(1+w)/(1−w)
+      const dr=1-u, di=-v, d=dr*dr+di*di;
+      if(d<1e-12) return null;
+      const nr=-v, ni=1+u;             // i(1+w)
+      const zr=(nr*dr+ni*di)/d, zi=(ni*dr-nr*di)/d;
+      if(zi<=0) return null;           // below the real axis — outside the domain
+      const mEst=Math.round(Math.pow(S.hgain/zi,1/S.kap));
+      let best=null,bestD=Infinity;
+      for(let m=Math.max(1,mEst-2);m<=Math.min(G,mEst+2);m++){
+        const r0=Math.round(Math.abs(zr)*m);
+        for(let r=Math.max(1,r0-1);r<=Math.min(G,r0+1);r++){
+          const [x,y]=cayleyXY(r,m,G,px);
+          const dd=(x-sx)*(x-sx)+(y-sy)*(y-sy);
+          if(dd<bestD){ bestD=dd; best=[r,m]; }
+        }
+      }
+      return best;
+    }
+    let zr,zi;
+    if(S.cmap==='B'){
+      // φₐ⁻¹(w) = (w + a)/(1 + ā·w)
+      const ang=S.baAng*Math.PI/180, ax=S.ba*Math.cos(ang), ay=S.ba*Math.sin(ang);
+      const nr=u+ax, ni=v+ay;
+      const dr=1+(ax*u+ay*v), di=(ax*v-ay*u);
+      const d=dr*dr+di*di;
+      if(d<1e-12) return null;
+      zr=(nr*dr+ni*di)/d; zi=(ni*dr-nr*di)/d;
+    } else {
+      // Γ⁻¹(w) = (1 + w)/(1 − w)
+      const den=(1-u)*(1-u)+v*v;
+      if(den<1e-9) return null;
+      zr=(1-u*u-v*v)/den; zi=(2*v)/den;
+    }
     const normR=Math.hypot(zr,zi);
     const thetaRaw=Math.atan2(zi,zr)-S.cayleyRot*Math.PI/180;
-    const mEst=Math.round(((normR-0.4)/1.8)*G);
+    const mEst=S.cmap==='B' ? Math.round(normR*G)
+                            : Math.round(((normR-S.rho0)/Math.max(0.01,S.rhoD))*G);
     return nearestByAngle(thetaRaw,mEst-2,mEst+2,G,px,cayleyXY,sx,sy);
   }
   function hitAt(sx,sy){
@@ -3769,6 +4223,8 @@ function doReportPDF(){
     else if(e.key==='Escape'&&S.focus) focusSym(S.focus);
   });
   syncPolarControls();
+  setCMap(S.cmap);       // fills the spacing notes and sets the disabled states
+  setNextSpan(nextSpan); // lights the matching +N chip and fills the window readout
   setLblScale(S.lblScale);
   setLblAdapt(Math.round(S.lblAdapt*100));
   // The page now opens in overlay mode on E = 390, which carries 27 Goldbach
