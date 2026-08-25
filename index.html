@@ -2794,7 +2794,13 @@ function renderTable(){
   const wrap=document.getElementById('tblwrap');
   wrap.innerHTML=h;
   wrap.querySelectorAll('tbody tr').forEach(tr=>{
-    tr.addEventListener('click',()=>setGap(+tr.dataset.g));
+    tr.addEventListener('click',()=>{
+      // Same reasoning as the grid click and the lens: the drawer only shows
+      // the single (c,d) strip pair for one gap, so a row pick has to drop
+      // out of the multi-pair overlay first or the drawer stays empty.
+      if(S.multi) toggleMulti();
+      setGap(+tr.dataset.g);
+    });
   });
 }
 // scrollIntoView walks up and scrolls EVERY scrollable ancestor, which on a
