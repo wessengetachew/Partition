@@ -209,11 +209,26 @@ h1.hero-title{font-family:var(--disp);font-size:clamp(1.4rem,4vw,2.2rem);letter-
 #cv{display:block;image-rendering:pixelated;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;touch-action:none}
 #lens{
   position:absolute;display:none;pointer-events:none;z-index:30;
-  border:2px solid var(--gold);border-radius:50%;overflow:hidden;
+  border:2px solid var(--gold);overflow:hidden;
+  /* The lens takes the shape of the plate it is magnifying: a square window on
+     Grid's square lattice, a disk on Ring and Cayley, whose plates are both
+     bounded by a circle. A round lens over Grid was clipping the corners of a
+     square window — the four cells you most often want when reading a strip
+     across a boundary — while a square lens over Ring would frame a disk with
+     dead space at its corners. Shape is set in start() from S.view. */
+  border-radius:50%;
   box-shadow:0 10px 30px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.06) inset;
-  background:var(--bg1);image-rendering:pixelated;
+  /* deliberately NOT image-rendering:pixelated. The lens is now drawn at a
+     supersampled backing resolution and its contents are re-rendered as
+     vectors rather than blitted, so the browser's smooth downscale from
+     backing to CSS size is what keeps the type readable. Forcing nearest
+     neighbour here threw away exactly the extra samples that buy the
+     sharpness. Cell edges stay hard because the cell layer is itself drawn
+     with imageSmoothingEnabled = false. */
+  background:var(--bg1);
 }
 #lens.on{display:block}
+#lens.sq{border-radius:5px}
 #pulse{
   position:absolute;width:26px;height:26px;margin-left:-13px;margin-top:-13px;
   border:2px solid var(--gold);border-radius:50%;pointer-events:none;z-index:25;display:none;
@@ -268,6 +283,14 @@ body.is-fs #hud-out{display:flex;flex:0 0 auto;margin-top:6px}
      comes close to this height, so it never shows a scrollbar. */
   max-height:118px;overflow-y:auto;overscroll-behavior:contain;
 }
+/* max-height alone was not enough: a batch of 3 items made a 30 px box and a
+   batch of 300 made a 118 px one, so paging or playing G through batches of
+   different sizes still moved everything below the canvas up and down — the
+   pager buttons slid out from under the finger mid-click. In overlay mode the
+   box takes a HARD height instead, identical for every batch, and the list
+   scrolls inside it. The single-gap a/b/c/d legend keeps its natural height
+   (it is always one row, so it can never move anything). */
+#legend.fixed{height:118px;max-height:118px;justify-content:flex-start;padding:10px 8px}
 #legend::-webkit-scrollbar{width:7px}
 #legend::-webkit-scrollbar-thumb{background:var(--edge2);border-radius:4px}
 .lg{display:flex;align-items:center;gap:6px;color:var(--cream2);white-space:nowrap}
@@ -276,6 +299,13 @@ body.is-fs #hud-out{display:flex;flex:0 0 auto;margin-top:6px}
 .lg.clickable{cursor:pointer;padding:2px 4px;margin:-2px -4px;border-radius:3px;transition:background .12s}
 .lg.clickable:hover{background:rgba(255,255,255,.06);color:var(--cream)}
 .lg.clickable:active{background:rgba(255,255,255,.12)}
+/* a collapsed entry: still listed, still one click from coming back, but its
+   strips are out of the overlay */
+.lg.off{opacity:.34}
+.lg.off .tag{text-decoration:line-through}
+.lg .jump{color:var(--cream3);font-size:10px;padding:0 2px;border-radius:2px}
+.lg .jump:hover{color:var(--gold);background:rgba(200,168,74,.12)}
+.lg.act{color:var(--gold);border:1px solid rgba(200,168,74,.35);padding:1px 5px;margin:-2px -4px}
 #probe{
   position:absolute;pointer-events:none;font-family:var(--mono);font-size:10px;
   background:rgba(4,4,13,.94);border:1px solid var(--edge2);border-radius:3px;
@@ -509,6 +539,9 @@ body.is-fs .figcap{display:none}
   }
   body.is-fs #plate{flex:1 1 auto;min-height:0;width:100%;max-width:100%;aspect-ratio:auto}
   body.is-fs #legend{flex:0 0 auto;padding-top:6px}
+  /* the locked figure only has 50vh to spend, so the fixed overlay legend
+     takes a shorter constant height there — still constant, just smaller */
+  body.is-fs #legend.fixed{height:74px;max-height:74px}
 }
 
 </style>
@@ -767,7 +800,7 @@ body.is-fs .figcap{display:none}
         <button class="chip" style="flex:0 0 auto" onclick="pageStep(1)">▶</button>
       </div>
       <div class="note" id="mp-note" style="display:none">
-        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, dim where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.
+        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, and at <b>Off-gcd</b> (Strips panel) where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.<br><br>Click any entry in the legend under the figure to <b>collapse</b> that pair out of the overlay, and click it again to bring it back — the way to isolate two or three strips out of a crowded batch without leaving overlay mode. The <b>↗</b> on an entry does what clicking one used to: drop out of the overlay and open that g on its own in Grid. The legend box holds one height whatever the batch size, so paging or playing through batches never moves the buttons under it.
       </div>
     </div>
   </div>
@@ -928,6 +961,20 @@ body.is-fs .figcap{display:none}
         <button class="chip" id="lz-6" onclick="setLensZoom(6)" style="flex:1">6×</button>
         <button class="chip" id="lz-10" onclick="setLensZoom(10)" style="flex:1">10×</button>
       </div>
+      <div class="row" style="margin-top:6px">
+        <span class="lab"></span>
+        <button class="chip" id="lz-20" onclick="setLensZoom(20)" style="flex:1">20×</button>
+        <button class="chip" id="lz-30" onclick="setLensZoom(30)" style="flex:1">30×</button>
+        <button class="chip" id="lz-40" onclick="setLensZoom(40)" style="flex:1">40×</button>
+        <button class="chip" id="lz-50" onclick="setLensZoom(50)" style="flex:1">50×</button>
+        <button class="chip" id="lz-100" onclick="setLensZoom(100)" style="flex:1">100×</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <span class="lab">Custom</span>
+        <input type="number" id="lz-in" min="1" max="500" step="1" value="3" style="width:64px"
+               oninput="setLensZoom(+this.value,true)" title="Any magnification from 1× to 500×. Past about 100× you are inspecting a handful of cells, which is the point at G in the thousands.">
+        <span class="val" style="width:auto">×&nbsp;&nbsp;1–500</span>
+      </div>
       <div class="row" style="margin-top:8px">
         <span class="lab">Park</span>
         <button class="chip on" id="lp-auto" onclick="setLensPin('auto')" style="flex:1.4">auto</button>
@@ -936,7 +983,7 @@ body.is-fs .figcap{display:none}
         <button class="chip" id="lp-bl" onclick="setLensPin('bl')" style="flex:1" title="Pin to bottom-left">↙</button>
         <button class="chip" id="lp-br" onclick="setLensPin('br')" style="flex:1" title="Pin to bottom-right">↘</button>
       </div>
-      <div class="note">Press and hold a point on the lattice, drag to pan the lens, release to jump the gap there.<br><br><b>auto</b> keeps the lens above your finger and slides it sideways when it runs out of headroom — continuously, so it never jumps across the pointer the way it used to at mid-plate. Pin it to a corner if you would rather it never moved at all.<br><br>The lens now centres on the true point everywhere, including the outermost row, column and all four corners. Past the lattice edge the view goes empty and the dashed gold line marks where the boundary falls — that emptiness is the edge, not a rendering fault.</div>
+      <div class="note">Press and hold a point on the lattice, drag to pan the lens, release to jump the gap there.<br><br><b>Zoom</b> is now the magnification you actually get, and the range runs to <b>500×</b> because that is what a four-figure G needs: at G = 4096 a single cell is under a third of a canvas pixel, so 10× still shows you nothing. The presets go to 100× and the <b>Custom</b> box takes any value from 1 to 500. It used to size the window against the plate rather than the lens, so 3× was really 1.5× and 2× was a reduction — most of the old softness was the lens barely enlarging anything. The lens also takes the shape of the plate it is over — a square window on Grid, a disk on Ring and Cayley — so a square lattice no longer loses its corner cells to a round frame. Labels appear whenever the magnified cell clears about 7 px, so they arrive at roughly 4× at G = 194, 20× at G = 1024 and 100× at G = 4096 — the same readable type at every scale, just further in. In Grid the lens no longer photographs the plate either: cells, strips and labels are redrawn at the lens's own resolution, so type that is two pixels tall on the plate is typeset at full size here instead of being blown up.<br><br><b>auto</b> keeps the lens above your finger and slides it sideways when it runs out of headroom — continuously, so it never jumps across the pointer the way it used to at mid-plate. Pin it to a corner if you would rather it never moved at all.<br><br>The lens now centres on the true point everywhere, including the outermost row, column and all four corners. Past the lattice edge the view goes empty and the dashed gold line marks where the boundary falls — that emptiness is the edge, not a rendering fault.</div>
       </div>
     </div>
 
@@ -962,7 +1009,12 @@ body.is-fs .figcap{display:none}
         <input type="range" id="sl-dim" min="0" max="100" step="5" value="45" oninput="setDim(+this.value)">
         <span class="val" id="v-dim">45%</span>
       </div>
-      <div class="note">Everything not on a strip is washed back by the dim, so the four lines read against the full coprimality field rather than replacing it.</div>
+      <div class="row" style="margin-top:8px">
+        <span class="lab">Off-gcd</span>
+        <input type="range" id="sl-sdim" min="0" max="100" step="5" value="0" oninput="setStripDim(+this.value)" title="Opacity of a strip point where gcd(r,M) ≠ 1. At 0 the strip is drawn only where it is coprime.">
+        <span class="val" id="v-sdim">0%</span>
+      </div>
+      <div class="note">Everything not on a strip is washed back by <b>Dim off</b>, so the four lines read against the full coprimality field rather than replacing it.<br><br><b>Off-gcd</b> is the other half of that: a strip point where gcd(r,M) ≠ 1 is a point the strip <i>misses</i>, and drawing it faintly used to make the line look continuous through cells it never occupies — c appearing to run straight through 2, 4, 6. At <b>0%</b> those points are not drawn at all, so a break in the line is a real break and the coprime count in the readout matches what is on screen. Raise it to see the full geometric line, misses included.</div>
       </div>
     </div>
 
@@ -1498,7 +1550,14 @@ function stripsAt(G,g){
 // small G wants — at G≤30 there is room for uniform type everywhere); turned
 // up, inner labels shrink and rim labels grow, so both zones stay legible in
 // one frame. thetaMode picks the angular map — see thetaOf().
-const S={G:194,g:193,col:'sector',lbl:'r',dim:0.45,view:'grid',
+// stripDim is the opacity a strip point keeps where gcd(r,M) ≠ 1. It used to be
+// hard-wired at 0.42, which left a ghost of the strip running through the
+// non-coprime cells — at a glance the c strip looked like it passed cleanly
+// through 2, 4, 6 when in fact those points are exactly the ones the strip
+// FAILS to hit. 0 is the honest default: the strip is drawn only where it is
+// coprime, so a gap in the line is a real gap. Turn it up to see the full
+// geometric line again.
+const S={G:194,g:193,col:'sector',lbl:'r',dim:0.45,stripDim:0,view:'grid',
          lblScale:1,lblAdapt:0.55,thetaMode:'wrap',
          cayleyZoom:4,cayleyRot:0,cayleyIn:1,ringZoom:1,ringRot:0,focus:null,
          // Cayley plate: which Möbius map is live, and the parameters each takes.
@@ -1509,7 +1568,9 @@ const S={G:194,g:193,col:'sector',lbl:'r',dim:0.45,view:'grid',
          copOnly:false,
          show:{sum:true,diff:true,frame:true,diag:false},
          filter:'gold',rows:[],sel:null,gapN:1,
-         multi:true,multiMode:'pairs',batch:0,page:0,items:[],pairIdx:new Map()};
+         multi:true,multiMode:'pairs',batch:0,page:0,items:[],pairIdx:new Map(),
+         // g values the reader has collapsed out of the overlay from the legend
+         hidden:new Set()};
 const BR={a:[61,200,184],b:[155,127,232],c:[200,168,74],d:[224,80,96]};
 const KIND_RGB={gOnly:[200,168,74],sOnly:[61,200,184],none:[58,58,70]};
 const KIND_ALPHA={gOnly:.55,sOnly:.55,none:.28};
@@ -1809,6 +1870,9 @@ function computeMultiItems(){
       list.push({g,s,kind:gp&&sp?'pair':gp?'gOnly':sp?'sOnly':'none'});
     }
   }
+  // the g values change meaning when E or the mode changes, so a collapse made
+  // against the old list must not silently hide a different pair in the new one
+  S.hidden.clear();
   S.items=list; S.pairIdx=new Map();
   let pc=0;
   for(const it of list) if(it.kind==='pair'){ S.pairIdx.set(it.g,pc); pc++; }
@@ -1834,6 +1898,7 @@ function currentBatch(){
 function multiPoints(G){
   const out=[];
   for(const it of currentBatch()){
+    if(S.hidden.has(it.g)) continue;      // collapsed from the legend
     const rgb = it.kind==='pair' ? goldenColorRGB(S.pairIdx.get(it.g)||0) : KIND_RGB[it.kind];
     const baseA = it.kind==='pair' ? 1 : KIND_ALPHA[it.kind];
     if(S.show.sum){
@@ -2086,15 +2151,17 @@ function paintGrid(ctx,px,G,g){
   if(S.multi){
     ctx.globalCompositeOperation='lighter';
     for(const [r,m,rgb,baseA] of multiPoints(G)){
-      const a=(gcd(r,m)===1?baseA:baseA*0.32);
+      const a=(gcd(r,m)===1?baseA:baseA*S.stripDim);
+      if(a<=0.004) continue;             // stripDim = 0 → the miss is a real gap
       ctx.fillStyle=`rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`;
       ctx.fillRect((r-1)*cell,(m-1)*cell,sz,sz);
     }
     ctx.globalCompositeOperation='source-over';
   } else if(gapOn){
     for(const [r,m,br] of stripPoints(G,g)){
-      const q=BR[br];
-      ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${gcd(r,m)===1?0.95:0.42})`;
+      const q=BR[br], al=gcd(r,m)===1?0.95:0.95*S.stripDim;
+      if(al<=0.004) continue;
+      ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${al})`;
       ctx.fillRect((r-1)*cell,(m-1)*cell,sz,sz);
     }
   }
@@ -2140,10 +2207,14 @@ function paintGrid(ctx,px,G,g){
     ctx.font=`${fs}px "JetBrains Mono",monospace`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     const onStrip=new Set((!S.multi&&gapOn)?stripPoints(G,g).map(p=>p[0]+','+p[1]):[]);
+    const lit=S.stripDim>0.3;
     for(let m=1;m<=G;m++) for(let r=1;r<=G;r++){
       const t=labelOf(r,m); if(!t) continue;
-      ctx.fillStyle=onStrip.has(r+','+m)?'rgba(4,4,13,.88)'
-        :(gcd(r,m)===1?'rgba(255,255,255,.58)':'rgba(255,255,255,.18)');
+      const cop=gcd(r,m)===1;
+      // dark type reads against a painted strip square; with Off-gcd at 0 there
+      // is no square on a non-coprime strip cell, so it must stay light
+      ctx.fillStyle=(onStrip.has(r+','+m)&&(cop||lit))?'rgba(4,4,13,.88)'
+        :(cop?'rgba(255,255,255,.58)':'rgba(255,255,255,.18)');
       ctx.fillText(t,(r-0.5)*cell,(m-0.5)*cell,cell*0.9);
     }
   }
@@ -2225,8 +2296,9 @@ function drawFocus(ctx,px,G,g,view){
     for(const [r,m,br] of stripPointsFor(G,g,new Set(spec.strips))){
       const q=BR[br], cop=gcd(r,m)===1;
       const [x,y]=P(r,m); if(!inside(x,y)) continue;
+      if(!cop&&S.stripDim<=0.004) continue;
       ctx.shadowColor=`rgba(${q[0]},${q[1]},${q[2]},.85)`;
-      mark(x,y,q,cop?1:0.45,cop?1:0.7);
+      mark(x,y,q,cop?1:S.stripDim,cop?1:0.7);
     }
     ctx.shadowBlur=0;
   }
@@ -2492,7 +2564,8 @@ function paintPolar(ctx,px,G,g,view){
   if(S.multi){
     ctx.globalCompositeOperation='lighter';
     for(const [r,m,rgb,baseA] of multiPoints(G)){
-      const a=(gcd(r,m)===1?baseA:baseA*0.32);
+      const a=(gcd(r,m)===1?baseA:baseA*S.stripDim);
+      if(a<=0.004) continue;
       const [x,y]=proj(r,m,G,px);
       ctx.fillStyle=`rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`;
       ctx.beginPath(); ctx.arc(x,y,dotR,0,2*Math.PI); ctx.fill();
@@ -2502,12 +2575,14 @@ function paintPolar(ctx,px,G,g,view){
     const mirOn=(view==='cayley'&&cayleyMirrorOn());
     for(const [r,m,br] of stripPoints(G,g)){
       const q=BR[br], cop=gcd(r,m)===1;
+      const al=cop?0.95:0.95*S.stripDim;
+      if(al<=0.004) continue;
       const [x,y]=proj(r,m,G,px);
-      ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${cop?0.95:0.42})`;
+      ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${al})`;
       ctx.beginPath(); ctx.arc(x,y,dotR*(cop?1.15:0.75),0,2*Math.PI); ctx.fill();
       if(mirOn){
         const mp=cayleyXYMirror(r,m,G,px);
-        ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${cop?0.30:0.14})`;
+        ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${cop?0.30:0.30*S.stripDim})`;
         ctx.beginPath(); ctx.arc(mp[0],mp[1],dotR*(cop?1.15:0.75),0,2*Math.PI); ctx.fill();
       }
     }
@@ -2647,7 +2722,7 @@ function drawHUD(){
     const batch=currentBatch();
     setHUD(
       `<span class="k">${E}</span> even &nbsp; r(E) = <span class="k">${nPair}</span> pairs<br>`+
-      `batch <span class="k">${S.page+1}</span> of ${totalPages()} &nbsp; · &nbsp; ${batch.length} of ${S.items.length} shown`);
+      `batch <span class="k">${S.page+1}</span> of ${totalPages()} &nbsp; · &nbsp; ${batch.length-batch.filter(x=>S.hidden.has(x.g)).length} of ${S.items.length} shown`);
     updateMultiLegend(batch);
     const pg=document.getElementById('mp-pg');
     if(pg) pg.textContent=`batch ${S.page+1} / ${totalPages()}`;
@@ -2680,26 +2755,41 @@ function coprimeDensityStat(G){
 }
 function updateMultiLegend(batch){
   const el=document.getElementById('legend');
-  // Legend now lists every item in the batch — #legend's own max-height +
-  // scroll (see CSS) keeps the box a constant size regardless of how many
-  // that is, so there's no need to truncate at some fixed count anymore.
+  // .fixed pins the box to one height for every batch (see CSS) — the list
+  // scrolls inside it instead of the box growing and shoving the pager
+  // buttons up and down while a sweep runs.
+  el.classList.add('fixed');
   let h='';
+  if(S.hidden.size)
+    h+=`<span class="lg clickable act" onclick="showAllLegendItems()" title="put every collapsed strip back in the overlay">↺ show all &nbsp;<span style="color:var(--cream3)">${S.hidden.size} collapsed</span></span>`;
   batch.forEach(it=>{
     const rgb = it.kind==='pair' ? goldenColorRGB(S.pairIdx.get(it.g)||0) : KIND_RGB[it.kind];
     const tag = it.kind==='pair' ? `${it.g} + ${it.s}` :
       `${it.g} + ${it.s} · ${it.kind==='gOnly'?'g prime only':it.kind==='sOnly'?'s prime only':'neither prime'}`;
-    h+=`<span class="lg clickable" onclick="jumpToLegendItem(${it.g})" title="jump to g=${it.g}"><i style="background:${rgbToCss(rgb)}"></i>${tag}</span>`;
+    const off=S.hidden.has(it.g);
+    h+=`<span class="lg clickable${off?' off':''}" onclick="toggleLegendItem(${it.g})" `+
+       `title="${off?'restore':'collapse'} this pair's strips"><i style="background:${rgbToCss(rgb)}"></i>`+
+       `<span class="tag">${tag}</span>`+
+       `<span class="jump" onclick="event.stopPropagation();jumpToLegendItem(${it.g})" title="open g=${it.g} on its own in Grid">↗</span></span>`;
   });
   el.innerHTML=h||'<span class="lg">no items in this batch</span>';
 }
-// Clicking a legend entry drops out of the overlay and lands on that gap in
-// the single-gap Grid view, same as clicking a lattice cell does per the
-// Figure 1 caption — the legend is just another way to pick a g to inspect.
+// Clicking an entry collapses that pair out of the overlay and back in again,
+// so a crowded batch can be thinned down to the two or three strips actually
+// being compared without leaving multi mode. The ↗ on each entry keeps the old
+// behaviour — drop out of the overlay and land on that gap in single-gap Grid,
+// same as clicking a lattice cell does per the Figure 1 caption.
+function toggleLegendItem(g){
+  if(S.hidden.has(g)) S.hidden.delete(g); else S.hidden.add(g);
+  render();
+}
+function showAllLegendItems(){ S.hidden.clear(); render(); }
 function jumpToLegendItem(g){
   if(S.multi) toggleMulti();
   setGap(g);
 }
 function restoreDefaultLegend(){
+  document.getElementById('legend').classList.remove('fixed');
   document.getElementById('legend').innerHTML=
     `<span class="lg"><i style="background:var(--teal)"></i>a &nbsp;M−r=g<span class="ar">↘</span></span>`+
     `<span class="lg"><i style="background:var(--violet)"></i>b &nbsp;r−M=g<span class="ar">↘</span></span>`+
@@ -2707,6 +2797,7 @@ function restoreDefaultLegend(){
     `<span class="lg"><i style="background:var(--coral)"></i>d &nbsp;r+M=E−g<span class="ar">↗</span></span>`;
 }
 function restoreCircleLegend(){
+  document.getElementById('legend').classList.remove('fixed');
   document.getElementById('legend').innerHTML=
     `<span class="lg"><i style="background:var(--teal)"></i>log₁₀(1+|S(α)|²)</span>`+
     `<span class="lg"><i style="background:var(--gold)"></i>major arc &nbsp;p/q, q≤6</span>`;
@@ -3172,6 +3263,8 @@ function toggleShow(k){
 }
 function setDim(v){ S.dim=Math.max(0,Math.min(1,v/100));
   document.getElementById('v-dim').textContent=Math.round(S.dim*100)+'%'; render(); }
+function setStripDim(v){ S.stripDim=Math.max(0,Math.min(1,v/100));
+  document.getElementById('v-sdim').textContent=Math.round(S.stripDim*100)+'%'; render(); }
 function setCol(v){ S.col=v; BASE=null; BASE_KEY=''; render(); }
 /* ── mirrors ─────────────────────────────────────────────────────────
    The instrument bar, the hero readout and the glossary value chips all
@@ -3513,10 +3606,20 @@ function setLensPin(v){
     if(el) el.classList.toggle('on',k===v);
   });
 }
-function setLensZoom(z){
+const LENS_PRESETS=[2,3,4,6,10,20,30,40,50,100];
+// fromInput suppresses writing back into the number field while it is being
+// typed in — otherwise clamping mid-keystroke fights the cursor.
+function setLensZoom(z,fromInput){
+  z=Math.max(1,Math.min(500,+z||1));
   LENS_ZOOM=z;
-  [2,3,4,6,10].forEach(k=>{ const b=document.getElementById('lz-'+k); if(b) b.classList.toggle('on',k===z); });
+  LENS_PRESETS.forEach(k=>{ const b=document.getElementById('lz-'+k); if(b) b.classList.toggle('on',k===z); });
+  const inp=document.getElementById('lz-in');
+  if(inp&&!fromInput) inp.value=z;
+  if(typeof LENS_REDRAW==='function') LENS_REDRAW();
 }
+// set by the lens IIFE so a zoom change while the lens is up takes effect at
+// once rather than waiting for the next pointermove
+let LENS_REDRAW=null;
 (function(){
   const plate=document.getElementById('plate'), probe=document.getElementById('probe');
   const lens=document.createElement('canvas');
@@ -3528,6 +3631,12 @@ function setLensZoom(z){
   plate.appendChild(pulse);
   const HOLD_MS=200, MOVE_TOL=8;
   let holdTimer=null, active=false, downId=null, downX=0, downY=0, lastSX=0, lastSY=0;
+  // The lens's CSS side in px, recorded when start() sizes it. Read from the
+  // element instead and the page-wide box-sizing:border-box subtracts the 2 px
+  // gold border on each side, so clientWidth comes back 4 px short and every
+  // magnification is quietly off by that ratio. Keeping the number we set is
+  // both exact and one fewer layout read per pointermove.
+  let lensSize=0, lastCX=0, lastCY=0;
 
   // Grid's inverse is just the uniform cell math Grid's own click handler
   // already used. Ring/Cayley have no closed-form single inverse (θ wraps
@@ -3669,7 +3778,7 @@ function setLensZoom(z){
   // LENS_PIN overrides all of it with a fixed corner for people who would
   // rather the lens simply never moved.
   function place(clientX,clientY){
-    const pb=plate.getBoundingClientRect(), size=lens.clientWidth;
+    const pb=plate.getBoundingClientRect(), size=lensSize||lens.clientWidth;
     const cx=clientX-pb.left, cy=clientY-pb.top;
     const maxX=Math.max(4,pb.width-size-4), maxY=Math.max(4,pb.height-size-4);
     if(LENS_PIN!=='auto'){
@@ -3687,11 +3796,13 @@ function setLensZoom(z){
     lx=Math.max(4,Math.min(maxX,lx));
     lens.style.left=lx+'px'; lens.style.top=ly+'px';
   }
-  // Labels inside the lens. The lens already shows a magnified blit of the main
-  // canvas; this adds the (r,m) reading for every point that lands inside it, so
-  // zooming in answers "which point is that" without a click. Density is
-  // self-gating on font size — below ~8 lens-px the text would overlap, so it's
-  // skipped and the lens falls back to the plain magnified dots (unaffected).
+  // Labels for the Ring / Cayley lens only — Grid is re-rendered outright by
+  // lensPaintGrid and typesets its own. Those two views have no uniform pitch
+  // and their backdrop is a cached raster, so the blit stays and this puts the
+  // (r,M) reading on top of it: crisp text over a magnified image, which is why
+  // the glyphs are stroked before they are filled rather than relying on a
+  // shadow. Density is self-gating on font size — below 6.5 lens-px the text
+  // would overlap, so it is skipped and the plain magnified dots stand alone.
   function mEstRing(x,y,G,px){
     const cx=px/2, cy=px/2, Rmax=ringScale(px);
     return Math.hypot(x-cx,y-cy)/Rmax*G;
@@ -3707,9 +3818,18 @@ function setLensZoom(z){
   function drawLensLabels(sX,sY,srcSize,k){
     const G=S.G, px=cv.width;
     const cell=px/G;
-    const fs=Math.max(0,Math.min(15,cell*k*0.32));
-    if(fs<8) return;                          // too dense to label — leave the dots
+    // Sized against the magnified pitch. The old cap of 15 lens px and floor of
+    // 8 were tuned for a lens that was barely enlarging anything; with LENS_ZOOM
+    // now a real multiplier the same window can carry larger type, and the floor
+    // can come down because the text is typeset here rather than blown up.
+    const dprL=lens.width/Math.max(1,lensSize);
+    const fs=Math.max(0,Math.min(26*dprL,cell*k*0.40));
+    if(fs/dprL<7) return;                     // too dense to label — leave the dots
     const c=lens.width/2, R=c-2;
+    // Ring and Cayley are the only callers, so the cull is circular — but keep
+    // it keyed to the shape rather than assuming it, so a future square view
+    // routed through here does not lose its corners.
+    const roundLens=S.view!=='grid';
     const mode=S.lbl==='off'?'rM':S.lbl;
     const textOf=(r,m)=>mode==='M'?''+m:mode==='rM'?r+','+m:mode==='gcd'?''+gcd(r,m):''+r;
     const dotR=Math.max(1.2,k*cell*0.05);
@@ -3718,15 +3838,20 @@ function setLensZoom(z){
     let drawn=0;
     const put=(r,m,x,y)=>{
       const lx=(x-sX)*k, ly=(y-sY)*k, dx=lx-c, dy=ly-c;
-      if(dx*dx+dy*dy>R*R) return;
+      if(roundLens ? dx*dx+dy*dy>R*R
+                   : (lx<2||ly<2||lx>lens.width-2||ly>lens.height-2)) return;
       if(drawn++>600) return;
       const co=gcd(r,m)===1;
       lctx.fillStyle=co?'rgba(255,255,255,.9)':'rgba(255,255,255,.28)';
       lctx.beginPath(); lctx.arc(lx,ly,dotR,0,Math.PI*2); lctx.fill();
-      lctx.fillStyle=co?'rgba(200,168,74,.95)':'rgba(255,255,255,.4)';
-      lctx.shadowColor='rgba(4,4,13,.9)'; lctx.shadowBlur=fs*0.7;
+      // stroke-then-fill rather than a shadow alone: the backdrop under a polar
+      // label is a magnified raster, and a blur wide enough to separate the type
+      // from it also softens the type. An outline keeps the glyph edges hard.
+      lctx.lineWidth=Math.max(1.5,fs*0.20); lctx.lineJoin='round';
+      lctx.strokeStyle='rgba(4,4,13,.92)';
+      lctx.strokeText(textOf(r,m),lx,ly-fs*0.85);
+      lctx.fillStyle=co?'rgba(214,180,86,1)':'rgba(255,255,255,.5)';
       lctx.fillText(textOf(r,m),lx,ly-fs*0.85);
-      lctx.shadowBlur=0;
     };
     if(S.view==='grid'){
       const r0=Math.max(1,Math.floor(sX/cell)), r1=Math.min(G,Math.ceil((sX+srcSize)/cell)+1);
@@ -3762,41 +3887,166 @@ function setLensZoom(z){
   // true point wherever it is, whatever part of it overhangs the canvas is
   // simply empty, and the canvas edge is drawn in so the emptiness reads as
   // "this is the edge of the lattice" rather than as a glitch.
+  // Grid re-rendered INTO the lens rather than blitted out of the plate.
+  // Blitting could only ever magnify pixels that were already there, so at
+  // G ≈ 200 a label rasterised two pixels tall on the plate stayed two pixels
+  // tall in the lens, just bigger and blockier — the more you zoomed the worse
+  // it read. Here every element is redrawn at the lens's own resolution: the
+  // cells come from baseLayer's one-texel-per-cell buffer scaled with
+  // smoothing off (so edges stay hard), the strips are real fillRects, and the
+  // labels are typeset at the magnified cell size instead of being an enlarged
+  // photograph of small type. Cost is bounded by the window, not by G: only the
+  // cells the lens actually covers are touched.
+  function lensPaintGrid(sX,sY,srcSize,k){
+    const G=S.G, px=cv.width, cell=px/G, g=S.g, gapOn=g>=1;
+    const lcell=cell*k;                       // one cell, in lens pixels
+    // cell index range the window covers (0-based, half-open)
+    const c0=Math.max(0,Math.floor(sX/cell)), d0=Math.max(0,Math.floor(sY/cell));
+    // At the top of the zoom range the window can be narrower than one cell and
+    // land wholly inside it, in which case ceil() and floor() agree and the
+    // source rect collapses to zero width — a blank lens exactly when it is
+    // magnifying hardest. Always claim at least the one cell being looked at.
+    let c1=Math.min(G,Math.ceil((sX+srcSize)/cell)), d1=Math.min(G,Math.ceil((sY+srcSize)/cell));
+    if(c1<=c0&&c0<G) c1=c0+1;
+    if(d1<=d0&&d0<G) d1=d0+1;
+    lctx.save();
+    lctx.translate(-sX*k,-sY*k); lctx.scale(k,k);   // work in plate coordinates
+    lctx.imageSmoothingEnabled=false;
+    if(c1>c0&&d1>d0)
+      lctx.drawImage(baseLayer(G),c0,d0,c1-c0,d1-d0,
+                                  c0*cell,d0*cell,(c1-c0)*cell,(d1-d0)*cell);
+    if(lcell>=7){
+      lctx.strokeStyle='rgba(4,4,13,.85)'; lctx.lineWidth=Math.max(1/k,cell*0.10);
+      lctx.beginPath();
+      for(let i=Math.max(1,c0);i<=Math.min(G-1,c1);i++){ const t=i*cell; lctx.moveTo(t,sY); lctx.lineTo(t,sY+srcSize); }
+      for(let i=Math.max(1,d0);i<=Math.min(G-1,d1);i++){ const t=i*cell; lctx.moveTo(sX,t); lctx.lineTo(sX+srcSize,t); }
+      lctx.stroke();
+    }
+    if(gapOn&&S.dim>0){ lctx.fillStyle=`rgba(4,4,13,${S.dim})`; lctx.fillRect(sX,sY,srcSize,srcSize); }
+    const sz=Math.max(cell*0.55,cell-(lcell>=7?Math.min(1.4,cell*0.13):0));
+    const inWin=(r,m)=> r>c0&&r<=c1+1&&m>d0&&m<=d1+1;
+    if(S.multi){
+      lctx.globalCompositeOperation='lighter';
+      for(const [r,m,rgb,baseA] of multiPoints(G)){
+        if(!inWin(r,m)) continue;
+        const a=(gcd(r,m)===1?baseA:baseA*S.stripDim);
+        if(a<=0.004) continue;
+        lctx.fillStyle=`rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`;
+        lctx.fillRect((r-1)*cell,(m-1)*cell,sz,sz);
+      }
+      lctx.globalCompositeOperation='source-over';
+    } else if(gapOn){
+      for(const [r,m,br] of stripPoints(G,g)){
+        if(!inWin(r,m)) continue;
+        const q=BR[br], al=gcd(r,m)===1?0.95:0.95*S.stripDim;
+        if(al<=0.004) continue;
+        lctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${al})`;
+        lctx.fillRect((r-1)*cell,(m-1)*cell,sz,sz);
+      }
+    }
+    if(S.show.diag){
+      lctx.strokeStyle='rgba(255,255,255,.16)'; lctx.lineWidth=Math.max(1/k,px/1600);
+      lctx.beginPath(); lctx.moveTo(0,0); lctx.lineTo(px,px); lctx.stroke();
+    }
+    lctx.restore();
+    // Labels last, in lens coordinates so the type is hinted at the size it is
+    // actually drawn. The gate is the magnified cell, not the plate cell, which
+    // is why the lens can label a lattice the plate has long since given up on.
+    if(S.lbl==='off') return;
+    const sample=S.lbl==='rM'?(G+','+G):(''+G);
+    let fs=lcell*0.62*S.lblScale;
+    lctx.font=`${fs}px "JetBrains Mono",monospace`;
+    const maxW=lcell*0.86, w=lctx.measureText(sample).width;
+    if(w>maxW) fs*=maxW/w;
+    fs=Math.min(fs,lcell*0.82);
+    // The gate has to be in CSS pixels, not backing pixels. fs is measured in
+    // the lens's supersampled backing, which is ~3x its CSS size, so a raw
+    // "fs < 6.5" test was really admitting type about 2 CSS px tall — a smear.
+    // Divide back through the supersample before deciding it is readable.
+    const dprL=lens.width/Math.max(1,lensSize);
+    if(fs/dprL<7) return;                     // below this it is noise, not text
+    lctx.font=`${fs}px "JetBrains Mono",monospace`;
+    lctx.textAlign='center'; lctx.textBaseline='middle';
+    const lit=S.stripDim>0.3;
+    const onStrip=new Set((!S.multi&&gapOn)?stripPoints(G,g).map(p=>p[0]+','+p[1]):[]);
+    for(let m=d0+1;m<=Math.min(G,d1+1);m++) for(let r=c0+1;r<=Math.min(G,c1+1);r++){
+      const t=labelOf(r,m); if(!t) continue;
+      const cop=gcd(r,m)===1;
+      // dark type only where a strip square is genuinely painted under it —
+      // with Off-gcd at 0 a non-coprime strip cell has no square, so dark text
+      // there would vanish into the background
+      const dark=onStrip.has(r+','+m)&&(cop||lit);
+      lctx.fillStyle=dark?'rgba(4,4,13,.9)':(cop?'rgba(255,255,255,.74)':'rgba(255,255,255,.24)');
+      lctx.fillText(t,((r-0.5)*cell-sX)*k,((m-0.5)*cell-sY)*k,lcell*0.9);
+    }
+  }
   function draw(clientX,clientY){
     const b=cv.getBoundingClientRect();
     const fx=Math.max(b.left,Math.min(b.right,clientX));
     const fy=Math.max(b.top,Math.min(b.bottom,clientY));
     const sx=(fx-b.left)/b.width*cv.width, sy=(fy-b.top)/b.height*cv.height;
-    lastSX=sx; lastSY=sy;
-    const srcSize=Math.min(cv.width,cv.height)/LENS_ZOOM;
+    lastSX=sx; lastSY=sy; lastCX=clientX; lastCY=clientY;
+    // LENS_ZOOM is now the magnification the reader actually sees. It used to
+    // set the source window to canvas/ZOOM — a window sized against the PLATE,
+    // not against the lens — so "3×" showed a third of the plate inside a lens
+    // half the plate's width, i.e. 1.5× real magnification, and "2×" was 0.8×,
+    // an outright reduction. Sizing the window against the lens instead makes
+    // 3× mean three times, which is most of why the old lens looked soft: it
+    // was barely enlarging anything.
+    const canvasPerCss=cv.width/Math.max(1,b.width);
+    // The floor here used to be 4 canvas px, which silently capped the whole
+    // control: at lensSize 240 and dpr 2 no setting above ~120x could shrink
+    // the window any further. At G in the thousands one cell is well under a
+    // canvas pixel, so the window has to be allowed to go sub-pixel for the
+    // high end to mean anything. Only a degenerate zero is excluded.
+    const srcSize=Math.max(0.02,(lensSize/LENS_ZOOM)*canvasPerCss);
     const sX=sx-srcSize/2, sY=sy-srcSize/2;
     const k=lens.width/srcSize;              // source px → lens px
+    lctx.setTransform(1,0,0,1,0,0);
     lctx.imageSmoothingEnabled=false;
     lctx.clearRect(0,0,lens.width,lens.height);
     lctx.fillStyle='#04040d'; lctx.fillRect(0,0,lens.width,lens.height);
-    // the overlap of the source window with the canvas, blitted to the matching
-    // sub-rectangle of the lens
-    const ix0=Math.max(0,sX), iy0=Math.max(0,sY);
-    const ix1=Math.min(cv.width,sX+srcSize), iy1=Math.min(cv.height,sY+srcSize);
-    if(ix1>ix0&&iy1>iy0){
-      lctx.drawImage(cv,ix0,iy0,ix1-ix0,iy1-iy0,
-                        (ix0-sX)*k,(iy0-sY)*k,(ix1-ix0)*k,(iy1-iy0)*k);
+    if(S.view==='grid'){
+      lensPaintGrid(sX,sY,srcSize,k);
+    } else {
+      // Ring / Cayley have no uniform pitch and their backdrop is a cached
+      // raster, so there is nothing to re-typeset wholesale — the blit stays,
+      // but drawLensLabels puts crisp text on top of it.
+      const ix0=Math.max(0,sX), iy0=Math.max(0,sY);
+      const ix1=Math.min(cv.width,sX+srcSize), iy1=Math.min(cv.height,sY+srcSize);
+      if(ix1>ix0&&iy1>iy0){
+        lctx.drawImage(cv,ix0,iy0,ix1-ix0,iy1-iy0,
+                          (ix0-sX)*k,(iy0-sY)*k,(ix1-ix0)*k,(iy1-iy0)*k);
+      }
+      drawLensLabels(sX,sY,srcSize,k);
     }
     // the lattice boundary, wherever it falls inside the lens
     lctx.strokeStyle='rgba(200,168,74,.5)'; lctx.lineWidth=Math.max(1,lens.width/240);
     lctx.setLineDash([lens.width/40,lens.width/40]);
     lctx.strokeRect((0-sX)*k,(0-sY)*k,cv.width*k,cv.height*k);
     lctx.setLineDash([]);
-    drawLensLabels(sX,sY,srcSize,k);
-    const c=lens.width/2;
-    lctx.strokeStyle='rgba(200,168,74,.85)'; lctx.lineWidth=1;
-    lctx.beginPath(); lctx.moveTo(c-8,c); lctx.lineTo(c+8,c); lctx.moveTo(c,c-8); lctx.lineTo(c,c+8); lctx.stroke();
+    const c=lens.width/2, arm=lens.width*0.035;
+    lctx.strokeStyle='rgba(200,168,74,.85)'; lctx.lineWidth=Math.max(1,lens.width/300);
+    lctx.beginPath(); lctx.moveTo(c-arm,c); lctx.lineTo(c+arm,c); lctx.moveTo(c,c-arm); lctx.lineTo(c,c+arm); lctx.stroke();
+    // magnification readout, so the zoom buttons mean something on screen
+    lctx.font=`${Math.round(lens.width*0.045)}px "JetBrains Mono",monospace`;
+    lctx.textAlign='center'; lctx.textBaseline='bottom';
+    lctx.fillStyle='rgba(200,168,74,.6)';
+    lctx.fillText(LENS_ZOOM+'×',c,lens.height-lens.width*0.045);
     place(clientX,clientY);
   }
   function start(clientX,clientY){
     active=true; LENS_SUPPRESS_CLICK=true;
     probe.style.display='none';
-    const size=lensCssSize(), dpr=Math.min(window.devicePixelRatio||1,2);
+    // Supersampled deliberately: the lens is small (≤ 240 CSS px), so a 3×
+    // backing costs almost nothing, and the browser's smooth downscale of it
+    // is what turns the labels from jagged to legible. The old cap of 2 —
+    // combined with image-rendering:pixelated on the element — meant the type
+    // was rasterised once and then hard-scaled twice.
+    const size=lensCssSize(), dpr=Math.max(2,Math.min(3,(window.devicePixelRatio||1)*1.5));
+    lensSize=size;
+    // square on Grid, disk on Ring / Cayley — see the #lens rule
+    lens.classList.toggle('sq',S.view==='grid');
     lens.style.width=size+'px'; lens.style.height=size+'px';
     lens.width=Math.round(size*dpr); lens.height=lens.width;
     lens.classList.add('on');
@@ -3830,6 +4080,7 @@ function setLensZoom(z){
     e.preventDefault();
     draw(e.clientX,e.clientY);
   },{passive:false});
+  LENS_REDRAW=()=>{ if(active) draw(lastCX,lastCY); };
   cv.addEventListener('pointerup',e=>{ if(e.pointerId===downId) stopAll(); });
   cv.addEventListener('pointercancel',e=>{ if(e.pointerId===downId) stopAll(); });
 })();
@@ -3872,7 +4123,7 @@ function drawMultiHeader(ctx,px,top,M){
   const items=[
     ['E',`${E}`,'2(G+1)','#c8a84a'],
     ['r(E)',`${nPair}`,'Goldbach pairs','#7ec87a'],
-    ['shown',`${batch.length}`,'of '+S.items.length+' items','#3dc8b8'],
+    ['shown',`${batch.length-batch.filter(x=>S.hidden.has(x.g)).length}`,'of '+S.items.length+' items','#3dc8b8'],
     ['batch',`${S.page+1} / ${pages}`,full?'full set — nothing hidden':'PARTIAL — see legend below','#e0a83d']
   ];
   const bw=(px-2*M-(items.length-1)*px*0.008)/items.length, bh=Math.round(px*0.062);
@@ -3904,14 +4155,26 @@ function drawMultiHeader(ctx,px,top,M){
   for(let i=0;i<MAXSHOW;i++){
     const it=batch[i];
     const rgb=it.kind==='pair'?goldenColorRGB(S.pairIdx.get(it.g)||0):KIND_RGB[it.kind];
-    const label=it.kind==='pair'?`${it.g} + ${it.s}`:
-      `${it.g} + ${it.s} · ${it.kind==='gOnly'?'g only':it.kind==='sOnly'?'s only':'neither'}`;
+    // a pair collapsed from the on-screen legend is not drawn in the plate, so
+    // it must not be listed here as though it were — it is kept in the list but
+    // struck through, which is more honest than dropping it silently
+    const off=S.hidden.has(it.g);
+    const label=(it.kind==='pair'?`${it.g} + ${it.s}`:
+      `${it.g} + ${it.s} · ${it.kind==='gOnly'?'g only':it.kind==='sOnly'?'s only':'neither'}`)
+      +(off?' · collapsed':'');
     const w=sw+gapX+ctx.measureText(label).width+fs2*1.1;
     if(lx+w>px-M){ lx=M; ly+=lineH; }
+    ctx.globalAlpha=off?0.38:1;
     ctx.fillStyle=rgbToCss(rgb);
     ctx.beginPath(); ctx.roundRect(lx,ly-sh/2,sw,sh,sh/2); ctx.fill();
     ctx.fillStyle='rgba(221,216,204,.85)'; ctx.textAlign='left';
     ctx.fillText(label,lx+sw+gapX,ly);
+    if(off){
+      const tw=ctx.measureText(label).width;
+      ctx.strokeStyle='rgba(221,216,204,.7)'; ctx.lineWidth=Math.max(1,fs2*0.08);
+      ctx.beginPath(); ctx.moveTo(lx+sw+gapX,ly); ctx.lineTo(lx+sw+gapX+tw,ly); ctx.stroke();
+    }
+    ctx.globalAlpha=1;
     lx+=w;
   }
   if(batch.length>MAXSHOW){
