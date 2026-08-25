@@ -816,6 +816,11 @@ body.is-fs .figcap{display:none}
         <button class="chip" id="mm-all" onclick="setMultiMode('all')" style="flex:1">all partitions</button>
         <button class="chip" id="mm-picked" onclick="setMultiMode('picked')" style="flex:1" title="Only the rows ticked in the partition table.">selected rows</button>
       </div>
+      <div class="row" id="mp-blend-row" style="display:none">
+        <span class="lab">Overlap</span>
+        <button class="chip on" id="bl-add" onclick="setBlend('add')" style="flex:1" title="Additive: overlapping strips sum and brighten. Four or more saturate to white.">add · glow</button>
+        <button class="chip" id="bl-over" onclick="setBlend('over')" style="flex:1" title="Topmost item wins, so a stack keeps one pair's colour instead of washing out.">over · opaque</button>
+      </div>
       <div class="row" id="mp-batch-row" style="display:none;flex-wrap:wrap">
         <span class="lab">Batch</span>
         <button class="chip on" data-bs="1" onclick="setBatchSize(1)">1</button>
@@ -1013,7 +1018,7 @@ body.is-fs .figcap{display:none}
         <button class="chip" id="lp-bl" onclick="setLensPin('bl')" style="flex:1" title="Pin to bottom-left">↙</button>
         <button class="chip" id="lp-br" onclick="setLensPin('br')" style="flex:1" title="Pin to bottom-right">↘</button>
       </div>
-      <div class="note">Press and hold a point on the lattice, drag to pan the lens, release to jump the gap there.<br><br><b>Zoom</b> is now the magnification you actually get, and the range runs to <b>500×</b> because that is what a four-figure G needs: at G = 4096 a single cell is under a third of a canvas pixel, so 10× still shows you nothing. The presets go to 100× and the <b>Custom</b> box takes any value from 1 to 500. It used to size the window against the plate rather than the lens, so 3× was really 1.5× and 2× was a reduction — most of the old softness was the lens barely enlarging anything. The lens also takes the shape of the plate it is over — a square window on Grid, a disk on Ring and Cayley — so a square lattice no longer loses its corner cells to a round frame. Labels appear whenever the magnified cell clears about 7 px, so they arrive at roughly 4× at G = 194, 20× at G = 1024 and 100× at G = 4096 — the same readable type at every scale, just further in. In Grid the lens no longer photographs the plate either: cells, strips and labels are redrawn at the lens's own resolution, so type that is two pixels tall on the plate is typeset at full size here instead of being blown up.<br><br><b>auto</b> keeps the lens above your finger and slides it sideways when it runs out of headroom — continuously, so it never jumps across the pointer the way it used to at mid-plate. Pin it to a corner if you would rather it never moved at all.<br><br>The crosshair marks the pointer; the <b>glowing box</b> (or ring, in Ring and Cayley) marks the lattice point that pointer actually resolves to, which at any real magnification is a different thing — the readout sits just outside the rim — white on black, and outside because a round lens was clipping the ends off it — and gives r,M, the gcd there, and the g releasing will jump to, so you can see the selection before committing to it. It flips above the lens near the bottom of the plate rather than running off the edge.<br><br>The lens now centres on the true point everywhere, including the outermost row, column and all four corners. Past the lattice edge the view goes empty and the dashed gold line marks where the boundary falls — that emptiness is the edge, not a rendering fault.</div>
+      <div class="note">Press and hold a point on the lattice, drag to pan the lens, release to jump the gap there.<br><br><b>Zoom</b> is now the magnification you actually get, and the range runs to <b>500×</b> because that is what a four-figure G needs: at G = 4096 a single cell is under a third of a canvas pixel, so 10× still shows you nothing. The presets go to 100× and the <b>Custom</b> box takes any value from 1 to 500. It used to size the window against the plate rather than the lens, so 3× was really 1.5× and 2× was a reduction — most of the old softness was the lens barely enlarging anything. The lens also takes the shape of the plate it is over — a square window on Grid, a disk on Ring and Cayley — so a square lattice no longer loses its corner cells to a round frame. Labels appear whenever the magnified cell clears about 7 px, so they arrive at roughly 4× at G = 194, 20× at G = 1024 and 100× at G = 4096 — the same readable type at every scale, just further in. In Grid the lens no longer photographs the plate either: cells, strips and labels are redrawn at the lens's own resolution, so type that is two pixels tall on the plate is typeset at full size here instead of being blown up.<br><br><b>auto</b> keeps the lens above your finger and slides it sideways when it runs out of headroom — continuously, so it never jumps across the pointer the way it used to at mid-plate. Pin it to a corner if you would rather it never moved at all.<br><br>The crosshair marks the pointer; the <b>glowing box</b> (or ring, in Ring and Cayley) marks the lattice point that pointer actually resolves to, which at any real magnification is a different thing — the readout sits just outside the rim — white on black, and outside because a round lens was clipping the ends off it — and gives r,M, the gcd there, and the g releasing will jump to, so you can see the selection before committing to it. It sits above the lens, which is the one band clear of both the lens and the finger holding it, and drops below only when the lens is already against the top of the plate.<br><br>The lens now centres on the true point everywhere, including the outermost row, column and all four corners. Past the lattice edge the view goes empty and the dashed gold line marks where the boundary falls — that emptiness is the edge, not a rendering fault.</div>
       </div>
     </div>
 
@@ -1063,9 +1068,10 @@ body.is-fs .figcap{display:none}
       <div class="row">
         <span class="lab">Labels</span>
         <select id="sel-lbl" onchange="setLbl(this.value)" style="flex:1">
-          <option value="r" selected>by r</option>
-          <option value="M">by M</option>
-          <option value="rM">r , M</option>
+          <option value="r">by r</option>
+          <option value="M" selected>by M</option>
+          <option value="rM">r / M &nbsp;fraction</option>
+          <option value="dec">r / M &nbsp;decimal</option>
           <option value="gcd">gcd(r,M)</option>
           <option value="off">off</option>
         </select>
@@ -1081,7 +1087,7 @@ body.is-fs .figcap{display:none}
         <input type="range" id="sl-lbladapt" min="0" max="100" step="5" value="55" oninput="setLblAdapt(+this.value)" title="Ring/Cayley only. Grades label size by distance from the centre: inner labels shrink, rim labels grow. 0% is one size everywhere.">
         <span class="val" id="v-lbladapt" style="width:40px">55%</span>
       </div>
-      <div class="note">Grid: labels draw only where a cell clears the pile-up gate (13&nbsp;px at size 1×, scaled with the slider), so they never collide. Above roughly <b>G = 320</b> the canvas switches to a one-pixel-per-cell buffer and scales it without smoothing.<br><br>Ring / Cayley: labels come in <b>three brightnesses</b>, and the brightness is the information. <b style="color:#fff">Full white with a dark halo</b> is a point on the current strip. <b style="color:#b9b3aa">Mid grey</b> is an ordinary lattice point with gcd(r,M) = 1. <b style="color:#6a6560">Faintest</b> is a lattice point with gcd(r,M) &gt; 1 — the cells the coprimality field rules out. So the faint ones are not failed labels; they are the non-coprime background, and their faintness is the same statement the dim cells make in Grid.<br><br>Not every point gets one, by design — the strip is labelled first, then the rest of the lattice fills whatever space is left, each label claiming the rectangle it actually measures so nothing ever overlaps. A point goes unlabelled when its slot is already taken, when radius grading has shrunk its type below 4.5&nbsp;px, or when it sits within a label's height of the plate edge. The background pass runs at all only when there is room for it — <b>G ≤ 256</b>, the zoom-in slider past <b>2×</b>, or size at <b>0.7×</b> or below — and is suspended while a sweep plays, since the winners would otherwise be reshuffled every frame. There is also a hard ceiling of 900 labels a frame.<br><br><b>Grade</b> exists because crowding in the polar views is a function of radius, not a constant. At <b>G = 20…30</b> every point has room and 0% — one size everywhere — is right. By <b>G ≈ 200</b> the inner rings are a smear while the rim is still half empty; grading spends small type on the packed middle and full type on the open rim, which raises the number of readable labels instead of trading one zone off against the other.</div>
+      <div class="note">Grid: labels draw only where a cell clears the pile-up gate (13&nbsp;px at size 1×, scaled with the slider), so they never collide. Above roughly <b>G = 320</b> the canvas switches to a one-pixel-per-cell buffer and scales it without smoothing.<br><br><b>r / M</b> labels each cell with its fraction rather than a coordinate pair — the same number the ring angle θ = 2πr/M is built from, so a ring reads as a sequence of fractions directly. <b>r / M decimal</b> is that same quantity evaluated to two places: the fraction is the better label when you want to see which cells share a value (6/4 and 3/2 look different but land together), the decimal when you want to see the ordering along a ring at a glance (1.50 and 1.50 read as equal immediately). Ring and Cayley size their labels as a fraction of the canvas, so an export carries the same type it shows on screen at any resolution.<br><br>Ring / Cayley: labels come in <b>three brightnesses</b>, and the brightness is the information. <b style="color:#fff">Full white with a dark halo</b> is a point on the current strip. <b style="color:#b9b3aa">Mid grey</b> is an ordinary lattice point with gcd(r,M) = 1. <b style="color:#6a6560">Faintest</b> is a lattice point with gcd(r,M) &gt; 1 — the cells the coprimality field rules out. So the faint ones are not failed labels; they are the non-coprime background, and their faintness is the same statement the dim cells make in Grid.<br><br>Not every point gets one, by design — the strip is labelled first, then the rest of the lattice fills whatever space is left, each label claiming the rectangle it actually measures so nothing ever overlaps. A point goes unlabelled when its slot is already taken, when radius grading has shrunk its type below 4.5&nbsp;px, or when it sits within a label's height of the plate edge. The background pass runs at all only when there is room for it — <b>G ≤ 256</b>, the zoom-in slider past <b>2×</b>, or size at <b>0.7×</b> or below — and is suspended while a sweep plays, since the winners would otherwise be reshuffled every frame. There is also a hard ceiling of 900 labels a frame.<br><br><b>Grade</b> exists because crowding in the polar views is a function of radius, not a constant. At <b>G = 20…30</b> every point has room and 0% — one size everywhere — is right. By <b>G ≈ 200</b> the inner rings are a smear while the rim is still half empty; grading spends small type on the packed middle and full type on the open rim, which raises the number of readable labels instead of trading one zone off against the other.</div>
       </div>
     </div>
 
@@ -1589,7 +1595,7 @@ function stripsAt(G,g){
 // FAILS to hit. 0 is the honest default: the strip is drawn only where it is
 // coprime, so a gap in the line is a real gap. Turn it up to see the full
 // geometric line again.
-const S={G:194,g:193,col:'sector',lbl:'r',dim:0.45,stripDim:0,view:'grid',
+const S={G:194,g:193,col:'sector',lbl:'M',dim:0.45,stripDim:0,view:'grid',
          lblScale:1,lblAdapt:0.55,thetaMode:'wrap',
          cayleyZoom:4,cayleyRot:0,cayleyIn:1,ringZoom:1,ringRot:0,focus:null,
          // Cayley plate: which Möbius map is live, and the parameters each takes.
@@ -1605,7 +1611,11 @@ const S={G:194,g:193,col:'sector',lbl:'r',dim:0.45,stripDim:0,view:'grid',
          hidden:new Set(),
          // pick: the partition table is in multi-select mode, so a row click
          // adds/removes rather than jumping the gap. picked: the chosen g's.
-         pick:true,picked:new Set()};
+         pick:true,picked:new Set(),
+         // how overlapping strip points combine. 'add' is the original
+         // globalCompositeOperation='lighter'; 'over' lets the topmost item win
+         // so a stack keeps a real pair colour instead of saturating to white.
+         blend:'add'};
 const BR={a:[61,200,184],b:[155,127,232],c:[200,168,74],d:[224,80,96]};
 const KIND_RGB={gOnly:[200,168,74],sOnly:[61,200,184],none:[58,58,70]};
 const KIND_ALPHA={gOnly:.55,sOnly:.55,none:.28};
@@ -1661,7 +1671,11 @@ function labelOf(r,m){
   switch(S.lbl){
     case 'off': return '';
     case 'M':   return ''+m;
-    case 'rM':  return r+','+m;
+    case 'rM':  return r+'/'+m;
+    // the same quantity as rM, evaluated. Two places is enough to separate
+    // neighbouring fractions at any G the labels are legible at, and it keeps
+    // the glyph count fixed so the fitting maths below stays predictable.
+    case 'dec': return (r/m).toFixed(2);
     case 'gcd': return ''+gcd(r,m);
     default:    return ''+r;
   }
@@ -1905,6 +1919,20 @@ function itemRGB(it){
 }
 function itemAlpha(it){
   return it.pick ? 1 : (it.kind==='pair' ? 1 : KIND_ALPHA[it.kind]);
+}
+// 'lighter' is additive: where several strips land on the same pixel their
+// colours SUM and clip at 255, so four or more overlapping pairs render as flat
+// white and stop identifying anything. That is unavoidable in Ring's wrap mode,
+// where ring M has only M distinct angles and every r ≡ r' (mod M) coincides
+// exactly — at M = 1 all G points share one pixel. 'over' trades the glow for
+// legibility: the topmost item wins and the stack keeps a real pair colour.
+function blendOp(){ return S.blend==='add'?'lighter':'source-over'; }
+function setBlend(b){
+  S.blend=b;
+  ['add','over'].forEach(k=>{
+    const el=document.getElementById('bl-'+k); if(el) el.classList.toggle('on',k===b);
+  });
+  render();
 }
 function computeMultiItems(){
   const G=S.G, E=2*(G+1), list=[];
@@ -2201,7 +2229,7 @@ function paintGrid(ctx,px,G,g){
   // the single current g; both paths share the same point-and-dim convention.
   const sz=Math.max(1,cell-(cell>=4?Math.min(1.4,cell*0.13):0));
   if(S.multi){
-    ctx.globalCompositeOperation='lighter';
+    ctx.globalCompositeOperation=blendOp();
     for(const [r,m,rgb,baseA] of multiPoints(G)){
       const a=(gcd(r,m)===1?baseA:baseA*S.stripDim);
       if(a<=0.004) continue;             // stripDim = 0 → the miss is a real gap
@@ -2250,7 +2278,7 @@ function paintGrid(ctx,px,G,g){
     // the corner. Instead, size against the widest label that will actually
     // appear (G,G for the rM pair; G alone otherwise) so every box gets type
     // as large as it can hold without the longest label overflowing it.
-    const sample=S.lbl==='rM'?(G+','+G):(''+G);
+    const sample=S.lbl==='rM'?(G+'/'+G):S.lbl==='dec'?(G+'.00'):(''+G);
     let fs=cell*0.62*S.lblScale;
     ctx.font=`${fs}px "JetBrains Mono",monospace`;
     const maxW=cell*0.86, w=ctx.measureText(sample).width;
@@ -2614,7 +2642,7 @@ function paintPolar(ctx,px,G,g,view){
   const dotR=Math.max(0.9,px*0.0016*Math.min(3,Math.sqrt(Math.max(1,zin))));
   const gapOn=g>=1;
   if(S.multi){
-    ctx.globalCompositeOperation='lighter';
+    ctx.globalCompositeOperation=blendOp();
     for(const [r,m,rgb,baseA] of multiPoints(G)){
       const a=(gcd(r,m)===1?baseA:baseA*S.stripDim);
       if(a<=0.004) continue;
@@ -2664,7 +2692,12 @@ function paintPolar(ctx,px,G,g,view){
 // spending small type where the points are packed and full type where they are
 // not, so the count of readable labels goes up without any of them touching.
 function polarLabelFS(px,rho,Rref){
-  const base=Math.max(6,Math.min(20,px*0.0145))*S.lblScale;
+  // The old ceiling of 20 was an ABSOLUTE pixel value, which is right on a
+  // ~1200 px canvas (0.0145·px = 17, under the cap) but wrong on an export:
+  // at 4096 the type wanted 59 px and got 20, so every Ring/Cayley PNG came
+  // out with labels a third of the size they are on screen. The size has to be
+  // a fraction of the canvas, so it renders identically at any resolution.
+  const base=Math.max(6,px*0.0145)*S.lblScale;
   if(S.lblAdapt<=0.001) return base;
   const t=Math.max(0,Math.min(1,rho/Math.max(1,Rref)));       // 0 centre → 1 rim
   // eased so the shrink is concentrated in the crowded inner third rather than
@@ -2676,7 +2709,7 @@ function paintPolarLabels(ctx,px,G,g,proj){
   if(S.lbl==='off') return;
   const cx=px/2, cy=px/2;
   const Rref=S.view==='ring'?ringScale(px):cayleyScale(px);
-  const fsBase=Math.max(6,Math.min(20,px*0.0145))*S.lblScale;
+  const fsBase=Math.max(6,px*0.0145)*S.lblScale;   // proportional — see polarLabelFS
   ctx.save();
   ctx.textAlign='center'; ctx.textBaseline='middle';
   // Variable type means the old fixed-pitch occupancy grid no longer describes
@@ -2701,7 +2734,10 @@ function paintPolarLabels(ctx,px,G,g,proj){
     const t=labelOf(r,m); if(!t) return false;
     const [x,y]=proj(r,m,G,px);
     const fs=polarLabelFS(px,Math.hypot(x-cx,y-cy),Rref);
-    if(fs<4.5) return false;                       // past legibility — skip
+    // Scaled for the same reason the size is: 4.5 px is the legibility floor on
+    // a ~1200 px canvas, and holding it fixed on a 4096 px export would admit
+    // labels a quarter the relative size of anything else in the frame.
+    if(fs<Math.max(3.5,px*0.00375)) return false;  // past legibility — skip
     if(!(x>fs&&x<px-fs&&y>fs*1.6&&y<px-fs)) return false;
     ctx.font=`${fs}px "JetBrains Mono",monospace`;
     const ly=y-fs*0.85;
@@ -3147,7 +3183,7 @@ function toggleMulti(){
   const b=document.getElementById('ch-multi');
   b.textContent=S.multi?'On — overlay':'Off — single gap g';
   b.classList.toggle('on',S.multi);
-  ['mp-mode-row','mp-batch-row','mp-pager-row','mp-note'].forEach(id=>{
+  ['mp-mode-row','mp-blend-row','mp-batch-row','mp-pager-row','mp-note'].forEach(id=>{
     document.getElementById(id).style.display=S.multi?'flex':'none';
   });
   document.getElementById('mp-note').style.display=S.multi?'block':'none';
@@ -3943,17 +3979,22 @@ let LENS_REDRAW=null;
     lx=Math.max(4,Math.min(maxX,lx));
     lens.style.left=lx+'px'; lens.style.top=ly+'px';
   }
-  // Parked just below the lens and centred on it, flipping above when the lens
-  // is near the bottom of the plate and sliding sideways to stay inside it —
-  // the readout must never be the thing that runs off the edge.
+  // Parked ABOVE the lens and centred on it. Below was the obvious choice and
+  // the wrong one: place() keeps the lens above the pointer, so the strip of
+  // plate directly under the lens is exactly where the finger is — the readout
+  // was landing under the hand holding the phone. Above the lens is the one
+  // band that is guaranteed clear of both. It flips below only when the lens is
+  // already against the top of the plate and there is genuinely no room, and
+  // slides sideways to stay inside — the readout must never be the thing that
+  // runs off the edge.
   function placeInfo(){
     info.classList.add('on');
     const pb=plate.getBoundingClientRect();
     const lx=parseFloat(lens.style.left)||0, ly=parseFloat(lens.style.top)||0;
     const lw=lens.offsetWidth, lh=lens.offsetHeight;
     const iw=info.offsetWidth, ih=info.offsetHeight, pad=6;
-    let ty=ly+lh+pad;
-    if(ty+ih>pb.height-2) ty=ly-ih-pad;         // no room below — go above
+    let ty=ly-ih-pad;
+    if(ty<2) ty=ly+lh+pad;                      // no headroom — fall below
     ty=Math.max(2,Math.min(pb.height-ih-2,ty));
     let tx=lx+lw/2-iw/2;
     tx=Math.max(2,Math.min(pb.width-iw-2,tx));
@@ -3994,7 +4035,8 @@ let LENS_REDRAW=null;
     // routed through here does not lose its corners.
     const roundLens=S.view!=='grid';
     const mode=S.lbl==='off'?'rM':S.lbl;
-    const textOf=(r,m)=>mode==='M'?''+m:mode==='rM'?r+','+m:mode==='gcd'?''+gcd(r,m):''+r;
+    const textOf=(r,m)=>mode==='M'?''+m:mode==='rM'?r+'/'+m
+      :mode==='dec'?(r/m).toFixed(2):mode==='gcd'?''+gcd(r,m):''+r;
     const dotR=Math.max(1.2,k*cell*0.05);
     lctx.font=`${fs}px "JetBrains Mono",monospace`;
     lctx.textAlign='center'; lctx.textBaseline='middle';
@@ -4089,7 +4131,7 @@ let LENS_REDRAW=null;
     const sz=Math.max(cell*0.55,cell-(lcell>=7?Math.min(1.4,cell*0.13):0));
     const inWin=(r,m)=> r>c0&&r<=c1+1&&m>d0&&m<=d1+1;
     if(S.multi){
-      lctx.globalCompositeOperation='lighter';
+      lctx.globalCompositeOperation=blendOp();
       for(const [r,m,rgb,baseA] of multiPoints(G)){
         if(!inWin(r,m)) continue;
         const a=(gcd(r,m)===1?baseA:baseA*S.stripDim);
@@ -4116,7 +4158,7 @@ let LENS_REDRAW=null;
     // actually drawn. The gate is the magnified cell, not the plate cell, which
     // is why the lens can label a lattice the plate has long since given up on.
     if(S.lbl==='off') return;
-    const sample=S.lbl==='rM'?(G+','+G):(''+G);
+    const sample=S.lbl==='rM'?(G+'/'+G):S.lbl==='dec'?(G+'.00'):(''+G);
     let fs=lcell*0.62*S.lblScale;
     lctx.font=`${fs}px "JetBrains Mono",monospace`;
     const maxW=lcell*0.86, w=lctx.measureText(sample).width;
@@ -4979,7 +5021,7 @@ function doReportPDF(){
   if(S.multi){
     const b=document.getElementById('ch-multi');
     b.textContent='On — overlay'; b.classList.add('on');
-    ['mp-mode-row','mp-batch-row','mp-pager-row'].forEach(id=>{
+    ['mp-mode-row','mp-blend-row','mp-batch-row','mp-pager-row'].forEach(id=>{
       document.getElementById(id).style.display='flex';
     });
     document.getElementById('mp-note').style.display='block';
