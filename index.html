@@ -229,6 +229,20 @@ h1.hero-title{font-family:var(--disp);font-size:clamp(1.4rem,4vw,2.2rem);letter-
 }
 #lens.on{display:block}
 #lens.sq{border-radius:5px}
+/* The point readout used to be painted inside the lens canvas, which on a round
+   lens meant the circular clip cut the ends off it — the one piece of text that
+   has to stay whole. It is a DOM element parked just outside the rim instead,
+   so nothing can clip it and it can be plain white on black for legibility
+   rather than fighting whatever the lattice is doing underneath. */
+#lensinfo{
+  position:absolute;display:none;pointer-events:none;z-index:31;white-space:nowrap;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;line-height:1.5;
+  color:#fff;background:#04040d;border:1px solid var(--gold);border-radius:4px;
+  padding:5px 9px;box-shadow:0 6px 18px rgba(0,0,0,.7);text-align:center;
+}
+#lensinfo.on{display:block}
+#lensinfo .dim{color:var(--cream3)}
+#lensinfo .hot{color:var(--gold)}
 #pulse{
   position:absolute;width:26px;height:26px;margin-left:-13px;margin-top:-13px;
   border:2px solid var(--gold);border-radius:50%;pointer-events:none;z-index:25;display:none;
@@ -999,7 +1013,7 @@ body.is-fs .figcap{display:none}
         <button class="chip" id="lp-bl" onclick="setLensPin('bl')" style="flex:1" title="Pin to bottom-left">↙</button>
         <button class="chip" id="lp-br" onclick="setLensPin('br')" style="flex:1" title="Pin to bottom-right">↘</button>
       </div>
-      <div class="note">Press and hold a point on the lattice, drag to pan the lens, release to jump the gap there.<br><br><b>Zoom</b> is now the magnification you actually get, and the range runs to <b>500×</b> because that is what a four-figure G needs: at G = 4096 a single cell is under a third of a canvas pixel, so 10× still shows you nothing. The presets go to 100× and the <b>Custom</b> box takes any value from 1 to 500. It used to size the window against the plate rather than the lens, so 3× was really 1.5× and 2× was a reduction — most of the old softness was the lens barely enlarging anything. The lens also takes the shape of the plate it is over — a square window on Grid, a disk on Ring and Cayley — so a square lattice no longer loses its corner cells to a round frame. Labels appear whenever the magnified cell clears about 7 px, so they arrive at roughly 4× at G = 194, 20× at G = 1024 and 100× at G = 4096 — the same readable type at every scale, just further in. In Grid the lens no longer photographs the plate either: cells, strips and labels are redrawn at the lens's own resolution, so type that is two pixels tall on the plate is typeset at full size here instead of being blown up.<br><br><b>auto</b> keeps the lens above your finger and slides it sideways when it runs out of headroom — continuously, so it never jumps across the pointer the way it used to at mid-plate. Pin it to a corner if you would rather it never moved at all.<br><br>The crosshair marks the pointer; the <b>glowing box</b> (or ring, in Ring and Cayley) marks the lattice point that pointer actually resolves to, which at any real magnification is a different thing — the readout under it gives r,M, the gcd there, and the g releasing will jump to, so you can see the selection before committing to it.<br><br>The lens now centres on the true point everywhere, including the outermost row, column and all four corners. Past the lattice edge the view goes empty and the dashed gold line marks where the boundary falls — that emptiness is the edge, not a rendering fault.</div>
+      <div class="note">Press and hold a point on the lattice, drag to pan the lens, release to jump the gap there.<br><br><b>Zoom</b> is now the magnification you actually get, and the range runs to <b>500×</b> because that is what a four-figure G needs: at G = 4096 a single cell is under a third of a canvas pixel, so 10× still shows you nothing. The presets go to 100× and the <b>Custom</b> box takes any value from 1 to 500. It used to size the window against the plate rather than the lens, so 3× was really 1.5× and 2× was a reduction — most of the old softness was the lens barely enlarging anything. The lens also takes the shape of the plate it is over — a square window on Grid, a disk on Ring and Cayley — so a square lattice no longer loses its corner cells to a round frame. Labels appear whenever the magnified cell clears about 7 px, so they arrive at roughly 4× at G = 194, 20× at G = 1024 and 100× at G = 4096 — the same readable type at every scale, just further in. In Grid the lens no longer photographs the plate either: cells, strips and labels are redrawn at the lens's own resolution, so type that is two pixels tall on the plate is typeset at full size here instead of being blown up.<br><br><b>auto</b> keeps the lens above your finger and slides it sideways when it runs out of headroom — continuously, so it never jumps across the pointer the way it used to at mid-plate. Pin it to a corner if you would rather it never moved at all.<br><br>The crosshair marks the pointer; the <b>glowing box</b> (or ring, in Ring and Cayley) marks the lattice point that pointer actually resolves to, which at any real magnification is a different thing — the readout sits just outside the rim — white on black, and outside because a round lens was clipping the ends off it — and gives r,M, the gcd there, and the g releasing will jump to, so you can see the selection before committing to it. It flips above the lens near the bottom of the plate rather than running off the edge.<br><br>The lens now centres on the true point everywhere, including the outermost row, column and all four corners. Past the lattice edge the view goes empty and the dashed gold line marks where the boundary falls — that emptiness is the edge, not a rendering fault.</div>
       </div>
     </div>
 
@@ -1067,7 +1081,7 @@ body.is-fs .figcap{display:none}
         <input type="range" id="sl-lbladapt" min="0" max="100" step="5" value="55" oninput="setLblAdapt(+this.value)" title="Ring/Cayley only. Grades label size by distance from the centre: inner labels shrink, rim labels grow. 0% is one size everywhere.">
         <span class="val" id="v-lbladapt" style="width:40px">55%</span>
       </div>
-      <div class="note">Grid: labels draw only where a cell clears the pile-up gate (13&nbsp;px at size 1×, scaled with the slider), so they never collide. Above roughly <b>G = 320</b> the canvas switches to a one-pixel-per-cell buffer and scales it without smoothing.<br><br>Ring / Cayley: the current strip points are always labelled; the rest of the lattice joins in once there's room for it — <b>G ≤ 256</b>, the zoom-in slider past <b>2×</b>, or size at <b>0.7×</b> or below. Each label claims the rectangle it actually measures, so nothing overlaps at any size.<br><br><b>Grade</b> exists because crowding in the polar views is a function of radius, not a constant. At <b>G = 20…30</b> every point has room and 0% — one size everywhere — is right. By <b>G ≈ 200</b> the inner rings are a smear while the rim is still half empty; grading spends small type on the packed middle and full type on the open rim, which raises the number of readable labels instead of trading one zone off against the other.</div>
+      <div class="note">Grid: labels draw only where a cell clears the pile-up gate (13&nbsp;px at size 1×, scaled with the slider), so they never collide. Above roughly <b>G = 320</b> the canvas switches to a one-pixel-per-cell buffer and scales it without smoothing.<br><br>Ring / Cayley: labels come in <b>three brightnesses</b>, and the brightness is the information. <b style="color:#fff">Full white with a dark halo</b> is a point on the current strip. <b style="color:#b9b3aa">Mid grey</b> is an ordinary lattice point with gcd(r,M) = 1. <b style="color:#6a6560">Faintest</b> is a lattice point with gcd(r,M) &gt; 1 — the cells the coprimality field rules out. So the faint ones are not failed labels; they are the non-coprime background, and their faintness is the same statement the dim cells make in Grid.<br><br>Not every point gets one, by design — the strip is labelled first, then the rest of the lattice fills whatever space is left, each label claiming the rectangle it actually measures so nothing ever overlaps. A point goes unlabelled when its slot is already taken, when radius grading has shrunk its type below 4.5&nbsp;px, or when it sits within a label's height of the plate edge. The background pass runs at all only when there is room for it — <b>G ≤ 256</b>, the zoom-in slider past <b>2×</b>, or size at <b>0.7×</b> or below — and is suspended while a sweep plays, since the winners would otherwise be reshuffled every frame. There is also a hard ceiling of 900 labels a frame.<br><br><b>Grade</b> exists because crowding in the polar views is a function of radius, not a constant. At <b>G = 20…30</b> every point has room and 0% — one size everywhere — is right. By <b>G ≈ 200</b> the inner rings are a smear while the rim is still half empty; grading spends small type on the packed middle and full type on the open rim, which raises the number of readable labels instead of trading one zone off against the other.</div>
       </div>
     </div>
 
@@ -2700,7 +2714,17 @@ function paintPolarLabels(ctx,px,G,g,proj){
     ctx.shadowBlur=0;
     return true;
   };
-  if(!S.multi&&g>=1) for(const [r,m] of stripPoints(G,g)){ if(drawn>=MAXL) break; put(r,m,true); }
+  if(!S.multi&&g>=1) for(const [r,m] of stripPoints(G,g)){
+    if(drawn>=MAXL) break;
+    // A strip point where gcd(r,M) ≠ 1 is a point the strip MISSES, and with
+    // Off-gcd at 0 paintPolar draws no dot for it at all. Labelling it bright
+    // white anyway left a full-strength strip label floating over nothing —
+    // asserting the strip runs through a cell it demonstrably skips. Hand it to
+    // the background pass instead, where it reads at the faint non-coprime tier
+    // like any other missed cell.
+    if(gcd(r,m)!==1&&S.stripDim<=0.004) continue;
+    put(r,m,true);
+  }
   // The strips are always labelled; the rest of the lattice only once there's
   // genuinely room for it — a small G, the zoom slider opened up past 2×, or
   // the size slider turned down far enough that small type buys the room.
@@ -3744,6 +3768,9 @@ let LENS_REDRAW=null;
   const pulse=document.createElement('div');
   pulse.id='pulse';
   plate.appendChild(pulse);
+  const info=document.createElement('div');
+  info.id='lensinfo';
+  plate.appendChild(info);
   const HOLD_MS=200, MOVE_TOL=8;
   let holdTimer=null, active=false, downId=null, downX=0, downY=0, lastSX=0, lastSY=0;
   // The lens's CSS side in px, recorded when start() sizes it. Read from the
@@ -3915,6 +3942,22 @@ let LENS_REDRAW=null;
     let lx=cx-size/2+dir*Math.min(size*1.05,deficit);
     lx=Math.max(4,Math.min(maxX,lx));
     lens.style.left=lx+'px'; lens.style.top=ly+'px';
+  }
+  // Parked just below the lens and centred on it, flipping above when the lens
+  // is near the bottom of the plate and sliding sideways to stay inside it —
+  // the readout must never be the thing that runs off the edge.
+  function placeInfo(){
+    info.classList.add('on');
+    const pb=plate.getBoundingClientRect();
+    const lx=parseFloat(lens.style.left)||0, ly=parseFloat(lens.style.top)||0;
+    const lw=lens.offsetWidth, lh=lens.offsetHeight;
+    const iw=info.offsetWidth, ih=info.offsetHeight, pad=6;
+    let ty=ly+lh+pad;
+    if(ty+ih>pb.height-2) ty=ly-ih-pad;         // no room below — go above
+    ty=Math.max(2,Math.min(pb.height-ih-2,ty));
+    let tx=lx+lw/2-iw/2;
+    tx=Math.max(2,Math.min(pb.width-iw-2,tx));
+    info.style.left=tx+'px'; info.style.top=ty+'px';
   }
   // Labels for the Ring / Cayley lens only — Grid is re-rendered outright by
   // lensPaintGrid and typesets its own. Those two views have no uniform pitch
@@ -4178,26 +4221,22 @@ let LENS_REDRAW=null;
     }
     lctx.strokeStyle='rgba(200,168,74,.55)'; lctx.lineWidth=Math.max(1,lens.width/340);
     lctx.beginPath(); lctx.moveTo(c-arm,c); lctx.lineTo(c+arm,c); lctx.moveTo(c,c-arm); lctx.lineTo(c,c+arm); lctx.stroke();
+    place(clientX,clientY);
     // readout: magnification, the point actually under the crosshair, and the
-    // gap releasing here will jump to — the whole question the lens is asked
-    const fsR=Math.round(lens.width*0.040);
-    let cap=LENS_ZOOM+'×';
+    // gap releasing here will jump to — the whole question the lens is asked.
+    // Drawn as DOM outside the rim, so a round lens cannot clip it.
     if(hit){
       const [hr,hm]=hit, G=S.G, E=2*(G+1), sum=hr+hm;
       const q=gcd(hr,hm);
-      cap+=`  ${hr},${hm}  gcd ${q}  → g ${Math.max(1,Math.min(G+1,sum<=G?sum:E-sum))}`;
-    } else cap+='  outside';
-    lctx.font=`${fsR}px "JetBrains Mono",monospace`;
-    lctx.textAlign='center'; lctx.textBaseline='middle';
-    const cw=lctx.measureText(cap).width+fsR*1.1, ch=fsR*1.7;
-    const cyy=lens.height-lens.width*0.075;
-    lctx.fillStyle='rgba(4,4,13,.86)';
-    lctx.beginPath();
-    if(lctx.roundRect) lctx.roundRect(c-cw/2,cyy-ch/2,cw,ch,ch*0.3); else lctx.rect(c-cw/2,cyy-ch/2,cw,ch);
-    lctx.fill();
-    lctx.fillStyle=hit&&gcd(hit[0],hit[1])===1?'rgba(255,232,160,.95)':'rgba(190,184,176,.9)';
-    lctx.fillText(cap,c,cyy);
-    place(clientX,clientY);
+      const gg=Math.max(1,Math.min(G+1,sum<=G?sum:E-sum));
+      info.innerHTML=`<span class="dim">r,M</span> ${hr},${hm}`+
+        `<span class="dim"> · gcd</span> ${q}${q===1?'<span class="hot"> coprime</span>':''}`+
+        `<span class="dim"> · </span><span class="hot">→ g ${gg}</span>`+
+        `<span class="dim"> · ${LENS_ZOOM}×</span>`;
+    } else {
+      info.innerHTML=`<span class="dim">outside the lattice · ${LENS_ZOOM}×</span>`;
+    }
+    placeInfo();
   }
   function start(clientX,clientY){
     active=true; LENS_SUPPRESS_CLICK=true;
@@ -4219,7 +4258,7 @@ let LENS_REDRAW=null;
   function stopAll(){
     clearTimeout(holdTimer);
     if(active){
-      active=false; lens.classList.remove('on');
+      active=false; lens.classList.remove('on'); info.classList.remove('on');
       selectAt(lastSX,lastSY);
       setTimeout(()=>{LENS_SUPPRESS_CLICK=false;},0);
     }
