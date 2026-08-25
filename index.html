@@ -983,7 +983,7 @@ body.is-fs .figcap{display:none}
         <button class="chip" id="lp-bl" onclick="setLensPin('bl')" style="flex:1" title="Pin to bottom-left">↙</button>
         <button class="chip" id="lp-br" onclick="setLensPin('br')" style="flex:1" title="Pin to bottom-right">↘</button>
       </div>
-      <div class="note">Press and hold a point on the lattice, drag to pan the lens, release to jump the gap there.<br><br><b>Zoom</b> is now the magnification you actually get, and the range runs to <b>500×</b> because that is what a four-figure G needs: at G = 4096 a single cell is under a third of a canvas pixel, so 10× still shows you nothing. The presets go to 100× and the <b>Custom</b> box takes any value from 1 to 500. It used to size the window against the plate rather than the lens, so 3× was really 1.5× and 2× was a reduction — most of the old softness was the lens barely enlarging anything. The lens also takes the shape of the plate it is over — a square window on Grid, a disk on Ring and Cayley — so a square lattice no longer loses its corner cells to a round frame. Labels appear whenever the magnified cell clears about 7 px, so they arrive at roughly 4× at G = 194, 20× at G = 1024 and 100× at G = 4096 — the same readable type at every scale, just further in. In Grid the lens no longer photographs the plate either: cells, strips and labels are redrawn at the lens's own resolution, so type that is two pixels tall on the plate is typeset at full size here instead of being blown up.<br><br><b>auto</b> keeps the lens above your finger and slides it sideways when it runs out of headroom — continuously, so it never jumps across the pointer the way it used to at mid-plate. Pin it to a corner if you would rather it never moved at all.<br><br>The lens now centres on the true point everywhere, including the outermost row, column and all four corners. Past the lattice edge the view goes empty and the dashed gold line marks where the boundary falls — that emptiness is the edge, not a rendering fault.</div>
+      <div class="note">Press and hold a point on the lattice, drag to pan the lens, release to jump the gap there.<br><br><b>Zoom</b> is now the magnification you actually get, and the range runs to <b>500×</b> because that is what a four-figure G needs: at G = 4096 a single cell is under a third of a canvas pixel, so 10× still shows you nothing. The presets go to 100× and the <b>Custom</b> box takes any value from 1 to 500. It used to size the window against the plate rather than the lens, so 3× was really 1.5× and 2× was a reduction — most of the old softness was the lens barely enlarging anything. The lens also takes the shape of the plate it is over — a square window on Grid, a disk on Ring and Cayley — so a square lattice no longer loses its corner cells to a round frame. Labels appear whenever the magnified cell clears about 7 px, so they arrive at roughly 4× at G = 194, 20× at G = 1024 and 100× at G = 4096 — the same readable type at every scale, just further in. In Grid the lens no longer photographs the plate either: cells, strips and labels are redrawn at the lens's own resolution, so type that is two pixels tall on the plate is typeset at full size here instead of being blown up.<br><br><b>auto</b> keeps the lens above your finger and slides it sideways when it runs out of headroom — continuously, so it never jumps across the pointer the way it used to at mid-plate. Pin it to a corner if you would rather it never moved at all.<br><br>The crosshair marks the pointer; the <b>glowing box</b> (or ring, in Ring and Cayley) marks the lattice point that pointer actually resolves to, which at any real magnification is a different thing — the readout under it gives r,M, the gcd there, and the g releasing will jump to, so you can see the selection before committing to it.<br><br>The lens now centres on the true point everywhere, including the outermost row, column and all four corners. Past the lattice edge the view goes empty and the dashed gold line marks where the boundary falls — that emptiness is the edge, not a rendering fault.</div>
       </div>
     </div>
 
@@ -3575,14 +3575,26 @@ let LENS_SUPPRESS_CLICK=false;
     if(LENS_SUPPRESS_CLICK){ LENS_SUPPRESS_CLICK=false; return; }
     if(S.view!=='grid') return;
     const b=cv.getBoundingClientRect(), cell=b.width/S.G;
-    const r=Math.floor((e.clientX-b.left)/cell)+1, m=Math.floor((e.clientY-b.top)/cell)+1;
-    if(r<1||r>S.G||m<1||m>S.G) return;
+    // clamped, not rejected: a click exactly on the right or bottom edge floors
+    // to G+1 and used to be discarded, so the outermost row and column were
+    // unclickable
+    const r=Math.min(S.G,Math.floor((e.clientX-b.left)/cell)+1);
+    const m=Math.min(S.G,Math.floor((e.clientY-b.top)/cell)+1);
+    if(r<1||m<1) return;
     const sum=r+m, E=2*(S.G+1);
     // clicking a cell jumps to the gap whose sum strip runs through it. If the
     // multi-pair overlay is on, the point they clicked is one of many —
     // dropping to single-gap view is what actually shows the partition they picked.
+    //
+    // The ceiling is G+1, matching setGap's own range, NOT G−1. A cell's sum
+    // strip is r+M = g when the sum is ≤ G and r+M = E−g otherwise, so g runs
+    // up to G+1 (the balanced partition, where both strips coincide). Clamping
+    // at G−1 folded everything near the anti-diagonal r+M = G+1 onto one value:
+    // the whole bottom-left and top-right corners jumped to g = G−1, which at
+    // the default G = 194 is g = 193, already selected — so clicking there
+    // appeared to do nothing at all.
     if(S.multi) toggleMulti();
-    setGap(Math.max(1,Math.min(S.G-1, sum<=S.G? sum : E-sum)));
+    setGap(Math.max(1,Math.min(S.G+1, sum<=S.G? sum : E-sum)));
   });
 })();
 
@@ -3644,8 +3656,12 @@ let LENS_REDRAW=null;
   // use ρ to estimate m (θ doesn't affect it), then only search the r values
   // that land on that handful of candidate m's — never the whole G×G lattice.
   function gridHit(sx,sy,G,px){
-    const cell=px/G, r=Math.floor(sx/cell)+1, m=Math.floor(sy/cell)+1;
-    return (r<1||r>G||m<1||m>G) ? null : [r,m];
+    const cell=px/G;
+    // draw() already clamps the pointer to the canvas rect, so a finger on the
+    // bottom or right edge lands exactly on px and floors to G+1. Clamp rather
+    // than reject, or the outer row and column can never be selected.
+    const r=Math.min(G,Math.floor(sx/cell)+1), m=Math.min(G,Math.floor(sy/cell)+1);
+    return (r<1||m<1) ? null : [r,m];
   }
   // Which r values could have produced this angle depends on the θ map, so the
   // candidate list is generated per mode. wrap has many preimages per ring (the
@@ -3755,9 +3771,10 @@ let LENS_REDRAW=null;
     const [r,m]=hit, G=S.G, E=2*(G+1), sum=r+m;
     // same drop-out-of-overlay behaviour as Grid's plain click, so releasing
     // the lens on a point shows that point's own partition, not the pile of
-    // strips the overlay was drawing.
+    // strips the overlay was drawing. Ceiling is G+1 for the reason given on
+    // the plain click handler above — G−1 made the corners unreachable.
     if(S.multi) toggleMulti();
-    setGap(Math.max(1,Math.min(G-1, sum<=G? sum : E-sum)));
+    setGap(Math.max(1,Math.min(G+1, sum<=G? sum : E-sum)));
     showPulse(r,m);
   }
 
@@ -4025,14 +4042,58 @@ let LENS_REDRAW=null;
     lctx.setLineDash([lens.width/40,lens.width/40]);
     lctx.strokeRect((0-sX)*k,(0-sY)*k,cv.width*k,cv.height*k);
     lctx.setLineDash([]);
-    const c=lens.width/2, arm=lens.width*0.035;
-    lctx.strokeStyle='rgba(200,168,74,.85)'; lctx.lineWidth=Math.max(1,lens.width/300);
+    // The bare + told you where the pointer was, not which lattice point that
+    // resolves to — and at any real magnification those are different questions,
+    // since the crosshair sits somewhere inside a cell rather than on it. Run
+    // the same hit test the release will use and mark its answer, so what gets
+    // selected is visible before you let go rather than after.
+    const hit=hitAt(sx,sy);
+    const c=lens.width/2, arm=lens.width*0.030;
+    if(hit){
+      const [hr,hm]=hit, G=S.G;
+      lctx.save();
+      if(S.view==='grid'){
+        const cell=cv.width/G;
+        const hx=((hr-1)*cell-sX)*k, hy=((hm-1)*cell-sY)*k, hs=cell*k;
+        // dark keyline first so the gold reads against any cell colour underneath
+        lctx.strokeStyle='rgba(4,4,13,.9)'; lctx.lineWidth=Math.max(2,lens.width/150);
+        lctx.strokeRect(hx,hy,hs,hs);
+        lctx.shadowColor='rgba(255,214,110,.95)'; lctx.shadowBlur=lens.width*0.045;
+        lctx.strokeStyle='rgba(255,232,160,.98)'; lctx.lineWidth=Math.max(1.5,lens.width/300);
+        lctx.strokeRect(hx,hy,hs,hs);
+        lctx.strokeRect(hx,hy,hs,hs);      // second pass deepens the glow
+      } else {
+        const [ px0,py0 ]=projFor(S.view)(hr,hm,G,cv.width);
+        const hx=(px0-sX)*k, hy=(py0-sY)*k, rad=Math.max(6,lens.width*0.042);
+        lctx.shadowColor='rgba(255,214,110,.95)'; lctx.shadowBlur=lens.width*0.045;
+        lctx.strokeStyle='rgba(255,232,160,.98)'; lctx.lineWidth=Math.max(1.5,lens.width/260);
+        lctx.beginPath(); lctx.arc(hx,hy,rad,0,2*Math.PI); lctx.stroke();
+        lctx.beginPath(); lctx.arc(hx,hy,Math.max(1.6,rad*0.16),0,2*Math.PI);
+        lctx.fillStyle='rgba(255,232,160,.98)'; lctx.fill();
+      }
+      lctx.restore();
+    }
+    lctx.strokeStyle='rgba(200,168,74,.55)'; lctx.lineWidth=Math.max(1,lens.width/340);
     lctx.beginPath(); lctx.moveTo(c-arm,c); lctx.lineTo(c+arm,c); lctx.moveTo(c,c-arm); lctx.lineTo(c,c+arm); lctx.stroke();
-    // magnification readout, so the zoom buttons mean something on screen
-    lctx.font=`${Math.round(lens.width*0.045)}px "JetBrains Mono",monospace`;
-    lctx.textAlign='center'; lctx.textBaseline='bottom';
-    lctx.fillStyle='rgba(200,168,74,.6)';
-    lctx.fillText(LENS_ZOOM+'×',c,lens.height-lens.width*0.045);
+    // readout: magnification, the point actually under the crosshair, and the
+    // gap releasing here will jump to — the whole question the lens is asked
+    const fsR=Math.round(lens.width*0.040);
+    let cap=LENS_ZOOM+'×';
+    if(hit){
+      const [hr,hm]=hit, G=S.G, E=2*(G+1), sum=hr+hm;
+      const q=gcd(hr,hm);
+      cap+=`  ${hr},${hm}  gcd ${q}  → g ${Math.max(1,Math.min(G+1,sum<=G?sum:E-sum))}`;
+    } else cap+='  outside';
+    lctx.font=`${fsR}px "JetBrains Mono",monospace`;
+    lctx.textAlign='center'; lctx.textBaseline='middle';
+    const cw=lctx.measureText(cap).width+fsR*1.1, ch=fsR*1.7;
+    const cyy=lens.height-lens.width*0.075;
+    lctx.fillStyle='rgba(4,4,13,.86)';
+    lctx.beginPath();
+    if(lctx.roundRect) lctx.roundRect(c-cw/2,cyy-ch/2,cw,ch,ch*0.3); else lctx.rect(c-cw/2,cyy-ch/2,cw,ch);
+    lctx.fill();
+    lctx.fillStyle=hit&&gcd(hit[0],hit[1])===1?'rgba(255,232,160,.95)':'rgba(190,184,176,.9)';
+    lctx.fillText(cap,c,cyy);
     place(clientX,clientY);
   }
   function start(clientX,clientY){
