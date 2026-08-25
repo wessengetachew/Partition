@@ -371,10 +371,19 @@ select option{background:var(--bg2)}
 .dhead{
   display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--edge);
   font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);
-  background:var(--bg2);flex:0 0 auto;
+  background:var(--bg2);flex:0 0 auto;flex-wrap:wrap;row-gap:7px;
 }
 .dhead .spacer{flex:1}
-.dhead .sub{color:var(--cream3);letter-spacing:.1em;text-transform:none;font-size:9px}
+/* The summary line used to sit inline between the title and the chips, where
+   flex handed it whatever width was left over. Once the chips grew there was
+   almost nothing left, so it collapsed to one word per line and stretched the
+   header into a tall column. It now takes a row of its own below the chips and
+   is clipped rather than wrapped, so the header height is fixed no matter how
+   long the summary or how many chips there are. */
+.dhead .sub{
+  color:var(--cream3);letter-spacing:.1em;text-transform:none;font-size:9px;
+  order:10;flex:1 1 100%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
 .scroll{overflow-y:auto;min-height:0;flex:1;overscroll-behavior:contain;max-height:460px}
 .scroll::-webkit-scrollbar{width:7px}.scroll::-webkit-scrollbar-thumb{background:var(--edge2);border-radius:4px}
 table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px}
@@ -390,6 +399,12 @@ tbody tr{cursor:pointer}
 tbody tr:hover td{background:rgba(255,255,255,.045)}
 tbody tr.sel td{background:rgba(200,168,74,.13)}
 tbody tr.sel td:first-child{box-shadow:inset 2px 0 0 var(--gold)}
+/* a picked row carries the same hue its strips are drawn in on the plate, so
+   the table and the lattice can be read against each other without counting
+   positions in the legend */
+tbody tr.picked td{background:rgba(255,255,255,.06)}
+tbody tr.picked td:first-child{box-shadow:inset 3px 0 0 var(--pickc,var(--gold))}
+#tblwrap.picking tbody tr:hover td{background:rgba(200,168,74,.10)}
 .vg{color:var(--lime)}       /* Goldbach pair            */
 .vf{color:var(--coral)}      /* full but not a pair      */
 .vn{color:var(--cream3)}     /* not both full            */
@@ -785,6 +800,7 @@ body.is-fs .figcap{display:none}
         <span class="lab">Show</span>
         <button class="chip on" id="mm-pairs" onclick="setMultiMode('pairs')" style="flex:1">Goldbach pairs</button>
         <button class="chip" id="mm-all" onclick="setMultiMode('all')" style="flex:1">all partitions</button>
+        <button class="chip" id="mm-picked" onclick="setMultiMode('picked')" style="flex:1" title="Only the rows ticked in the partition table.">selected rows</button>
       </div>
       <div class="row" id="mp-batch-row" style="display:none;flex-wrap:wrap">
         <span class="lab">Batch</span>
@@ -800,7 +816,7 @@ body.is-fs .figcap{display:none}
         <button class="chip" style="flex:0 0 auto" onclick="pageStep(1)">▶</button>
       </div>
       <div class="note" id="mp-note" style="display:none">
-        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, and at <b>Off-gcd</b> (Strips panel) where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.<br><br>Click any entry in the legend under the figure to <b>collapse</b> that pair out of the overlay, and click it again to bring it back — the way to isolate two or three strips out of a crowded batch without leaving overlay mode. The <b>↗</b> on an entry does what clicking one used to: drop out of the overlay and open that g on its own in Grid. The legend box holds one height whatever the batch size, so paging or playing through batches never moves the buttons under it.
+        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, and at <b>Off-gcd</b> (Strips panel) where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.<br><br><b>selected rows</b> draws exactly the partitions you tick in the table below: turn on <b>✓ pick</b> in the partition-table header and each row click adds or removes that g instead of jumping the gap, with the row carrying the same hue its strips get on the plate. That is the way to compare four specific partitions rather than a computed class of them; the whole selection draws in one batch, and <b>clear</b> empties it.<br><br>Click any entry in the legend under the figure to <b>collapse</b> that pair out of the overlay, and click it again to bring it back — the way to isolate two or three strips out of a crowded batch without leaving overlay mode. The <b>↗</b> on an entry does what clicking one used to: drop out of the overlay and open that g on its own in Grid. The legend box holds one height whatever the batch size, so paging or playing through batches never moves the buttons under it.
       </div>
     </div>
   </div>
@@ -1098,6 +1114,8 @@ body.is-fs .figcap{display:none}
         <button class="chip on" id="f-gold" onclick="setFilter('gold')">pairs</button>
         <button class="chip" id="f-full" onclick="setFilter('full')">both full</button>
         <button class="chip" id="f-gap2n" onclick="setFilter('gap2n')">gap 2n</button>
+        <button class="chip" id="tbl-pick" onclick="togglePickMode()" title="Multi-select: click rows to add or remove them from the overlay instead of jumping the gap.">✓ pick</button>
+        <button class="chip" id="tbl-pick-clear" onclick="clearPicked()" style="display:none">clear</button>
       </div>
       <div class="dhead" style="border-bottom:1px solid var(--edge);flex-wrap:wrap;row-gap:8px">
         <span style="color:var(--violet);flex:0 0 auto;white-space:nowrap">n (gap = 2n)</span>
@@ -1570,7 +1588,10 @@ const S={G:194,g:193,col:'sector',lbl:'r',dim:0.45,stripDim:0,view:'grid',
          filter:'gold',rows:[],sel:null,gapN:1,
          multi:true,multiMode:'pairs',batch:0,page:0,items:[],pairIdx:new Map(),
          // g values the reader has collapsed out of the overlay from the legend
-         hidden:new Set()};
+         hidden:new Set(),
+         // pick: the partition table is in multi-select mode, so a row click
+         // adds/removes rather than jumping the gap. picked: the chosen g's.
+         pick:true,picked:new Set()};
 const BR={a:[61,200,184],b:[155,127,232],c:[200,168,74],d:[224,80,96]};
 const KIND_RGB={gOnly:[200,168,74],sOnly:[61,200,184],none:[58,58,70]};
 const KIND_ALPHA={gOnly:.55,sOnly:.55,none:.28};
@@ -1860,9 +1881,27 @@ function goldenColorRGB(i){
   const q=l<0.5?l*(1+s):l+s-l*s, p=2*l-q;
   return [Math.round(hue2rgb(p,q,h+1/3)*255),Math.round(hue2rgb(p,q,h)*255),Math.round(hue2rgb(p,q,h-1/3)*255)];
 }
+// Every overlay item's colour in one place. A hand-picked row gets its own
+// hue from its position in the selection rather than from the global pair
+// index, so a selection of three composites is three distinguishable colours
+// instead of three identical greys.
+function itemRGB(it){
+  if(it.pick) return goldenColorRGB(it.ci);
+  return it.kind==='pair' ? goldenColorRGB(S.pairIdx.get(it.g)||0) : KIND_RGB[it.kind];
+}
+function itemAlpha(it){
+  return it.pick ? 1 : (it.kind==='pair' ? 1 : KIND_ALPHA[it.kind]);
+}
 function computeMultiItems(){
   const G=S.G, E=2*(G+1), list=[];
-  if(S.multiMode==='pairs'){
+  if(S.multiMode==='picked'){
+    // exactly the rows the reader ticked, in g order, each with its own hue
+    [...S.picked].sort((a,b)=>a-b).forEach((g,i)=>{
+      if(g<1||g>G+1) return;                  // stale pick from a previous G
+      const s=E-g, gp=isPrime(g), sp=isPrime(s);
+      list.push({g,s,kind:gp&&sp?'pair':gp?'gOnly':sp?'sOnly':'none',pick:true,ci:i});
+    });
+  } else if(S.multiMode==='pairs'){
     for(let g=2;g<=E/2;g++) if(isPrime(g)&&isPrime(E-g)) list.push({g,s:E-g,kind:'pair'});
   } else {
     for(let g=1;g<=E/2;g++){
@@ -1899,8 +1938,7 @@ function multiPoints(G){
   const out=[];
   for(const it of currentBatch()){
     if(S.hidden.has(it.g)) continue;      // collapsed from the legend
-    const rgb = it.kind==='pair' ? goldenColorRGB(S.pairIdx.get(it.g)||0) : KIND_RGB[it.kind];
-    const baseA = it.kind==='pair' ? 1 : KIND_ALPHA[it.kind];
+    const rgb=itemRGB(it), baseA=itemAlpha(it);
     if(S.show.sum){
       for(let r=Math.max(1,it.g-G);r<=Math.min(G,it.g-1);r++) out.push([r,it.g-r,rgb,baseA]);
       if(it.s!==it.g) for(let r=Math.max(1,it.s-G);r<=Math.min(G,it.s-1);r++) out.push([r,it.s-r,rgb,baseA]);
@@ -2763,8 +2801,8 @@ function updateMultiLegend(batch){
   if(S.hidden.size)
     h+=`<span class="lg clickable act" onclick="showAllLegendItems()" title="put every collapsed strip back in the overlay">↺ show all &nbsp;<span style="color:var(--cream3)">${S.hidden.size} collapsed</span></span>`;
   batch.forEach(it=>{
-    const rgb = it.kind==='pair' ? goldenColorRGB(S.pairIdx.get(it.g)||0) : KIND_RGB[it.kind];
-    const tag = it.kind==='pair' ? `${it.g} + ${it.s}` :
+    const rgb=itemRGB(it);
+    const tag = (it.kind==='pair'||it.pick) ? `${it.g} + ${it.s}` :
       `${it.g} + ${it.s} · ${it.kind==='gOnly'?'g prime only':it.kind==='sOnly'?'s prime only':'neither prime'}`;
     const off=S.hidden.has(it.g);
     h+=`<span class="lg clickable${off?' off':''}" onclick="toggleLegendItem(${it.g})" `+
@@ -2772,7 +2810,9 @@ function updateMultiLegend(batch){
        `<span class="tag">${tag}</span>`+
        `<span class="jump" onclick="event.stopPropagation();jumpToLegendItem(${it.g})" title="open g=${it.g} on its own in Grid">↗</span></span>`;
   });
-  el.innerHTML=h||'<span class="lg">no items in this batch</span>';
+  el.innerHTML=h||(S.multiMode==='picked'
+    ? '<span class="lg">nothing selected — turn on <b style="color:var(--gold)">✓ pick</b> in the partition table and click rows to add them</span>'
+    : '<span class="lg">no items in this batch</span>');
 }
 // Clicking an entry collapses that pair out of the overlay and back in again,
 // so a crowded batch can be thinned down to the two or three strips actually
@@ -2870,10 +2910,17 @@ function renderTable(){
     return;
   }
   const shown=rows;   // always every matching row; the box scrolls
+  // colour index of each pick, matching computeMultiItems' g-sorted order, so
+  // the swatch on a row is the colour that row's strips are actually drawn in
+  const pickCol=new Map();
+  [...S.picked].sort((a,b)=>a-b).forEach((g,i)=>pickCol.set(g,rgbToCss(goldenColorRGB(i))));
   let h='<table><thead><tr><th>g</th><th>s = E−g</th><th>c &nbsp;φ(g)/(g−1)</th><th>d</th><th>g&gt;√E</th><th>verdict</th></tr></thead><tbody>';
   for(const r of shown){
     const v=r.both&&r.pair?['vg','Goldbach']:r.both?['vf','false +']:['vn','—'];
-    h+=`<tr data-g="${r.g}"${r.g===S.g?' class="sel"':''}>`+
+    const isPicked=S.picked.has(r.g);
+    const cls=[r.g===S.g?'sel':'',isPicked?'picked':''].filter(Boolean).join(' ');
+    h+=`<tr data-g="${r.g}"${cls?` class="${cls}"`:''}`+
+       `${isPicked?` style="--pickc:${pickCol.get(r.g)}"`:''}>`+
        `<td>${r.g}${isPrime(r.g)?' <span class="cfull">p</span>':''}${r.gGap?' <span class="gapn" title="part of a gap-'+(2*S.gapN)+' prime pair">±'+(2*S.gapN)+'</span>':''}</td>`+
        `<td>${r.s}${isPrime(r.s)?' <span class="dfull">p</span>':''}${r.sGap?' <span class="gapn" title="part of a gap-'+(2*S.gapN)+' prime pair">±'+(2*S.gapN)+'</span>':''}</td>`+
        `<td class="${r.cFull?'cfull':''}">${r.cCop}/${r.cTot}</td>`+
@@ -2884,15 +2931,56 @@ function renderTable(){
   h+='</tbody></table>';
   const wrap=document.getElementById('tblwrap');
   wrap.innerHTML=h;
+  wrap.classList.toggle('picking',S.pick);
   wrap.querySelectorAll('tbody tr').forEach(tr=>{
     tr.addEventListener('click',()=>{
+      const g=+tr.dataset.g;
+      // In pick mode a row click adds or removes that g from the overlay and
+      // the drawer is left alone — the whole point is to compare several
+      // partitions at once, which single-gap mode cannot show.
+      if(S.pick){ togglePicked(g); return; }
       // Same reasoning as the grid click and the lens: the drawer only shows
       // the single (c,d) strip pair for one gap, so a row pick has to drop
       // out of the multi-pair overlay first or the drawer stays empty.
       if(S.multi) toggleMulti();
-      setGap(+tr.dataset.g);
+      setGap(g);
     });
   });
+}
+/* ── multi-select from the partition table ──────────────────────────
+   Overlay mode could only ever show a whole computed class — every Goldbach
+   pair of E, or every partition — sliced into batches. This lets a reader
+   assemble an arbitrary set by hand: tick four rows and compare exactly those
+   four strip families, which is the natural move once the table has shown you
+   which rows are interesting. */
+function syncPickUI(){
+  const b=document.getElementById('tbl-pick');
+  if(b){ b.classList.toggle('on',S.pick); b.textContent=S.pick?'✓ picking':'✓ pick'; }
+  const c=document.getElementById('tbl-pick-clear');
+  if(c){
+    c.style.display=S.picked.size?'inline-flex':'none';
+    c.textContent=`clear ${S.picked.size}`;
+  }
+}
+function togglePickMode(){
+  S.pick=!S.pick;
+  if(S.pick){
+    if(!S.multi) toggleMulti();
+    setMultiMode('picked');
+  }
+  renderTable(); syncPickUI();
+}
+function togglePicked(g){
+  if(S.picked.has(g)) S.picked.delete(g); else S.picked.add(g);
+  if(!S.multi) toggleMulti();
+  if(S.multiMode!=='picked'){ setMultiMode('picked'); }
+  else { computeMultiItems(); render(); }
+  renderTable(); syncPickUI();
+}
+function clearPicked(){
+  S.picked.clear();
+  if(S.multi&&S.multiMode==='picked') computeMultiItems();
+  render(); renderTable(); syncPickUI();
 }
 // scrollIntoView walks up and scrolls EVERY scrollable ancestor, which on a
 // stacked layout drags the whole document to the bottom every time the gap
@@ -3002,6 +3090,10 @@ function setG(v){
   document.getElementById('rd-cop').title=`density ${(ds.density*100).toFixed(3)}%`;
   document.getElementById('rd-zdiff').textContent=(ds.errPct>=0?'+':'')+ds.errPct.toFixed(2)+'%';
   document.getElementById('rd-zdiff').title=`1/ζ(2) = ${ds.zc.toFixed(4)}`;
+  // A pick is a g value under the old G; after a resize it may not exist, and
+  // where it does it names a different partition. Dropping the selection is the
+  // honest move — silently re-pointing it at another row is not.
+  if(S.picked.size){ S.picked.clear(); if(typeof syncPickUI==='function') syncPickUI(); }
   syncMirrors();
   // A running Play-G sweep drives G through this same function on every tick.
   // Only a *manual* G change (slider drag, preset, typed value) should cancel
@@ -3042,13 +3134,24 @@ function toggleMulti(){
     el.style.opacity=S.multi?0.35:1;
   });
   if(S.multi){ computeMultiItems(); }
-  else { restoreDefaultLegend(); }
+  else {
+    restoreDefaultLegend();
+    if(S.pick){ S.pick=false; syncPickUI(); renderTable(); }
+  }
   render();
 }
 function setMultiMode(m){
   S.multiMode=m; S.page=0;
-  document.getElementById('mm-pairs').classList.toggle('on',m==='pairs');
-  document.getElementById('mm-all').classList.toggle('on',m==='all');
+  ['pairs','all','picked'].forEach(k=>{
+    const b=document.getElementById('mm-'+k); if(b) b.classList.toggle('on',k===m);
+  });
+  // Pick mode deliberately survives a mode switch: the first row click brings
+  // 'picked' back up by itself (see togglePicked), so leaving it on while the
+  // pairs overlay is showing costs nothing and saves re-arming the chip every
+  // time. Forcing it off here would also fight the default, which is pick-on.
+  // A hand-picked set is small and is meant to be seen at once — batching it
+  // would hide most of what the reader just chose.
+  if(m==='picked') S.batch=0;
   computeMultiItems();
   render();
 }
@@ -4215,7 +4318,7 @@ function drawMultiHeader(ctx,px,top,M){
   let lx=M, ly=top+lineH*0.5;
   for(let i=0;i<MAXSHOW;i++){
     const it=batch[i];
-    const rgb=it.kind==='pair'?goldenColorRGB(S.pairIdx.get(it.g)||0):KIND_RGB[it.kind];
+    const rgb=itemRGB(it);
     // a pair collapsed from the on-screen legend is not drawn in the plate, so
     // it must not be listed here as though it were — it is kept in the list but
     // struck through, which is more honest than dropping it silently
@@ -4848,6 +4951,7 @@ function doReportPDF(){
     setMultiMode(S.multiMode);
     setBatchSize(S.batch);
   }
+  syncPickUI();          // pick mode is on by default — the chip has to say so
   syncMirrors();
   // Keep --wg-navh equal to the live height of the sticky page nav so #nbar2
   // parks directly beneath it at any viewport width (the nav wraps to 2–3
