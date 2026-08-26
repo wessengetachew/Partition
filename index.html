@@ -207,6 +207,122 @@ h1.hero-title{font-family:var(--disp);font-size:clamp(1.4rem,4vw,2.2rem);letter-
   border:1px solid var(--edge);border-radius:2px;
 }
 #cv{display:block;image-rendering:pixelated;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;touch-action:none}
+
+/* ── corridor (3D ternary-Goldbach / visible-lattice view) ───────── */
+#fig-corridor{
+  position:relative;width:100%;aspect-ratio:1/1;max-width:min(74vh,760px);margin:0 auto;
+  background:var(--bg);border:1px solid var(--edge);border-radius:2px;overflow:hidden;
+}
+#cor-scene{position:absolute;inset:0;z-index:1}
+#cor-scene canvas{display:block;touch-action:none}
+#cor-hud{
+  position:absolute;top:10px;right:10px;z-index:5;
+  font-family:var(--mono);font-size:9.5px;color:var(--cream2);letter-spacing:.04em;
+  background:rgba(7,7,26,.7);border:1px solid var(--edge2);border-radius:4px;
+  padding:5px 9px;pointer-events:none;
+}
+#cor-hud span{color:var(--gold)}
+#cor-panel{
+  position:absolute;left:10px;bottom:10px;z-index:5;width:230px;max-width:calc(100% - 20px);
+  background:rgba(7,7,26,.92);border:1px solid var(--edge2);border-radius:5px;
+  font-family:var(--mono);font-size:9.5px;color:var(--cream2);
+  max-height:70%;overflow-y:auto;transition:max-height .18s ease;
+}
+#cor-panel.cor-collapsed{max-height:32px;overflow:hidden}
+#cor-panel-head{
+  display:flex;align-items:center;justify-content:space-between;cursor:pointer;
+  padding:8px 11px;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);user-select:none;
+}
+#cor-panel-head span.cor-arrow{color:var(--cream3);transition:transform .18s ease}
+#cor-panel.cor-collapsed #cor-panel-head span.cor-arrow{transform:rotate(-90deg)}
+#cor-panel-body{padding:0 12px 11px}
+.cor-sec{font-size:7.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin:7px 0 5px;padding-top:6px;border-top:1px solid var(--edge)}
+.cor-sec:first-child{margin-top:0;padding-top:0;border-top:none}
+.cor-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.cor-row:last-child{margin-bottom:0}
+.cor-lbl{flex:0 0 52px;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--cream3)}
+.cor-num{
+  width:58px;background:rgba(255,255,255,.05);border:1px solid var(--edge2);color:var(--gold);
+  font-family:var(--mono);font-size:10px;padding:3px 4px;text-align:center;border-radius:2px;
+}
+.cor-step{
+  width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:none;border:1px solid var(--edge2);color:var(--teal);cursor:pointer;font-size:11px;border-radius:2px;
+}
+.cor-step:hover{background:rgba(61,200,184,.1)}
+.cor-range{flex:1;accent-color:var(--violet)}
+.cor-toggle{
+  flex:1;background:none;border:1px solid var(--edge2);color:var(--cream2);padding:4px 7px;
+  cursor:pointer;font-family:var(--mono);font-size:8.5px;letter-spacing:.04em;border-radius:2px;transition:all .15s;
+}
+.cor-toggle.on{color:var(--teal);border-color:rgba(61,200,184,.5);background:rgba(61,200,184,.08)}
+.cor-views{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.cor-view-btn{
+  flex:1 1 27%;background:none;border:1px solid var(--edge2);color:var(--cream2);padding:5px 3px;
+  cursor:pointer;font-family:var(--mono);font-size:8px;letter-spacing:.03em;border-radius:2px;transition:all .15s;
+}
+.cor-view-btn:hover{border-color:var(--gold);color:var(--gold)}
+#cor-stats{color:var(--cream3);font-size:8.5px;line-height:1.6}
+#cor-stats b{color:var(--gold);font-weight:500}
+#cor-stats .cor-hi{color:var(--teal)}
+.cor-rot-row{display:flex;align-items:center;gap:5px;margin-bottom:5px}
+.cor-rot-lbl{flex:0 0 12px;font-size:8.5px;color:var(--cream3)}
+.cor-rot-num{
+  flex:1;background:rgba(255,255,255,.05);border:1px solid var(--edge2);color:var(--gold);
+  font-family:var(--mono);font-size:10px;padding:3px 4px;text-align:center;border-radius:2px;
+}
+.cor-rot-reset{width:100%;margin-top:2px}
+#cor-legend{
+  position:absolute;right:10px;bottom:10px;z-index:5;
+  background:rgba(7,7,26,.86);border:1px solid var(--edge2);border-radius:5px;
+  padding:8px 11px;font-family:var(--mono);font-size:8px;color:var(--cream3);
+  max-width:180px;line-height:1.6;
+}
+#cor-legend b{color:var(--cream2);font-weight:500;display:block;margin-bottom:3px;font-size:8.5px}
+.cor-leg-swatch{display:inline-block;width:7px;height:7px;border-radius:1px;margin-right:4px;vertical-align:middle}
+#cor-hint{
+  position:absolute;left:50%;transform:translateX(-50%);bottom:10px;z-index:4;
+  font-family:var(--mono);font-size:7.5px;letter-spacing:.04em;color:var(--cream3);
+  opacity:.6;pointer-events:none;text-align:center;white-space:nowrap;
+}
+@media(max-width:640px){
+  #cor-legend{display:none}
+  #cor-panel{width:calc(100% - 20px)}
+  #cor-hint{display:none}
+}
+
+/* ── deep search (arbitrary E via the a/b/c/d identity, off-grid) ─── */
+#deepsearch-hdr .rarrow{display:inline-block;transition:transform .25s;color:var(--gold);margin-right:6px}
+#deepsearch-hdr.open .rarrow{transform:rotate(90deg)}
+#deepsearch-body{display:none}
+#deepsearch-body.open{display:block}
+.ds-num{
+  background:rgba(255,255,255,.05);border:1px solid var(--edge2);color:var(--gold);
+  font-family:var(--mono);font-size:12px;padding:5px 8px;text-align:center;border-radius:2px;
+}
+.ds-note{font-family:var(--mono);font-size:9px;color:var(--cream3);line-height:1.6;margin:2px 0 10px}
+.ds-status{font-family:var(--mono);font-size:9.5px;color:var(--teal);min-height:14px;margin-bottom:8px}
+.ds-summary{font-family:var(--mono);font-size:10px;color:var(--cream2);line-height:1.7;margin-bottom:10px}
+.ds-summary b{color:var(--gold);font-weight:500}
+#ds-table{border:1px solid var(--edge);border-radius:3px;overflow:hidden;margin-bottom:10px}
+.ds-row{
+  display:flex;align-items:center;gap:10px;padding:6px 10px;
+  font-family:var(--mono);font-size:10.5px;color:var(--cream2);
+  border-bottom:1px solid var(--edge);
+}
+.ds-row:last-child{border-bottom:none}
+.ds-row:nth-child(even){background:rgba(255,255,255,.02)}
+.ds-row .ds-g{color:var(--teal);min-width:70px}
+.ds-row .ds-s{color:var(--cream3);flex:1}
+.ds-row .ds-jump{
+  background:none;border:1px solid var(--edge2);color:var(--gold);cursor:pointer;
+  font-family:var(--mono);font-size:9px;letter-spacing:.04em;padding:4px 9px;border-radius:2px;
+}
+.ds-row .ds-jump:hover{background:rgba(200,168,74,.1)}
+.ds-row .ds-jump:disabled{opacity:.35;cursor:not-allowed}
+.ds-pager{display:flex;align-items:center;justify-content:center;gap:12px}
+.ds-pageinfo{font-family:var(--mono);font-size:9.5px;color:var(--cream3)}
+
 #lens{
   position:absolute;display:none;pointer-events:none;z-index:30;
   border:2px solid var(--gold);overflow:hidden;
@@ -766,6 +882,7 @@ body.is-fs .figcap{display:none}
     <button class="vm-btn" id="vw-ring" onclick="setView('ring')" title="Concentric rings — ring M at radius M/G, point r at angle 2πr/M. Only r&lt;M sits within one turn; r&gt;M wraps past 2π onto the same ring, so nothing is dropped.">Ring</button>
     <button class="vm-btn" id="vw-cayley" onclick="setView('cayley')" title="The same ring points, 1:1, run through a Möbius map. Three are selectable in the Instrument panel: Γ(z)=(z−1)/(z+1) on an annulus, the Blaschke automorphism φₐ on the disk, and K(z)=(z−i)/(z+i) on Ford coordinates. The plate readout gives the measured maximum and what falls outside it.">Cayley</button>
     <button class="vm-btn" id="vw-circle" onclick="setView('circle')" title="The Hardy–Littlewood exponential sum S(α) = Σ e(2πiαp) over primes p ≤ E, plotted across α ∈ [0,1). Peaks at rationals p/q (major arcs) are where the circle method predicts Goldbach representations come from. Depends only on E, not on the current g.">Circle</button>
+    <button class="vm-btn" id="vw-corridor" onclick="setView('corridor')" title="A 3D view: rays to every visible lattice point (gcd(x,y,z)=1, density 1/ζ(3)) with the ternary-Goldbach triples p+q+r=N highlighted among them. Independent of g; N defaults from the current E.">Corridor</button>
   </div>
 
   <div id="figure">
@@ -774,6 +891,63 @@ body.is-fs .figcap{display:none}
       <div id="hud"></div>
       <div id="probe"></div>
     </div>
+    <div id="fig-corridor" style="display:none">
+      <div id="cor-scene"></div>
+      <div id="cor-hud">X <span id="cor-hud-x">0°</span>&nbsp;&nbsp;Y <span id="cor-hud-y">0°</span>&nbsp;&nbsp;Z <span id="cor-hud-z">0°</span></div>
+      <div id="cor-panel" class="cor-collapsed">
+        <div id="cor-panel-head"><span>Controls</span><span class="cor-arrow">▾</span></div>
+        <div id="cor-panel-body">
+          <div class="cor-sec">Views</div>
+          <div class="cor-views">
+            <button class="cor-view-btn" data-view="iso">Iso</button>
+            <button class="cor-view-btn" data-view="front">Front</button>
+            <button class="cor-view-btn" data-view="side">Side</button>
+            <button class="cor-view-btn" data-view="top">Top</button>
+            <button class="cor-view-btn" data-view="bottom">Bottom</button>
+          </div>
+          <div class="cor-sec">Lattice field (1/ζ(3))</div>
+          <div class="cor-row">
+            <span class="cor-lbl">Extent</span>
+            <input type="range" id="cor-grid-range" class="cor-range" min="4" max="36" value="16" step="1">
+          </div>
+          <div class="cor-row">
+            <button class="cor-toggle on" id="cor-t-field">Field: On</button>
+          </div>
+          <div class="cor-sec">Ternary Goldbach (p+q+r=N)</div>
+          <div class="cor-row">
+            <span class="cor-lbl">N</span>
+            <button class="cor-step" id="cor-n-dn">−</button>
+            <input type="number" id="cor-n-num" class="cor-num" value="199" step="2" min="7">
+            <button class="cor-step" id="cor-n-up">+</button>
+          </div>
+          <div class="cor-row">
+            <input type="range" id="cor-n-range" class="cor-range" min="7" max="1999" value="199" step="2">
+          </div>
+          <div class="cor-row">
+            <button class="cor-toggle on" id="cor-t-strands">Strands: On</button>
+            <button class="cor-toggle" id="cor-t-spin">Auto-rotate: Off</button>
+          </div>
+          <div class="cor-sec">Stats</div>
+          <div id="cor-stats"></div>
+          <div class="cor-sec">Rotation (0–360°)</div>
+          <div class="cor-rot-row">
+            <span class="cor-rot-lbl">X</span>
+            <input type="number" id="cor-rot-x" class="cor-rot-num" value="0" min="0" max="360" step="1">
+            <span class="cor-rot-lbl">Y</span>
+            <input type="number" id="cor-rot-y" class="cor-rot-num" value="0" min="0" max="360" step="1">
+            <span class="cor-rot-lbl">Z</span>
+            <input type="number" id="cor-rot-z" class="cor-rot-num" value="0" min="0" max="360" step="1">
+          </div>
+          <button class="cor-toggle cor-rot-reset" id="cor-t-rot-reset">Reset rotation</button>
+        </div>
+      </div>
+      <div id="cor-legend">
+        <b>Reading it</b>
+        <span class="cor-leg-swatch" style="background:rgba(61,200,184,.55)"></span>ray to a visible point (gcd(x,y,z)=1)<br>
+        <span class="cor-leg-swatch" style="background:var(--gold)"></span>strand to a prime triple (p,q,r), p+q+r=N
+      </div>
+      <div id="cor-hint">drag to rotate the model · scroll to zoom</div>
+    </div>
     <div id="hud-out"></div>
     <div id="legend">
       <span class="lg"><i style="background:var(--teal)"></i>a &nbsp;M−r=g<span class="ar">↘</span></span>
@@ -781,7 +955,7 @@ body.is-fs .figcap{display:none}
       <span class="lg"><i style="background:var(--gold)"></i>c &nbsp;r+M=g<span class="ar">↗</span></span>
       <span class="lg"><i style="background:var(--coral)"></i>d &nbsp;r+M=E−g<span class="ar">↗</span></span>
     </div>
-    <div class="figcap">
+    <div class="figcap" id="figcap">
       <b>Figure 1.</b> The G×G coprimality lattice with the four strips of gap g overlaid. Hover a cell (Grid view) for its
       gcd reduction; click to jump the gap to the sum strip through that cell.
     </div>
@@ -798,6 +972,33 @@ body.is-fs .figcap{display:none}
   <div class="db-item"><span class="db-lbl">√E threshold</span><span class="db-val" id="rd-thr">—</span></div>
   <div class="db-item"><span class="db-lbl">gcd=1 / total</span><span class="db-val teal" id="rd-cop">—</span></div>
   <div class="db-item"><span class="db-lbl">vs 1/ζ(2)</span><span class="db-val" id="rd-zdiff">—</span></div>
+</div>
+
+<!-- ══════════ DEEP SEARCH — arbitrary E via the a/b/c/d identity ══════════ -->
+<div class="sect" id="deepsearch">
+  <div class="sect-hdr" id="deepsearch-hdr" onclick="toggleGrp('deepsearch')"><span class="rarrow">▸</span>Deep search — arbitrary E</div>
+  <div id="deepsearch-body">
+    <div class="grp" style="border:none;padding:0 0 4px">
+      <div class="row">
+        <span class="lab">E</span>
+        <input type="number" id="ds-E" class="ds-num" min="6" step="2" value="390" style="flex:1">
+        <button class="chip" id="ds-go" onclick="runDeepSearch()" style="flex:0 0 auto">Search</button>
+      </div>
+      <div class="ds-note">
+        A gap g is a Goldbach pair of E iff g and E−g are both prime — the a/b/c/d lines encode that, but never require it. This sieves once up to E and reads primality straight off, independent of the grid's 4096 render cap. E over ~8194 can be searched here but can't be opened on the Grid/Ring/Cayley plate.
+      </div>
+      <div id="ds-status" class="ds-status"></div>
+      <div id="ds-results" style="display:none">
+        <div id="ds-summary" class="ds-summary"></div>
+        <div id="ds-table"></div>
+        <div class="ds-pager">
+          <button class="chip" id="ds-prev" onclick="dsPage(-1)">◂ Prev</button>
+          <span id="ds-pageinfo" class="ds-pageinfo"></span>
+          <button class="chip" id="ds-next" onclick="dsPage(1)">Next ▸</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ══════════ CONTROLS ══════════ -->
@@ -3453,12 +3654,17 @@ function syncVerdict(txt,cls){
 }
 const CIRCLE_NOTE='Circle plots the Hardy–Littlewood exponential sum S(α) = Σ e(2πiαp) over primes p ≤ E — the analytic version of the same Goldbach question the strips ask combinatorially. It depends only on E, not on the current g, so the gap slider won\'t change this plot.';
 const POLAR_NOTE='Ring/Cayley plot the same a/b/c/d strip points as Grid, just re-projected — the underlying (r,M) data is identical.';
+const ORIGINAL_FIGCAP=`<b>Figure 1.</b> The G×G coprimality lattice with the four strips of gap g overlaid. Hover a cell (Grid view) for its
+      gcd reduction; click to jump the gap to the sum strip through that cell.`;
+const CORRIDOR_FIGCAP=`<b>Figure 5.</b> A 3D octant from (0,0,0): translucent rays reach every visible lattice point (gcd(x,y,z)=1 — density 1/ζ(3)); gold–coral strands pick out the ternary-Goldbach triples p+q+r=N among them. Drag to rotate, scroll to zoom, or dial exact angles below.`;
 function setView(v){
   S.view=v;
-  ['grid','ring','cayley','circle'].forEach(k=>document.getElementById('vw-'+k).classList.toggle('active',k===v));
+  ['grid','ring','cayley','circle','corridor'].forEach(k=>{
+    const btn=document.getElementById('vw-'+k); if(btn) btn.classList.toggle('active',k===v);
+  });
   const noteEl=document.getElementById('view-note');
-  noteEl.style.display=v==='grid'?'none':'block';
-  noteEl.textContent=v==='circle'?CIRCLE_NOTE:POLAR_NOTE;
+  noteEl.style.display=(v==='grid'||v==='corridor')?'none':'block';
+  if(v!=='corridor') noteEl.textContent=v==='circle'?CIRCLE_NOTE:POLAR_NOTE;
   document.getElementById('polar-extra').style.display=(v==='ring'||v==='cayley')?'block':'none';
   document.getElementById('cz-row').style.display=v==='cayley'?'flex':'none';
   document.getElementById('cmap-block').style.display=v==='cayley'?'block':'none';
@@ -3468,9 +3674,30 @@ function setView(v){
   document.getElementById('lbladapt-row').style.display=(v==='ring'||v==='cayley')?'flex':'none';
   if(v==='ring'||v==='cayley') syncPolarControls();
   if(v==='circle') restoreCircleLegend(); else if(!S.multi) restoreDefaultLegend();
+
+  // Corridor is a separate WebGL panel, not another projection of the 2D
+  // canvas — swap the whole plate out rather than reusing #cv.
+  const plate=document.getElementById('plate'), fc=document.getElementById('fig-corridor');
+  const legendEl=document.getElementById('legend'), hudOutEl=document.getElementById('hud-out');
+  const figcapEl=document.getElementById('figcap');
+  if(v==='corridor'){
+    plate.style.display='none'; fc.style.display='block';
+    legendEl.style.display='none'; hudOutEl.style.display='none';
+    figcapEl.innerHTML=CORRIDOR_FIGCAP;
+    loadCorridorLibs().then(()=>{
+      initCorridorOnce();
+      syncCorridorFromMain();
+      resizeCorridorRenderer();
+    });
+  } else {
+    plate.style.display='flex'; fc.style.display='none';
+    legendEl.style.display=''; hudOutEl.style.display='';
+    figcapEl.innerHTML=ORIGINAL_FIGCAP;
+  }
+
   const expBox=document.getElementById('exp-'+v);
   if(expBox) expBox.checked=true;
-  render();
+  if(v!=='corridor') render();
 }
 // Ring and Cayley each keep their own zoom-in and θ, so switching views puts
 // the sliders back where that view left them rather than carrying one view's
@@ -5054,6 +5281,405 @@ function doReportPDF(){
     if(window.ResizeObserver) new ResizeObserver(syncNb2).observe(nb2);
     window.addEventListener('resize',syncNb2);
   }
+})();
+</script>
+
+<!-- ══════════ CORRIDOR (3D view) — isolated in its own scope so it can't
+     collide with the main page's S, render(), etc. Libraries are loaded
+     lazily, only the first time someone opens this tab. ══════════ -->
+<script>
+(function(){
+  let libsPromise=null;
+  function loadCorridorLibs(){
+    if(libsPromise) return libsPromise;
+    libsPromise=new Promise((resolve,reject)=>{
+      const s1=document.createElement('script');
+      s1.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+      s1.onload=()=>{
+        const s2=document.createElement('script');
+        s2.src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';
+        s2.onload=resolve; s2.onerror=reject;
+        document.head.appendChild(s2);
+      };
+      s1.onerror=reject;
+      document.head.appendChild(s1);
+    });
+    return libsPromise;
+  }
+  window.loadCorridorLibs=loadCorridorLibs;
+
+  let ready=false;
+  let CS; // corridor-local handles (scene, camera, renderer, groups, state) — kept off window
+  function initCorridorOnce(){
+    if(ready) return;
+    ready=true;
+
+    const mount=document.getElementById('cor-scene');
+    const scene=new THREE.Scene();
+    const camera=new THREE.PerspectiveCamera(45, 1, 0.1, 8000);
+    const renderer=new THREE.WebGLRenderer({antialias:true, alpha:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    mount.appendChild(renderer.domElement);
+
+    const controls=new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping=true; controls.dampingFactor=0.08;
+    controls.minDistance=8; controls.maxDistance=2000;
+    controls.enableRotate=false; // rotation is driven by the world group below, not the camera
+    controls.enablePan=false;
+
+    scene.add(new THREE.AmbientLight(0xffffff,1));
+
+    const fieldGroup=new THREE.Group(), strandGroup=new THREE.Group(), axesGroup=new THREE.Group();
+    const world=new THREE.Group(); // everything rotates together, pivoting on (0,0,0)
+    world.add(fieldGroup); world.add(strandGroup); world.add(axesGroup);
+    scene.add(world);
+
+    const WORLD=52; // world half-extent the octant is normalized into
+
+    function sieve(n){
+      const p=new Uint8Array(n+1); p.fill(1); if(n>=0)p[0]=0; if(n>=1)p[1]=0;
+      for(let i=2;i*i<=n;i++) if(p[i]) for(let j=i*i;j<=n;j+=i) p[j]=0;
+      return p;
+    }
+    function gcd3(a,b,c){
+      const g2=(x,y)=>{ while(y){ [x,y]=[y,x%y]; } return x; };
+      return g2(g2(a,b),c);
+    }
+    // every odd N>5 as p<=q<=r primes, p+q+r=N (Vinogradov / weak Goldbach)
+    function ternaryTriples(N){
+      const isPrime=sieve(N);
+      const out=[];
+      for(let p=2;p<=N/3;p++){
+        if(!isPrime[p]) continue;
+        for(let q=p;q<=(N-p)/2;q++){
+          if(!isPrime[q]) continue;
+          const r=N-p-q;
+          if(r<q) continue;
+          if(isPrime[r]) out.push([p,q,r]);
+        }
+      }
+      return out;
+    }
+
+    function buildAxes(){
+      axesGroup.clear();
+      const mk=(dir,color)=>{
+        const geo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), dir.clone().multiplyScalar(WORLD*1.08)]);
+        axesGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({color, transparent:true, opacity:0.5})));
+      };
+      mk(new THREE.Vector3(1,0,0), 0xe05060);
+      mk(new THREE.Vector3(0,1,0), 0x7ec87a);
+      mk(new THREE.Vector3(0,0,1), 0x3dc8b8);
+    }
+    buildAxes();
+
+    function buildField(N){
+      fieldGroup.clear();
+      const pts=[];
+      let total=0, visible=0;
+      for(let x=0;x<=N;x++) for(let y=0;y<=N;y++) for(let z=0;z<=N;z++){
+        if(x===0&&y===0&&z===0) continue;
+        total++;
+        if(gcd3(x,y,z)===1){ visible++; pts.push(0,0,0, x,y,z); }
+      }
+      const scale=WORLD/N;
+      for(let i=0;i<pts.length;i++) pts[i]*=scale;
+      const geo=new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pts,3));
+      const mat=new THREE.LineBasicMaterial({color:0x3dc8b8, transparent:true, opacity:0.12});
+      fieldGroup.add(new THREE.LineSegments(geo,mat));
+      return {total, visible};
+    }
+
+    function buildStrands(N){
+      strandGroup.clear();
+      const triples=ternaryTriples(N);
+      const maxCoord=Math.max(1,...triples.flat());
+      const scale=WORLD/maxCoord;
+      const pts=[], cols=[];
+      const col1=new THREE.Color(0xc8a84a), col2=new THREE.Color(0xe05060);
+      triples.forEach(([p,q,r])=>{
+        pts.push(0,0,0, p*scale,q*scale,r*scale);
+        const t=p/(N/3);
+        const c=col1.clone().lerp(col2, Math.min(1,t));
+        cols.push(c.r,c.g,c.b, c.r,c.g,c.b);
+      });
+      const geo=new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pts,3));
+      geo.setAttribute('color', new THREE.Float32BufferAttribute(cols,3));
+      const mat=new THREE.LineBasicMaterial({vertexColors:true, transparent:true, opacity:0.85});
+      strandGroup.add(new THREE.LineSegments(geo,mat));
+      return triples;
+    }
+
+    const CSS={gridN:16, showField:true, N:199, showStrands:true, spin:false};
+    let lastTripleCount=0, lastVisibleFrac=0, lastTotal=0;
+
+    function updateStatsFooter(){
+      const theory=1/1.2020569032;
+      document.getElementById('cor-stats').innerHTML=
+        `field: <b>${lastTotal.toLocaleString()}</b> points, <span class="cor-hi">${(lastVisibleFrac*100).toFixed(1)}%</span> visible`+
+        `<br>theory 1/ζ(3) = <span class="cor-hi">${(theory*100).toFixed(1)}%</span>`+
+        `<br>ternary triples for N=${CSS.N}: <b>${lastTripleCount}</b>`+
+        `<br>(all but the degenerate p=q=r=N/3 case are automatically visible)`;
+    }
+    function rebuildField(){
+      const {total,visible}=buildField(CSS.gridN);
+      fieldGroup.visible=CSS.showField;
+      lastTotal=total; lastVisibleFrac=visible/total;
+      updateStatsFooter();
+    }
+    function rebuildStrands(){
+      const triples=buildStrands(CSS.N);
+      strandGroup.visible=CSS.showStrands;
+      lastTripleCount=triples.length;
+      updateStatsFooter();
+    }
+
+    const rotState={x:0,y:0,z:0};
+    function applyRotation(){
+      world.rotation.set(
+        THREE.MathUtils.degToRad(rotState.x),
+        THREE.MathUtils.degToRad(rotState.y),
+        THREE.MathUtils.degToRad(rotState.z)
+      );
+      document.getElementById('cor-hud-x').textContent=Math.round(rotState.x)+'°';
+      document.getElementById('cor-hud-y').textContent=Math.round(rotState.y)+'°';
+      document.getElementById('cor-hud-z').textContent=Math.round(rotState.z)+'°';
+      const ix=document.getElementById('cor-rot-x'), iy=document.getElementById('cor-rot-y'), iz=document.getElementById('cor-rot-z');
+      if(document.activeElement!==ix) ix.value=Math.round(rotState.x);
+      if(document.activeElement!==iy) iy.value=Math.round(rotState.y);
+      if(document.activeElement!==iz) iz.value=Math.round(rotState.z);
+    }
+
+    const CENTER=new THREE.Vector3(0,0,0);
+    const CONTENT_RADIUS=WORLD*Math.sqrt(3);
+    function fitDistance(){
+      const vFov=THREE.MathUtils.degToRad(camera.fov);
+      const aspect=camera.aspect;
+      const hFov=2*Math.atan(Math.tan(vFov/2)*aspect);
+      const dv=CONTENT_RADIUS/Math.sin(vFov/2);
+      const dh=CONTENT_RADIUS/Math.sin(hFov/2);
+      return Math.max(dv,dh)*1.18;
+    }
+    function setCorView(name){
+      const d=fitDistance();
+      const dirs={
+        iso:    new THREE.Vector3(0.62,0.5,0.62),
+        front:  new THREE.Vector3(0,0,1),
+        side:   new THREE.Vector3(1,0,0),
+        top:    new THREE.Vector3(0,1,0.0001),
+        bottom: new THREE.Vector3(0,-1,0.0001),
+      };
+      const dir=(dirs[name]||dirs.iso).normalize();
+      if(name==='top') camera.up.set(0,0,-1);
+      else if(name==='bottom') camera.up.set(0,0,1);
+      else camera.up.set(0,1,0);
+      camera.position.copy(dir.multiplyScalar(d));
+      controls.target.copy(CENTER);
+      controls.update();
+    }
+    document.querySelectorAll('.cor-view-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>setCorView(btn.dataset.view));
+    });
+
+    renderer.domElement.style.touchAction='none';
+    let dragging=false, lastX=0, lastY=0;
+    renderer.domElement.addEventListener('pointerdown',e=>{
+      dragging=true; lastX=e.clientX; lastY=e.clientY;
+      renderer.domElement.setPointerCapture(e.pointerId);
+    });
+    renderer.domElement.addEventListener('pointermove',e=>{
+      if(!dragging) return;
+      const dx=e.clientX-lastX, dy=e.clientY-lastY;
+      lastX=e.clientX; lastY=e.clientY;
+      rotState.y=(rotState.y+dx*0.35+360)%360;
+      rotState.x=(rotState.x+dy*0.35+360)%360;
+      applyRotation();
+    });
+    renderer.domElement.addEventListener('pointerup',()=>{ dragging=false; });
+    renderer.domElement.addEventListener('pointercancel',()=>{ dragging=false; });
+
+    function wrap360(v){ return ((v%360)+360)%360; }
+    const rotX=document.getElementById('cor-rot-x'), rotY=document.getElementById('cor-rot-y'), rotZ=document.getElementById('cor-rot-z');
+    rotX.addEventListener('input',()=>{ rotState.x=wrap360(+rotX.value||0); applyRotation(); });
+    rotY.addEventListener('input',()=>{ rotState.y=wrap360(+rotY.value||0); applyRotation(); });
+    rotZ.addEventListener('input',()=>{ rotState.z=wrap360(+rotZ.value||0); applyRotation(); });
+    document.getElementById('cor-t-rot-reset').addEventListener('click',()=>{
+      rotState.x=0; rotState.y=0; rotState.z=0; applyRotation();
+    });
+
+    document.getElementById('cor-grid-range').addEventListener('input',e=>{
+      CSS.gridN=+e.target.value; rebuildField();
+    });
+    const tField=document.getElementById('cor-t-field');
+    tField.onclick=()=>{
+      CSS.showField=!CSS.showField; fieldGroup.visible=CSS.showField;
+      tField.textContent='Field: '+(CSS.showField?'On':'Off');
+      tField.classList.toggle('on',CSS.showField);
+    };
+
+    const nNum=document.getElementById('cor-n-num'), nRange=document.getElementById('cor-n-range');
+    function setN(v){
+      v=Math.max(7, v%2===0? v+1 : v);
+      CSS.N=v; nNum.value=v; nRange.value=Math.min(+nRange.max, v);
+      rebuildStrands();
+    }
+    nNum.addEventListener('change',()=>setN(+nNum.value||199));
+    nRange.addEventListener('input',()=>setN(+nRange.value));
+    document.getElementById('cor-n-up').onclick=()=>setN(CSS.N+2);
+    document.getElementById('cor-n-dn').onclick=()=>setN(CSS.N-2);
+
+    const tStrands=document.getElementById('cor-t-strands');
+    tStrands.onclick=()=>{
+      CSS.showStrands=!CSS.showStrands; strandGroup.visible=CSS.showStrands;
+      tStrands.textContent='Strands: '+(CSS.showStrands?'On':'Off');
+      tStrands.classList.toggle('on',CSS.showStrands);
+    };
+    const tSpin=document.getElementById('cor-t-spin');
+    tSpin.onclick=()=>{
+      CSS.spin=!CSS.spin;
+      tSpin.textContent='Auto-rotate: '+(CSS.spin?'On':'Off');
+      tSpin.classList.toggle('on',CSS.spin);
+    };
+    document.getElementById('cor-panel-head').addEventListener('click',()=>{
+      document.getElementById('cor-panel').classList.toggle('cor-collapsed');
+    });
+
+    function animate(){
+      requestAnimationFrame(animate);
+      if(CSS.spin){ rotState.y=(rotState.y+0.15)%360; applyRotation(); }
+      controls.update();
+      renderer.render(scene,camera);
+    }
+
+    rebuildField();
+    rebuildStrands();
+    applyRotation();
+
+    CS={renderer,camera,controls,mount,setCorView,setN,nNum,nRange,CSS};
+    animate();
+    resizeCorridorRenderer();
+    setCorView('iso');
+  }
+  window.initCorridorOnce=initCorridorOnce;
+
+  function resizeCorridorRenderer(){
+    if(!CS) return;
+    const w=CS.mount.clientWidth||1, h=CS.mount.clientHeight||1;
+    CS.camera.aspect=w/h; CS.camera.updateProjectionMatrix();
+    CS.renderer.setSize(w,h);
+  }
+  window.resizeCorridorRenderer=resizeCorridorRenderer;
+  const fc=document.getElementById('fig-corridor');
+  if(window.ResizeObserver) new ResizeObserver(resizeCorridorRenderer).observe(fc);
+  window.addEventListener('resize',resizeCorridorRenderer);
+
+  // Pull the corridor's ternary N from the main page's current E, so
+  // switching into this tab feels continuous rather than starting at a
+  // hardcoded 199. Only nudges N when the tab is opened, never live.
+  function syncCorridorFromMain(){
+    if(!CS) return;
+    try{
+      const E=(typeof S!=='undefined' && S.G) ? 2*(S.G+1) : null;
+      if(E && E>7){
+        const n=(E%2===0)?E-1:E; // ternary N must be odd
+        CS.setN(n);
+      }
+    }catch(e){ /* main page state not ready yet — keep the default N */ }
+  }
+  window.syncCorridorFromMain=syncCorridorFromMain;
+})();
+</script>
+
+<!-- ══════════ DEEP SEARCH module — its own isolated scope, but calls the
+     page's existing setG/setGap/setView directly since those are plain
+     top-level functions already. ══════════ -->
+<script>
+(function(){
+  const PAGE_SIZE=25;
+  const MAX_E=20000000; // hard cap so the sieve stays responsive on mobile
+  const JUMP_MAX_E=8194; // matches setG's own G<=4096 ceiling (E=2(G+1))
+  let pairs=[], page=0, curE=390;
+
+  function sieve(n){
+    const p=new Uint8Array(n+1); p.fill(1); if(n>=0)p[0]=0; if(n>=1)p[1]=0;
+    for(let i=2;i*i<=n;i++) if(p[i]) for(let j=i*i;j<=n;j+=i) p[j]=0;
+    return p;
+  }
+
+  function renderPage(){
+    const start=page*PAGE_SIZE, slice=pairs.slice(start,start+PAGE_SIZE);
+    const jumpable=curE<=JUMP_MAX_E;
+    document.getElementById('ds-table').innerHTML=slice.map(([g,s])=>
+      `<div class="ds-row"><span class="ds-g">g = ${g}</span><span class="ds-s">s = ${s}</span>`+
+      `<button class="ds-jump" ${jumpable?'':'disabled'} onclick="dsJump(${g},${curE})">${jumpable?'Jump →':'Grid-locked'}</button></div>`
+    ).join('') || '<div class="ds-row" style="justify-content:center;color:var(--cream3)">no pairs</div>';
+    const totalPages=Math.max(1,Math.ceil(pairs.length/PAGE_SIZE));
+    document.getElementById('ds-pageinfo').textContent=`page ${pairs.length?page+1:0} / ${totalPages}`;
+    document.getElementById('ds-prev').disabled=page<=0;
+    document.getElementById('ds-next').disabled=page>=totalPages-1;
+  }
+  window.dsPage=function(delta){
+    const totalPages=Math.max(1,Math.ceil(pairs.length/PAGE_SIZE));
+    page=Math.max(0,Math.min(totalPages-1,page+delta));
+    renderPage();
+  };
+
+  window.dsJump=function(g,E){
+    if(E>JUMP_MAX_E) return; // button is disabled in this case, but guard anyway
+    if(typeof setG==='function') setG(Math.round(E/2)-1);
+    if(typeof setGap==='function') setGap(g);
+    if(typeof setView==='function') setView('grid');
+    const fig=document.getElementById('figure-sect');
+    if(fig) fig.scrollIntoView({behavior:'smooth',block:'start'});
+  };
+
+  window.runDeepSearch=function(){
+    const input=document.getElementById('ds-E');
+    let E=Math.max(6,Math.round(+input.value||390));
+    const statusEl=document.getElementById('ds-status');
+    const btn=document.getElementById('ds-go');
+    let capped=false;
+    if(E>MAX_E){ E=MAX_E; capped=true; input.value=E; }
+    curE=E;
+    btn.disabled=true;
+    statusEl.textContent=`Sieving up to E = ${E.toLocaleString()}…`;
+    document.getElementById('ds-results').style.display='none';
+    // defer one frame so the "Sieving…" status actually paints before the
+    // (possibly hundreds-of-ms) synchronous sieve blocks the main thread
+    requestAnimationFrame(()=>setTimeout(()=>{
+      const t0=performance.now();
+      const isPrime=sieve(E);
+      pairs=[];
+      for(let g=2;g<=Math.floor(E/2);g++){
+        if(isPrime[g] && isPrime[E-g]) pairs.push([g,E-g]);
+      }
+      const ms=(performance.now()-t0).toFixed(0);
+      page=0;
+      const sqrtE=Math.sqrt(E);
+      const jumpable=E<=JUMP_MAX_E;
+      document.getElementById('ds-summary').innerHTML=
+        `<b>${pairs.length.toLocaleString()}</b> Goldbach pairs for E = ${E.toLocaleString()}`+
+        `<br>√E ≈ <b>${sqrtE.toFixed(1)}</b> (trial-division threshold per candidate)`+
+        `<br>sieved in <b>${ms} ms</b>`+
+        (capped?`<br><span style="color:var(--coral)">E capped at ${MAX_E.toLocaleString()} for responsiveness</span>`:'')+
+        (jumpable?'':`<br><span style="color:var(--coral)">E > ${JUMP_MAX_E.toLocaleString()}: beyond Grid's G≤4096 ceiling — listed here, not viewable on the plate</span>`);
+      document.getElementById('ds-results').style.display='block';
+      statusEl.textContent='';
+      btn.disabled=false;
+      renderPage();
+    },0));
+  };
+
+  // opening the panel the first time seeds E from wherever the main page
+  // currently sits, so the two don't start out of sync
+  document.getElementById('deepsearch-hdr').addEventListener('click',function once(){
+    try{
+      if(typeof S!=='undefined' && S.G) document.getElementById('ds-E').value=2*(S.G+1);
+    }catch(e){}
+    this.removeEventListener('click',once);
+  });
 })();
 </script>
 </body>
