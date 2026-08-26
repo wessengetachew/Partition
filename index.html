@@ -1036,8 +1036,15 @@ body.is-fs .figcap{display:none}
         <span class="lab">Show</span>
         <button class="chip on" id="mm-pairs" onclick="setMultiMode('pairs')" style="flex:1">Goldbach pairs</button>
         <button class="chip" id="mm-all" onclick="setMultiMode('all')" style="flex:1">all partitions</button>
+        <button class="chip" id="mm-run" onclick="setMultiMode('run')" style="flex:1" title="One run at a time: every partition from one Goldbach pair up to the next one, inclusive. The two ends are the only fully coprime strips in the band.">pair → pair</button>
         <button class="chip" id="mm-picked" onclick="setMultiMode('picked')" style="flex:1" title="Only the rows ticked in the partition table.">selected rows</button>
       </div>
+      <div class="row" id="mp-run-row" style="display:none">
+        <button class="chip" style="flex:0 0 auto" onclick="runStep(-1)" title="Previous run">◀ run</button>
+        <span class="val" id="mp-run" style="flex:1;text-align:center">— → —</span>
+        <button class="chip" style="flex:0 0 auto" onclick="runStep(1)" title="Next run">run ▶</button>
+      </div>
+      <div class="note" id="mp-run-note" style="display:none"></div>
       <div class="row" id="mp-blend-row" style="display:none">
         <span class="lab">Overlap</span>
         <button class="chip on" id="bl-add" onclick="setBlend('add')" style="flex:1" title="Additive: overlapping strips sum and brighten. Four or more saturate to white.">add · glow</button>
@@ -1057,7 +1064,7 @@ body.is-fs .figcap{display:none}
         <button class="chip" style="flex:0 0 auto" onclick="pageStep(1)">▶</button>
       </div>
       <div class="note" id="mp-note" style="display:none">
-        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, and at <b>Off-gcd</b> (Strips panel) where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.<br><br><b>selected rows</b> draws exactly the partitions you tick in the table below: turn on <b>✓ pick</b> in the partition-table header — it is on by default — and each row click adds or removes that g instead of jumping the gap, with the row carrying the same hue its strips get on the plate. With pick on, <b>clicking a lattice cell (or releasing the magnifier on one) does the same thing for every strip through that point at once</b>: a cell sits on the sum strip r+M = g, on the sum strip r+M = E−g, and — off the main diagonal — on a difference strip |M−r| = g, so a click off the main diagonal adds <b>two</b> gaps — one sum strip and one difference strip — and the crossing becomes legible as a crossing rather than as one arbitrary line. It is two rather than three because the two sum families partition the lattice between them: r+M = g needs r+M ≤ G+1 and r+M = E−g needs r+M ≥ G+1, so exactly one applies, and on the anti-diagonal r+M = G+1 they coincide. On the main diagonal r = M the difference gap is 0 and drops out, leaving one. That is the way to compare four specific partitions rather than a computed class of them; the whole selection draws in one batch, and <b>clear</b> empties it.<br><br>Click any entry in the legend under the figure to <b>collapse</b> that pair out of the overlay, and click it again to bring it back — the way to isolate two or three strips out of a crowded batch without leaving overlay mode. <b>⊘ hide all</b> collapses the whole visible batch in one go and the list stays exactly where it is, greyed and struck through, so you can build the comparison back up by clicking the two or three you actually want instead of switching off the other thirty-eight by hand; the same button becomes <b>↺ show all</b> once everything is off. The <b>↗</b> on an entry does what clicking one used to: drop out of the overlay and open that g on its own in Grid. The legend box holds one height whatever the batch size, so paging or playing through batches never moves the buttons under it.
+        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, and at <b>Off-gcd</b> (Strips panel) where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.<br><br><b>pair → pair</b> narrows that to a single run: every partition from one Goldbach pair up to the next, endpoints included, drawn as one band with <b>◀ run</b> / <b>run ▶</b> to step to the next. It exists because of what the band looks like — the two ends are the only fully coprime strips in it, since c is complete exactly when g is prime and d exactly when E−g is prime, so the edges are unbroken lines and the interior is punctured. <b>▶ Play pairs</b> walks the runs in order while this mode is live.<br><br><b>selected rows</b> draws exactly the partitions you tick in the table below: turn on <b>✓ pick</b> in the partition-table header — it is on by default — and each row click adds or removes that g instead of jumping the gap, with the row carrying the same hue its strips get on the plate. With pick on, <b>clicking a lattice cell (or releasing the magnifier on one) does the same thing for every strip through that point at once</b>: a cell sits on the sum strip r+M = g, on the sum strip r+M = E−g, and — off the main diagonal — on a difference strip |M−r| = g, so a click off the main diagonal adds <b>two</b> gaps — one sum strip and one difference strip — and the crossing becomes legible as a crossing rather than as one arbitrary line. It is two rather than three because the two sum families partition the lattice between them: r+M = g needs r+M ≤ G+1 and r+M = E−g needs r+M ≥ G+1, so exactly one applies, and on the anti-diagonal r+M = G+1 they coincide. On the main diagonal r = M the difference gap is 0 and drops out, leaving one. That is the way to compare four specific partitions rather than a computed class of them; the whole selection draws in one batch, and <b>clear</b> empties it.<br><br>Click any entry in the legend under the figure to <b>collapse</b> that pair out of the overlay, and click it again to bring it back — the way to isolate two or three strips out of a crowded batch without leaving overlay mode. <b>⊘ hide all</b> collapses the whole visible batch in one go and the list stays exactly where it is, greyed and struck through, so you can build the comparison back up by clicking the two or three you actually want instead of switching off the other thirty-eight by hand; the same button becomes <b>↺ show all</b> once everything is off. The <b>↗</b> on an entry does what clicking one used to: drop out of the overlay and open that g on its own in Grid. The legend box holds one height whatever the batch size, so paging or playing through batches never moves the buttons under it.
       </div>
     </div>
   </div>
@@ -1857,6 +1864,8 @@ const S={G:194,g:193,col:'sector',lbl:'M',dim:0.45,stripDim:0,view:'grid',
          copOnly:false,
          show:{sum:true,diff:true,frame:true,diag:false},
          filter:'gold',rows:[],sel:null,gapN:1,
+         // which pair-to-pair run the 'run' overlay mode is showing
+         runIdx:0,
          multi:true,multiMode:'pairs',batch:0,page:0,items:[],pairIdx:new Map(),
          // g values the reader has collapsed out of the overlay from the legend
          hidden:new Set(),
@@ -2165,11 +2174,16 @@ function goldenColorRGB(i){
 // index, so a selection of three composites is three distinguishable colours
 // instead of three identical greys.
 function itemRGB(it){
-  if(it.pick) return goldenColorRGB(it.ci);
+  // A run is a hand-sized set the reader is comparing member against member,
+  // exactly like a pick — so it gets per-item hues too. Under the kind
+  // colouring 'all partitions' uses, every non-prime g in a run drew as the
+  // same rgb(58,58,70) at alpha 0.28, which is why a run looked like two lit
+  // ends and thirteen invisible middles instead of a band.
+  if(it.pick||it.run) return goldenColorRGB(it.ci);
   return it.kind==='pair' ? goldenColorRGB(S.pairIdx.get(it.g)||0) : KIND_RGB[it.kind];
 }
 function itemAlpha(it){
-  return it.pick ? 1 : (it.kind==='pair' ? 1 : KIND_ALPHA[it.kind]);
+  return (it.pick||it.run) ? 1 : (it.kind==='pair' ? 1 : KIND_ALPHA[it.kind]);
 }
 // 'lighter' is additive: where several strips land on the same pixel their
 // colours SUM and clip at 255, so four or more overlapping pairs render as flat
@@ -2185,6 +2199,78 @@ function setBlend(b){
   });
   render();
 }
+/* ── pair → next pair ─────────────────────────────────────────────
+   The run between two consecutive Goldbach pairs of E, endpoints included.
+   Worth its own mode because of what the plate shows: the two ends are the
+   only strips in the band that are FULLY coprime. Strip c is complete exactly
+   when g is prime (it holds φ(g) of g−1 points), strip d exactly when
+   s = E − g is prime, and a Goldbach pair is by definition where both hold at
+   once. So the band's outer edges draw as unbroken lines and everything
+   inside is punctured — at E = 390 the run 83…97 measures 82/82 and 96/96 at
+   the ends against interior fractions as low as 24/83. The crisp edge is a
+   real primality readout, not an artefact of how the run was chosen. */
+function goldbachGaps(){
+  const E=2*(S.G+1), out=[];
+  for(let g=2;g<=E/2;g++) if(isPrime(g)&&isPrime(E-g)) out.push(g);
+  return out;
+}
+function currentRun(){
+  const gaps=goldbachGaps();
+  if(gaps.length<2) return null;
+  // clamp back into S itself: after a G change the old index may point past
+  // the end of the new pair list, and a readout that disagrees with the state
+  // is worse than a clamped one
+  const i=Math.max(0,Math.min(gaps.length-2,S.runIdx|0));
+  S.runIdx=i;
+  return {lo:gaps[i],hi:gaps[i+1],i,n:gaps.length-1,gaps};
+}
+function runStep(d){
+  const gaps=goldbachGaps();
+  if(gaps.length<2) return;
+  const n=gaps.length-1;
+  S.runIdx=(((S.runIdx|0)+d)%n+n)%n;
+  // setMultiMode is the entry path only when we are not already in run mode;
+  // calling it on every tick of the run sweep would reset the batch size and
+  // the page underneath the animation
+  if(S.multiMode!=='run'){ if(!S.multi) toggleMulti(); setMultiMode('run'); }
+  else { S.page=0; computeMultiItems(); render(); syncRunUI(); }
+}
+function syncRunUI(){
+  const row=document.getElementById('mp-run-row'), note=document.getElementById('mp-run-note');
+  const on=S.multi&&S.multiMode==='run';
+  if(row) row.style.display=on?'flex':'none';
+  if(note) note.style.display=on?'block':'none';
+  if(!on) return;
+  const r=currentRun(), el=document.getElementById('mp-run');
+  if(!r){
+    if(el) el.textContent='fewer than two pairs';
+    if(note) note.innerHTML=`E = ${2*(S.G+1)} has fewer than two Goldbach pairs, so there is no run to draw.`;
+    return;
+  }
+  const span=r.hi-r.lo+1;
+  if(el) el.textContent=`${r.lo} → ${r.hi} · run ${r.i+1} / ${r.n}`;
+  if(note){
+    const st=stripsAt(S.G,r.lo), en=stripsAt(S.G,r.hi), E=2*(S.G+1), thr=Math.sqrt(E);
+    // Measured, not asserted. The interior of a run should contain no strip
+    // pair that is fully coprime — but "d is full" is only EQUIVALENT to
+    // "s = E−g is prime" once g > √E (the page's own threshold). Below it, d's
+    // window is a short contiguous block of residues mod s rather than a
+    // complete system, so it can come out full with s composite. Rather than
+    // claim the clean version and be wrong, count them.
+    let falseFull=[];
+    for(let g=r.lo+1;g<r.hi;g++){
+      const x=stripsAt(S.G,g);
+      if(x.cFull&&x.dFull) falseFull.push({g,s:x.s,above:g>thr});
+    }
+    note.innerHTML=`Drawing every partition <b>g = ${r.lo} … ${r.hi}</b> of E = ${E} — <b>${span}</b> in all, bounded by the consecutive Goldbach pairs <b>${r.lo} + ${st.s}</b> and <b>${r.hi} + ${en.s}</b>.<br><br>`+
+      `Why the band has edges: strip <b>c</b> is fully coprime exactly when <b>g</b> is prime, strip <b>d</b> whenever <b>s = E−g</b> is prime, and a Goldbach pair is where both hold. At the ends that reads <b>${st.cCop}/${st.cTot}</b> and <b>${st.dCop}/${st.dTot}</b> at g = ${r.lo}, <b>${en.cCop}/${en.cTot}</b> and <b>${en.dCop}/${en.dTot}</b> at g = ${r.hi} — unbroken lines against a punctured interior.<br><br>`+
+      `Two things are worth keeping apart. That the endpoints are Goldbach pairs is <b>definitional</b> — the run is chosen that way, so it shows nothing. That they are the only <i>unbroken</i> strips in the band is a real statement, but it is not quite unconditional: d is full <i>whenever</i> s is prime, and only <i>exactly when</i> s is prime once <b>g &gt; √E = ${thr.toFixed(1)}</b>. Below that threshold d's window is a short block of residues mod s rather than a complete one, so it can come out full with s composite — the <b>false +</b> verdict in the partition table.<br><br>`+
+      (falseFull.length
+        ? `<span style="color:var(--coral)">This run contains ${falseFull.length} such interior strip: ${falseFull.map(x=>`<b>g = ${x.g}</b> (s = ${x.s}, ${x.above?'above':'below'} √E)`).join(', ')}.</span> So the edge rule holds here with that exception, not absolutely.`
+        : `<span style="color:var(--lime)">Measured across this run: no interior partition has both strips full, so the two ends really are the only unbroken lines in it.</span>`)+
+      `<br><br>Every member of the run gets its own hue here, not the dim grey “neither” colour <b>all partitions</b> uses — a band has to be visible as a band. If the interior strips still read as scattered dots rather than lines, that is <b>Off-gcd</b> in the Strips panel: at 0% a strip point with gcd(r,M) ≠ 1 is not drawn at all, so a composite g shows only its φ(g) surviving points. Raise it to draw the full geometric line, misses included.`;
+  }
+}
 function computeMultiItems(){
   const G=S.G, E=2*(G+1), list=[];
   if(S.multiMode==='picked'){
@@ -2196,6 +2282,12 @@ function computeMultiItems(){
     });
   } else if(S.multiMode==='pairs'){
     for(let g=2;g<=E/2;g++) if(isPrime(g)&&isPrime(E-g)) list.push({g,s:E-g,kind:'pair'});
+  } else if(S.multiMode==='run'){
+    const r=currentRun();
+    if(r) for(let g=r.lo;g<=r.hi;g++){
+      const s=E-g, gp=isPrime(g), sp=isPrime(s);
+      list.push({g,s,kind:gp&&sp?'pair':gp?'gOnly':sp?'sOnly':'none',run:true,ci:g-r.lo});
+    }
   } else {
     for(let g=1;g<=E/2;g++){
       const s=E-g, gp=isPrime(g), sp=isPrime(s);
@@ -2209,6 +2301,7 @@ function computeMultiItems(){
   let pc=0;
   for(const it of list) if(it.kind==='pair'){ S.pairIdx.set(it.g,pc); pc++; }
   S.page=Math.min(S.page,Math.max(0,totalPages()-1));
+  if(typeof syncRunUI==='function') syncRunUI();
   const bsAll=document.getElementById('bs-all');
   if(bsAll){
     const est=list.length*G*4; // a,b,c,d per item, O(G) each
@@ -3136,8 +3229,13 @@ function updateMultiLegend(batch){
     h+=`<span class="lg clickable act" onclick="showAllLegendItems()" title="put every collapsed strip back in the overlay">↺ show all &nbsp;<span style="color:var(--cream3)">${S.hidden.size} collapsed</span></span>`;
   batch.forEach(it=>{
     const rgb=itemRGB(it);
-    const tag = (it.kind==='pair'||it.pick) ? `${it.g} + ${it.s}` :
-      `${it.g} + ${it.s} · ${it.kind==='gOnly'?'g prime only':it.kind==='sOnly'?'s prime only':'neither prime'}`;
+    // run items keep their kind label: in a band the whole question is which
+    // members are pairs and which are not, so suppressing it (as a pick does)
+    // would throw away the one distinction the mode exists to show
+    const kindTxt=it.kind==='pair'?'PAIR':it.kind==='gOnly'?'g prime only':it.kind==='sOnly'?'s prime only':'neither prime';
+    const tag = it.run ? `${it.g} + ${it.s} · ${kindTxt}`
+      : (it.kind==='pair'||it.pick) ? `${it.g} + ${it.s}`
+      : `${it.g} + ${it.s} · ${kindTxt}`;
     const off=S.hidden.has(it.g);
     h+=`<span class="lg clickable${off?' off':''}" onclick="toggleLegendItem(${it.g})" `+
        `title="${off?'restore':'collapse'} this pair's strips"><i style="background:${rgbToCss(rgb)}"></i>`+
@@ -3841,6 +3939,7 @@ function toggleMulti(){
     document.getElementById(id).style.display=S.multi?'flex':'none';
   });
   document.getElementById('mp-note').style.display=S.multi?'block':'none';
+  syncRunUI();
   // the single-gap slider is meaningless while overlaying many gaps, but the
   // sweep buttons stay live — they page through the batches instead (see below)
   ['sl-g','in-g'].forEach(id=>{
@@ -3856,7 +3955,7 @@ function toggleMulti(){
 }
 function setMultiMode(m){
   S.multiMode=m; S.page=0;
-  ['pairs','all','picked'].forEach(k=>{
+  ['pairs','all','run','picked'].forEach(k=>{
     const b=document.getElementById('mm-'+k); if(b) b.classList.toggle('on',k===m);
   });
   // Pick mode deliberately survives a mode switch: the first row click brings
@@ -3866,8 +3965,12 @@ function setMultiMode(m){
   // A hand-picked set is small and is meant to be seen at once — batching it
   // would hide most of what the reader just chose.
   if(m==='picked') S.batch=0;
+  // A run is a band, and a band only reads as one when it is drawn whole —
+  // paging through it a strip at a time shows the opposite of the point.
+  if(m==='run') setBatchSize(0);
   computeMultiItems();
   render();
+  syncRunUI();
 }
 function setBatchSize(n){
   S.batch=n; S.page=0;
@@ -3917,7 +4020,9 @@ function stopSweeps(restore){
     if(b){ b.textContent=i?'▶ Play pairs':'▶ Play g'; b.classList.remove('on'); }
   });
   if(restore&&sweepFrom!=null){
-    if(S.multi){ S.page=sweepFrom; render(); }
+    // in run mode sweepFrom is a run index, not a page index
+    if(S.multi&&S.multiMode==='run'){ S.runIdx=sweepFrom; computeMultiItems(); render(); syncRunUI(); }
+    else if(S.multi){ S.page=sweepFrom; render(); }
     else setGap(sweepFrom);
   }
   sweepFrom=null;
@@ -4055,6 +4160,16 @@ function toggleSweepPairs(){
   if(sweepId){ stopSweeps(false); return; }
   stopSweeps(false);
   const b=document.getElementById('ch-playp');
+  if(S.multi&&S.multiMode==='run'){
+    // in run mode the natural sweep is the runs themselves, not batches:
+    // walk pair → next pair → the one after, looping
+    const gaps=goldbachGaps();
+    if(gaps.length<2) return;
+    sweepFrom=S.runIdx;
+    b.textContent='■ Stop'; b.classList.add('on');
+    sweepId=setInterval(()=>{ runStep(1); },1100);
+    return;
+  }
   if(S.multi){
     // page through the Goldbach-pair batches only, forward, looping
     if(S.multiMode!=='pairs') setMultiMode('pairs');
