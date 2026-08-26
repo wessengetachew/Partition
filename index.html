@@ -477,6 +477,11 @@ select option{background:var(--bg2)}
   background:var(--bg2);flex:0 0 auto;flex-wrap:wrap;row-gap:7px;
 }
 .dhead .spacer{flex:1}
+/* The pick chip is a MODE toggle, not a fifth filter, and sitting flush against
+   all / pairs / both full / gap 2n it read as one. A rule and a group label
+   say which chips are a filter and which one changes what a row click does. */
+.dhead .dsep{width:1px;align-self:stretch;background:var(--edge2);margin:0 2px;flex:0 0 auto}
+.dhead .dlab{color:var(--cream3);letter-spacing:.18em;flex:0 0 auto}
 /* The summary line used to sit inline between the title and the chips, where
    flex handed it whatever width was left over. Once the chips grew there was
    almost nothing left, so it collapsed to one word per line and stretched the
@@ -1064,7 +1069,7 @@ body.is-fs .figcap{display:none}
         <button class="chip" style="flex:0 0 auto" onclick="pageStep(1)">▶</button>
       </div>
       <div class="note" id="mp-note" style="display:none">
-        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, and at <b>Off-gcd</b> (Strips panel) where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.<br><br><b>pair → pair</b> narrows that to a single run: every partition from one Goldbach pair up to the next, endpoints included, drawn as one band with <b>◀ run</b> / <b>run ▶</b> to step to the next. It exists because of what the band looks like — the two ends are the only fully coprime strips in it, since c is complete exactly when g is prime and d exactly when E−g is prime, so the edges are unbroken lines and the interior is punctured. <b>▶ Play pairs</b> walks the runs in order while this mode is live.<br><br><b>selected rows</b> draws exactly the partitions you tick in the table below: turn on <b>✓ pick</b> in the partition-table header — it is on by default — and each row click adds or removes that g instead of jumping the gap, with the row carrying the same hue its strips get on the plate. With pick on, <b>clicking a lattice cell (or releasing the magnifier on one) does the same thing for every strip through that point at once</b>: a cell sits on the sum strip r+M = g, on the sum strip r+M = E−g, and — off the main diagonal — on a difference strip |M−r| = g, so a click off the main diagonal adds <b>two</b> gaps — one sum strip and one difference strip — and the crossing becomes legible as a crossing rather than as one arbitrary line. It is two rather than three because the two sum families partition the lattice between them: r+M = g needs r+M ≤ G+1 and r+M = E−g needs r+M ≥ G+1, so exactly one applies, and on the anti-diagonal r+M = G+1 they coincide. On the main diagonal r = M the difference gap is 0 and drops out, leaving one. That is the way to compare four specific partitions rather than a computed class of them; the whole selection draws in one batch, and <b>clear</b> empties it.<br><br>Click any entry in the legend under the figure to <b>collapse</b> that pair out of the overlay, and click it again to bring it back — the way to isolate two or three strips out of a crowded batch without leaving overlay mode. <b>⊘ hide all</b> collapses the whole visible batch in one go and the list stays exactly where it is, greyed and struck through, so you can build the comparison back up by clicking the two or three you actually want instead of switching off the other thirty-eight by hand; the same button becomes <b>↺ show all</b> once everything is off. The <b>↗</b> on an entry does what clicking one used to: drop out of the overlay and open that g on its own in Grid. The legend box holds one height whatever the batch size, so paging or playing through batches never moves the buttons under it.
+        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, and at <b>Off-gcd</b> (Strips panel) where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.<br><br><b>pair → pair</b> narrows that to a single run: every partition from one Goldbach pair up to the next, endpoints included, drawn as one band with <b>◀ run</b> / <b>run ▶</b> to step to the next. It exists because of what the band looks like — the two ends are the only fully coprime strips in it, since c is complete exactly when g is prime and d exactly when E−g is prime, so the edges are unbroken lines and the interior is punctured. <b>▶ Play pairs</b> walks the runs in order while this mode is live.<br><br><b>selected rows</b> draws exactly the partitions you tick in the table below: the <b>Pick</b> chip in the partition-table header reads its own state — <i>Pick on — row click selects</i> or <i>Pick off — row click jumps</i> — and is on by default; and each row click adds or removes that g instead of jumping the gap, with the row carrying the same hue its strips get on the plate. With pick on, <b>clicking a lattice cell (or releasing the magnifier on one) does the same thing for every strip through that point at once</b>: a cell sits on the sum strip r+M = g, on the sum strip r+M = E−g, and — off the main diagonal — on a difference strip |M−r| = g, so a click off the main diagonal brings in <b>two</b> gaps — one sum strip and one difference strip — and the crossing becomes legible as a crossing rather than as one arbitrary line. The two gestures differ in one way worth knowing: a <b>plain click accumulates</b>, which is how you build a comparison out of four separate crossings, while a <b>magnifier release replaces</b> — it clears the selection and leaves only the strips through the point you landed on. That asymmetry is deliberate: you reach for the lens at 20× precisely because the other thirty strips are in the way, so keeping them after the release would defeat the gesture. The lens readout shows <i>only</i> before the gaps it is about to leave standing. There is no modifier key on a phone, so which gesture you used carries the distinction. It is two rather than three because the two sum families partition the lattice between them: r+M = g needs r+M ≤ G+1 and r+M = E−g needs r+M ≥ G+1, so exactly one applies, and on the anti-diagonal r+M = G+1 they coincide. On the main diagonal r = M the difference gap is 0 and drops out, leaving one. That is the way to compare four specific partitions rather than a computed class of them; the whole selection draws in one batch, and <b>clear</b> empties it.<br><br>Click any entry in the legend under the figure to <b>collapse</b> that pair out of the overlay, and click it again to bring it back — the way to isolate two or three strips out of a crowded batch without leaving overlay mode. <b>⊘ hide all</b> collapses the whole visible batch in one go and the list stays exactly where it is, greyed and struck through, so you can build the comparison back up by clicking the two or three you actually want instead of switching off the other thirty-eight by hand; the same button becomes <b>↺ show all</b> once everything is off. The <b>↗</b> on an entry does what clicking one used to: drop out of the overlay and open that g on its own in Grid. The legend box holds one height whatever the batch size, so paging or playing through batches never moves the buttons under it.
       </div>
     </div>
   </div>
@@ -1276,7 +1281,7 @@ body.is-fs .figcap{display:none}
         <button class="chip" id="lp-bl" onclick="setLensPin('bl')" style="flex:1" title="Pin to bottom-left">↙</button>
         <button class="chip" id="lp-br" onclick="setLensPin('br')" style="flex:1" title="Pin to bottom-right">↘</button>
       </div>
-      <div class="note">Press and hold a point on the lattice, drag to pan the lens, release to jump the gap there.<br><br><b>Zoom</b> is now the magnification you actually get, and the range runs to <b>500×</b> because that is what a four-figure G needs: at G = 4096 a single cell is under a third of a canvas pixel, so 10× still shows you nothing. The presets go to 100× and the <b>Custom</b> box takes any value from 1 to 500. It used to size the window against the plate rather than the lens, so 3× was really 1.5× and 2× was a reduction — most of the old softness was the lens barely enlarging anything. The lens also takes the shape of the plate it is over — a square window on Grid, a disk on Ring and Cayley — so a square lattice no longer loses its corner cells to a round frame. Labels appear whenever the magnified cell clears about 7 px, so they arrive at roughly 4× at G = 194, 20× at G = 1024 and 100× at G = 4096 — the same readable type at every scale, just further in. In Grid the lens no longer photographs the plate either: cells, strips and labels are redrawn at the lens's own resolution, so type that is two pixels tall on the plate is typeset at full size here instead of being blown up.<br><br><b>auto</b> keeps the lens above your finger and slides it sideways when it runs out of headroom — continuously, so it never jumps across the pointer the way it used to at mid-plate. Pin it to a corner if you would rather it never moved at all.<br><br>The crosshair marks the pointer; the <b>glowing box</b> (or ring, in Ring and Cayley) marks the lattice point that pointer actually resolves to, which at any real magnification is a different thing — the readout sits just outside the rim — white on black, and outside because a round lens was clipping the ends off it — and gives r,M, the gcd there, and the g releasing will jump to, so you can see the selection before committing to it. It sits above the lens, which is the one band clear of both the lens and the finger holding it, and drops below only when the lens is already against the top of the plate.<br><br>The lens now centres on the true point everywhere, including the outermost row, column and all four corners. Past the lattice edge the view goes empty and the dashed gold line marks where the boundary falls — that emptiness is the edge, not a rendering fault.</div>
+      <div class="note">Press and hold a point on the lattice, drag to pan the lens, release to select there. With <b>Pick</b> on (the default) the release <b>keeps only</b> the strips running through that one point — every other pair on the plate is dropped — which is the whole reason to magnify: you hunted for one crossing, so you get that crossing alone. A plain click, by contrast, adds to what is already selected. With pick off, the release does the old thing and jumps the gap there.<br><br><b>Zoom</b> is now the magnification you actually get, and the range runs to <b>500×</b> because that is what a four-figure G needs: at G = 4096 a single cell is under a third of a canvas pixel, so 10× still shows you nothing. The presets go to 100× and the <b>Custom</b> box takes any value from 1 to 500. It used to size the window against the plate rather than the lens, so 3× was really 1.5× and 2× was a reduction — most of the old softness was the lens barely enlarging anything. The lens also takes the shape of the plate it is over — a square window on Grid, a disk on Ring and Cayley — so a square lattice no longer loses its corner cells to a round frame. Labels appear whenever the magnified cell clears about 7 px, so they arrive at roughly 4× at G = 194, 20× at G = 1024 and 100× at G = 4096 — the same readable type at every scale, just further in. In Grid the lens no longer photographs the plate either: cells, strips and labels are redrawn at the lens's own resolution, so type that is two pixels tall on the plate is typeset at full size here instead of being blown up.<br><br><b>auto</b> keeps the lens above your finger and slides it sideways when it runs out of headroom — continuously, so it never jumps across the pointer the way it used to at mid-plate. Pin it to a corner if you would rather it never moved at all.<br><br>The crosshair marks the pointer; the <b>glowing box</b> (or ring, in Ring and Cayley) marks the lattice point that pointer actually resolves to, which at any real magnification is a different thing — the readout sits just outside the rim — white on black, and outside because a round lens was clipping the ends off it — and gives r,M, the gcd there, and — prefixed <i>only</i> — the gaps the release will leave standing, so you can see the selection before committing to it. It sits above the lens, which is the one band clear of both the lens and the finger holding it, and drops below only when the lens is already against the top of the plate.<br><br>The lens now centres on the true point everywhere, including the outermost row, column and all four corners. Past the lattice edge the view goes empty and the dashed gold line marks where the boundary falls — that emptiness is the edge, not a rendering fault.</div>
       </div>
     </div>
 
@@ -1388,11 +1393,13 @@ body.is-fs .figcap{display:none}
         <span>Partition table</span>
         <span class="sub" id="tbl-sub">—</span>
         <span class="spacer"></span>
+        <span class="dlab" id="f-lab">Filter</span>
         <button class="chip" id="f-all" onclick="setFilter('all')">all</button>
         <button class="chip on" id="f-gold" onclick="setFilter('gold')">pairs</button>
         <button class="chip" id="f-full" onclick="setFilter('full')">both full</button>
         <button class="chip" id="f-gap2n" onclick="setFilter('gap2n')">gap 2n</button>
-        <button class="chip" id="tbl-pick" onclick="togglePickMode()" title="Multi-select: click rows to add or remove them from the overlay instead of jumping the gap.">✓ pick</button>
+        <span class="dsep" id="tbl-sep"></span>
+        <button class="chip on" id="tbl-pick" onclick="togglePickMode()" title="What a row click does. On: the row is added to (or removed from) the overlay, so you can compare several partitions at once. Off: the row click jumps the gap to that partition on its own.">Pick on — row click selects</button>
         <button class="chip" id="tbl-pick-clear" onclick="clearPicked()" style="display:none">clear</button>
       </div>
       <div class="dhead" style="border-bottom:1px solid var(--edge);flex-wrap:wrap;row-gap:8px">
@@ -3243,7 +3250,7 @@ function updateMultiLegend(batch){
        `<span class="jump" onclick="event.stopPropagation();jumpToLegendItem(${it.g})" title="open g=${it.g} on its own in Grid">↗</span></span>`;
   });
   el.innerHTML=h||(S.multiMode==='picked'
-    ? '<span class="lg">nothing selected — turn on <b style="color:var(--gold)">✓ pick</b> in the partition table, or click any lattice cell, to add strips</span>'
+    ? '<span class="lg">nothing selected — turn on <b style="color:var(--gold)">Pick</b> in the partition table, or click any lattice cell, to add strips</span>'
     : '<span class="lg">no items in this batch</span>');
 }
 // Clicking an entry collapses that pair out of the overlay and back in again,
@@ -3536,7 +3543,7 @@ function setDimensionMode(d){
   if(three){ stopSweeps(false); stopSweepG(); stopSweepNext(); }
   else corStopSweep();
   // the partition filters and the gap-2n row have no meaning for triples
-  ['f-all','f-gold','f-full','f-gap2n','tbl-pick','tbl-pick-clear'].forEach(id=>{
+  ['f-lab','f-all','f-gold','f-full','f-gap2n','tbl-sep','tbl-pick','tbl-pick-clear'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.style.display=three?'none':'';
   });
   const gapRow=document.getElementById('sl-gapn');
@@ -3738,11 +3745,22 @@ function stripsThroughCell(r,m){
 // they can never diverge again. Pick mode on: add every strip through the
 // cell to the overlay's selection. Pick mode off: the original behaviour —
 // drop out of the overlay and open that cell's sum-strip gap on its own.
-function pickCell(r,m){
+//
+// `replace` is what separates the two gestures. A plain click ACCUMULATES —
+// that is how you build a comparison out of four crossings. The magnifier
+// RELEASES onto one point after you have hunted for it at 20×, and at that
+// moment the other thirty strips on the plate are exactly what you were
+// trying to see past, so it clears the selection first and leaves only the
+// strips through the point you landed on. There is no modifier key available
+// on a phone, so the distinction is carried by which gesture you used rather
+// than by a chord.
+function pickCell(r,m,replace){
   const hits=stripsThroughCell(r,m);
   if(!hits.length) return null;
   if(S.pick){
     if(!S.multi) toggleMulti();
+    // populate S.picked BEFORE setMultiMode — computeMultiItems reads it
+    if(replace){ S.picked.clear(); S.hidden.clear(); }
     hits.forEach(h=>S.picked.add(h.g));
     // a newly picked strip should be visible even if that g was collapsed
     // out of a previous batch
@@ -3766,7 +3784,13 @@ function pickCell(r,m){
    which rows are interesting. */
 function syncPickUI(){
   const b=document.getElementById('tbl-pick');
-  if(b){ b.classList.toggle('on',S.pick); b.textContent=S.pick?'✓ picking':'✓ pick'; }
+  // Same shape as the multi-pair toggle ("On — overlay" / "Off — single gap g"):
+  // the label names the current state AND what it does, so the chip can be read
+  // without first working out whether "✓ pick" was a state or an instruction.
+  if(b){
+    b.classList.toggle('on',S.pick);
+    b.textContent=S.pick?'Pick on — row click selects':'Pick off — row click jumps';
+  }
   const c=document.getElementById('tbl-pick-clear');
   if(c){
     c.style.display=S.picked.size?'inline-flex':'none';
@@ -4223,7 +4247,7 @@ function syncVerdict(txt,cls){
 const CIRCLE_NOTE='Circle plots the Hardy–Littlewood exponential sum S(α) = Σ e(2πiαp) over primes p ≤ E — the analytic version of the same Goldbach question the strips ask combinatorially. It depends only on E, not on the current g, so the gap slider won\'t change this plot.';
 const POLAR_NOTE='Ring/Cayley plot the same a/b/c/d strip points as Grid, just re-projected — the underlying (r,M) data is identical.';
 const ORIGINAL_FIGCAP=`<b>Figure 1.</b> The G×G coprimality lattice with the four strips of gap g overlaid. Hover a cell (Grid view) for its
-      gcd reduction and every strip running through it; with <b>✓ pick</b> on, a click adds all of them to the overlay at once — with it off, the click jumps the gap to that cell's sum strip.`;
+      gcd reduction and every strip running through it; with <b>Pick</b> on, a click adds all of them to the overlay at once — with it off, the click jumps the gap to that cell's sum strip.`;
 const CORRIDOR_FIGCAP=`<b>Figure 5.</b> The lattice box seen from its own centre: translucent rays reach every visible point (gcd(x,y,z)=1 — density 1/ζ(3)); gold–coral strands pick out the ternary-Goldbach triples p+q+r=N among them. Drag to rotate, scroll to zoom. Click a row in the ternary table below to isolate one triple.`;
 function setView(v){
   const prev=S.view;
@@ -4763,7 +4787,8 @@ let LENS_REDRAW=null;
     // the lens on a point shows that point's own partition, not the pile of
     // strips the overlay was drawing. Ceiling is G+1 for the reason given on
     // the plain click handler above — G−1 made the corners unreachable.
-    pickCell(r,m);
+    // replace, not add: the lens is how you isolate one point
+    pickCell(r,m,true);
     showPulse(r,m);
   }
 
@@ -5098,7 +5123,7 @@ let LENS_REDRAW=null;
       // readout has to name every one of them — showing a single g while three
       // are about to light up was the readout lying about what the button does.
       const gtxt=S.pick
-        ? hits.map(x=>`${x.strip} g ${x.g}`).join('<span class="dim"> + </span>')
+        ? `<span class="dim">only</span> `+hits.map(x=>`${x.strip} g ${x.g}`).join('<span class="dim"> + </span>')
         : `→ g ${hits.length?(hits.find(x=>x.strip==='c'||x.strip==='d')||hits[0]).g:'—'}`;
       info.innerHTML=`<span class="dim">r,M</span> ${hr},${hm}`+
         `<span class="dim"> · gcd</span> ${q}${q===1?'<span class="hot"> coprime</span>':''}`+
