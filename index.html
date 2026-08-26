@@ -222,56 +222,17 @@ h1.hero-title{font-family:var(--disp);font-size:clamp(1.4rem,4vw,2.2rem);letter-
   padding:5px 9px;pointer-events:none;
 }
 #cor-hud span{color:var(--gold)}
-#cor-panel{
-  position:absolute;left:10px;bottom:10px;z-index:5;width:230px;max-width:calc(100% - 20px);
-  background:rgba(7,7,26,.92);border:1px solid var(--edge2);border-radius:5px;
-  font-family:var(--mono);font-size:9.5px;color:var(--cream2);
-  max-height:70%;overflow-y:auto;transition:max-height .18s ease;
-}
-#cor-panel.cor-collapsed{max-height:32px;overflow:hidden}
-#cor-panel-head{
-  display:flex;align-items:center;justify-content:space-between;cursor:pointer;
-  padding:8px 11px;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);user-select:none;
-}
-#cor-panel-head span.cor-arrow{color:var(--cream3);transition:transform .18s ease}
-#cor-panel.cor-collapsed #cor-panel-head span.cor-arrow{transform:rotate(-90deg)}
-#cor-panel-body{padding:0 12px 11px}
-.cor-sec{font-size:7.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin:7px 0 5px;padding-top:6px;border-top:1px solid var(--edge)}
-.cor-sec:first-child{margin-top:0;padding-top:0;border-top:none}
-.cor-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
-.cor-row:last-child{margin-bottom:0}
-.cor-lbl{flex:0 0 52px;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--cream3)}
-.cor-num{
-  width:58px;background:rgba(255,255,255,.05);border:1px solid var(--edge2);color:var(--gold);
+/* the controls now live outside the plate, in #corridor-controls */
+.cor-ctl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0}
+.cor-rot-lbl{flex:0 0 10px;font-size:9px;color:var(--cream3);text-align:center}
+.cor-rot-num{
+  flex:1 1 0;min-width:0;background:rgba(255,255,255,.05);border:1px solid var(--edge2);color:var(--gold);
   font-family:var(--mono);font-size:10px;padding:3px 4px;text-align:center;border-radius:2px;
 }
-.cor-step{
-  width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  background:none;border:1px solid var(--edge2);color:var(--teal);cursor:pointer;font-size:11px;border-radius:2px;
-}
-.cor-step:hover{background:rgba(61,200,184,.1)}
-.cor-range{flex:1;accent-color:var(--violet)}
-.cor-toggle{
-  flex:1;background:none;border:1px solid var(--edge2);color:var(--cream2);padding:4px 7px;
-  cursor:pointer;font-family:var(--mono);font-size:8.5px;letter-spacing:.04em;border-radius:2px;transition:all .15s;
-}
-.cor-toggle.on{color:var(--teal);border-color:rgba(61,200,184,.5);background:rgba(61,200,184,.08)}
-.cor-views{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
-.cor-view-btn{
-  flex:1 1 27%;background:none;border:1px solid var(--edge2);color:var(--cream2);padding:5px 3px;
-  cursor:pointer;font-family:var(--mono);font-size:8px;letter-spacing:.03em;border-radius:2px;transition:all .15s;
-}
-.cor-view-btn:hover{border-color:var(--gold);color:var(--gold)}
-#cor-stats{color:var(--cream3);font-size:8.5px;line-height:1.6}
+#cor-stats{color:var(--cream3);margin-top:10px}
 #cor-stats b{color:var(--gold);font-weight:500}
 #cor-stats .cor-hi{color:var(--teal)}
-.cor-rot-row{display:flex;align-items:center;gap:5px;margin-bottom:5px}
-.cor-rot-lbl{flex:0 0 12px;font-size:8.5px;color:var(--cream3)}
-.cor-rot-num{
-  flex:1;background:rgba(255,255,255,.05);border:1px solid var(--edge2);color:var(--gold);
-  font-family:var(--mono);font-size:10px;padding:3px 4px;text-align:center;border-radius:2px;
-}
-.cor-rot-reset{width:100%;margin-top:2px}
+#cor-stats .cor-sel{color:#fff}
 #cor-legend{
   position:absolute;right:10px;bottom:10px;z-index:5;
   background:rgba(7,7,26,.86);border:1px solid var(--edge2);border-radius:5px;
@@ -287,8 +248,20 @@ h1.hero-title{font-family:var(--disp);font-size:clamp(1.4rem,4vw,2.2rem);letter-
 }
 @media(max-width:640px){
   #cor-legend{display:none}
-  #cor-panel{width:calc(100% - 20px)}
   #cor-hint{display:none}
+  /* The controls now sit under the plate rather than on top of it, so a
+     full-width 1:1 square would push every one of them off screen. Drop the
+     aspect ratio and cap the height instead: the 3D view has no lattice grid
+     that needs square pixels, so a landscape frame costs nothing and leaves
+     the first control group visible without scrolling. */
+  #fig-corridor{aspect-ratio:auto;height:min(46vh,320px)}
+  #corridor-controls .note{font-size:9.5px}
+}
+/* the 3D plate takes the same expanded framing the 2D plate does, so
+   switching views in fullscreen doesn't change the size of the figure */
+body.is-fs #fig-corridor{max-width:min(92vw,58vh)}
+@media(max-width:820px){
+  body.is-fs #fig-corridor{flex:1 1 auto;min-height:0;height:auto;width:100%;max-width:100%;aspect-ratio:auto}
 }
 
 /* ── deep search (arbitrary E via the a/b/c/d identity, off-grid) ─── */
@@ -628,13 +601,23 @@ body.is-fs #hero{display:none}
 body.is-fs #figure-sect{order:1;position:sticky;top:calc(var(--wg-navh,0px) + var(--nb2-h,50px));z-index:400;
   background:var(--bg);margin:0;border-radius:0;padding-top:10px;
 }
-body.is-fs #density-bar{order:2}
-body.is-fs #reading{order:3}
-body.is-fs #multitop{order:4}
-body.is-fs #controls{order:5}
-body.is-fs #drawer{order:6}
-body.is-fs #claim{order:7}
-  body.is-fs #views{order:8}
+body.is-fs #density-bar{order:3}
+body.is-fs #reading{order:4}
+body.is-fs #multitop{order:5}
+body.is-fs #controls{order:6}
+body.is-fs #drawer{order:7}
+body.is-fs #claim{order:9}
+  body.is-fs #views{order:10}
+/* #content is a flex column in this mode, and an item with no `order` gets
+   the default 0 — which sorts it BEFORE #figure-sect at order:1. That is why
+   the Corridor controls jumped above the canvas in full screen while every
+   other panel stayed below it. Give them an explicit slot: immediately after
+   the figure, ahead of the readout bar, which is where they sit in normal
+   flow too. Every section below has been shifted up to make room.
+   Deep search had the same latent bug and is placed here too — it was
+   sitting above the locked canvas for the same reason, just less visibly. */
+body.is-fs #corridor-controls{order:2}
+body.is-fs #deepsearch{order:8}
 body.is-fs #plate{max-width:min(92vw,58vh)}
 body.is-fs .figcap{display:none}
 
@@ -894,59 +877,13 @@ body.is-fs .figcap{display:none}
     <div id="fig-corridor" style="display:none">
       <div id="cor-scene"></div>
       <div id="cor-hud">X <span id="cor-hud-x">0°</span>&nbsp;&nbsp;Y <span id="cor-hud-y">0°</span>&nbsp;&nbsp;Z <span id="cor-hud-z">0°</span></div>
-      <div id="cor-panel" class="cor-collapsed">
-        <div id="cor-panel-head"><span>Controls</span><span class="cor-arrow">▾</span></div>
-        <div id="cor-panel-body">
-          <div class="cor-sec">Views</div>
-          <div class="cor-views">
-            <button class="cor-view-btn" data-view="iso">Iso</button>
-            <button class="cor-view-btn" data-view="front">Front</button>
-            <button class="cor-view-btn" data-view="side">Side</button>
-            <button class="cor-view-btn" data-view="top">Top</button>
-            <button class="cor-view-btn" data-view="bottom">Bottom</button>
-          </div>
-          <div class="cor-sec">Lattice field (1/ζ(3))</div>
-          <div class="cor-row">
-            <span class="cor-lbl">Extent</span>
-            <input type="range" id="cor-grid-range" class="cor-range" min="4" max="36" value="16" step="1">
-          </div>
-          <div class="cor-row">
-            <button class="cor-toggle on" id="cor-t-field">Field: On</button>
-          </div>
-          <div class="cor-sec">Ternary Goldbach (p+q+r=N)</div>
-          <div class="cor-row">
-            <span class="cor-lbl">N</span>
-            <button class="cor-step" id="cor-n-dn">−</button>
-            <input type="number" id="cor-n-num" class="cor-num" value="199" step="2" min="7">
-            <button class="cor-step" id="cor-n-up">+</button>
-          </div>
-          <div class="cor-row">
-            <input type="range" id="cor-n-range" class="cor-range" min="7" max="1999" value="199" step="2">
-          </div>
-          <div class="cor-row">
-            <button class="cor-toggle on" id="cor-t-strands">Strands: On</button>
-            <button class="cor-toggle" id="cor-t-spin">Auto-rotate: Off</button>
-          </div>
-          <div class="cor-sec">Stats</div>
-          <div id="cor-stats"></div>
-          <div class="cor-sec">Rotation (0–360°)</div>
-          <div class="cor-rot-row">
-            <span class="cor-rot-lbl">X</span>
-            <input type="number" id="cor-rot-x" class="cor-rot-num" value="0" min="0" max="360" step="1">
-            <span class="cor-rot-lbl">Y</span>
-            <input type="number" id="cor-rot-y" class="cor-rot-num" value="0" min="0" max="360" step="1">
-            <span class="cor-rot-lbl">Z</span>
-            <input type="number" id="cor-rot-z" class="cor-rot-num" value="0" min="0" max="360" step="1">
-          </div>
-          <button class="cor-toggle cor-rot-reset" id="cor-t-rot-reset">Reset rotation</button>
-        </div>
-      </div>
       <div id="cor-legend">
         <b>Reading it</b>
         <span class="cor-leg-swatch" style="background:rgba(61,200,184,.55)"></span>ray to a visible point (gcd(x,y,z)=1)<br>
-        <span class="cor-leg-swatch" style="background:var(--gold)"></span>strand to a prime triple (p,q,r), p+q+r=N
+        <span class="cor-leg-swatch" style="background:var(--gold)"></span>strand to a prime triple (p,q,r), p+q+r=N<br>
+        <span class="cor-leg-swatch" style="background:#fff"></span>the triple selected in the table
       </div>
-      <div id="cor-hint">drag to rotate the model · scroll to zoom</div>
+      <div id="cor-hint">drag to rotate · scroll to zoom · controls below</div>
     </div>
     <div id="hud-out"></div>
     <div id="legend">
@@ -963,15 +900,99 @@ body.is-fs .figcap{display:none}
 
 </div>
 
+<!-- ══════════ CORRIDOR CONTROLS — outside the canvas, same idiom as the
+     Grid/Ring/Cayley control column. Only visible while Corridor is the
+     live view. ══════════ -->
+<div class="sect" id="corridor-controls" style="display:none">
+  <div class="sect-hdr">Corridor controls — the 3D lattice</div>
+  <div class="cor-ctl-grid">
+
+    <div class="grp">
+      <h4 class="grp-hdr open" id="grp-cor-cam-hdr" onclick="toggleGrp('grp-cor-cam')"><span class="rarrow">▸</span>Camera</h4>
+      <div class="grp-body open" id="grp-cor-cam-body">
+        <div class="row">
+          <span class="lab">Preset</span>
+          <button class="chip cor-view-btn" data-view="iso" style="flex:1">Iso</button>
+          <button class="chip cor-view-btn" data-view="front" style="flex:1">Front</button>
+          <button class="chip cor-view-btn" data-view="side" style="flex:1">Side</button>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <span class="lab"></span>
+          <button class="chip cor-view-btn" data-view="top" style="flex:1">Top</button>
+          <button class="chip cor-view-btn" data-view="bottom" style="flex:1">Bottom</button>
+          <button class="chip cor-view-btn" data-view="corner" style="flex:1" title="Look straight down the main diagonal (1,1,1) — the direction the ternary plane x+y+z=N is perpendicular to, so the triples flatten into a triangle.">Diagonal</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <span class="lab">Rotate</span>
+          <span class="cor-rot-lbl">X</span>
+          <input type="number" id="cor-rot-x" class="cor-rot-num" value="0" min="0" max="360" step="1">
+          <span class="cor-rot-lbl">Y</span>
+          <input type="number" id="cor-rot-y" class="cor-rot-num" value="0" min="0" max="360" step="1">
+          <span class="cor-rot-lbl">Z</span>
+          <input type="number" id="cor-rot-z" class="cor-rot-num" value="0" min="0" max="360" step="1">
+        </div>
+        <div class="row" style="margin-top:6px">
+          <span class="lab"></span>
+          <button class="chip" id="cor-t-rot-reset" style="flex:1">⟲ Reset rotation</button>
+          <button class="chip" id="cor-t-recenter" style="flex:1" title="Put the camera back on the centre of the cube at the framing distance.">◎ Recentre</button>
+          <button class="chip" id="cor-t-spin" style="flex:1">Auto-rotate: Off</button>
+        </div>
+        <div class="note">The model pivots on the <b>centre of the box</b>, not on the lattice origin, so the octant sits in the middle of the frame and a rotation turns the cube in place instead of swinging it round a corner. The coloured axes still start at (0,0,0) — that corner is the origin, it is just no longer the point the camera is aimed at.</div>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h4 class="grp-hdr open" id="grp-cor-field-hdr" onclick="toggleGrp('grp-cor-field')"><span class="rarrow">▸</span>Visible lattice — density 1/ζ(3)</h4>
+      <div class="grp-body open" id="grp-cor-field-body">
+        <div class="row">
+          <span class="lab">Extent</span>
+          <input type="range" id="cor-grid-range" min="4" max="36" value="16" step="1" style="flex:1">
+          <span class="val" id="cor-v-extent" style="width:44px">16</span>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <span class="lab">Show</span>
+          <button class="chip on" id="cor-t-field" style="flex:1">Field: On</button>
+          <button class="chip on" id="cor-t-strands" style="flex:1">Strands: On</button>
+        </div>
+        <div class="note">A point (x,y,z) is <b>visible from the origin</b> when gcd(x,y,z) = 1 — nothing else on the lattice sits between it and (0,0,0). Their density in the cube tends to <b>1/ζ(3) ≈ 0.8319</b>, the 3D analogue of the 1/ζ(2) ≈ 0.6079 the Grid view measures. Raising <b>Extent</b> pushes the measured fraction toward it.</div>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h4 class="grp-hdr open" id="grp-cor-tern-hdr" onclick="toggleGrp('grp-cor-tern')"><span class="rarrow">▸</span>Ternary Goldbach — p + q + r = N</h4>
+      <div class="grp-body open" id="grp-cor-tern-body">
+        <div class="row">
+          <span class="lab">N (odd)</span>
+          <button class="chip" id="cor-n-dn" style="flex:0 0 32px">−</button>
+          <input type="number" id="cor-n-num" value="199" step="2" min="7" style="width:78px">
+          <button class="chip" id="cor-n-up" style="flex:0 0 32px">+</button>
+          <button class="chip" id="cor-n-fromE" style="flex:1" title="Take N from the even E the other views are showing: N = E − 1.">← from E</button>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <input type="range" id="cor-n-range" min="7" max="1999" value="199" step="2" style="flex:1">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <span class="lab">Step</span>
+          <button class="chip" id="cor-t-prev" style="flex:1" title="Previous triple in the table">◂ triple</button>
+          <button class="chip" id="cor-t-next" style="flex:1" title="Next triple in the table">triple ▸</button>
+          <button class="chip" id="cor-t-clear" style="flex:1" title="Drop the selection and show every strand at equal weight">clear</button>
+        </div>
+        <div id="cor-stats" class="note" style="line-height:1.7"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <div class="density-bar" id="density-bar">
-  <div class="db-item"><span class="db-lbl">Side G</span><span class="db-val gold" id="rd-G">194</span></div>
-  <div class="db-item"><span class="db-lbl">E = 2(G+1)</span><span class="db-val" id="rd-E">390</span></div>
-  <div class="db-item"><span class="db-lbl">gap g</span><span class="db-val teal" id="rd-g">193</span></div>
-  <div class="db-item"><span class="db-lbl">s = E − g</span><span class="db-val" id="rd-s">197</span></div>
-  <div class="db-item"><span class="db-lbl">Goldbach pairs</span><span class="db-val lime" id="rd-gb">—</span></div>
-  <div class="db-item"><span class="db-lbl">√E threshold</span><span class="db-val" id="rd-thr">—</span></div>
-  <div class="db-item"><span class="db-lbl">gcd=1 / total</span><span class="db-val teal" id="rd-cop">—</span></div>
-  <div class="db-item"><span class="db-lbl">vs 1/ζ(2)</span><span class="db-val" id="rd-zdiff">—</span></div>
+  <div class="db-item"><span class="db-lbl" id="rl-G">Side G</span><span class="db-val gold" id="rd-G">194</span></div>
+  <div class="db-item"><span class="db-lbl" id="rl-E">E = 2(G+1)</span><span class="db-val" id="rd-E">390</span></div>
+  <div class="db-item"><span class="db-lbl" id="rl-g">gap g</span><span class="db-val teal" id="rd-g">193</span></div>
+  <div class="db-item"><span class="db-lbl" id="rl-s">s = E − g</span><span class="db-val" id="rd-s">197</span></div>
+  <div class="db-item"><span class="db-lbl" id="rl-gb">Goldbach pairs</span><span class="db-val lime" id="rd-gb">—</span></div>
+  <div class="db-item"><span class="db-lbl" id="rl-thr">√E threshold</span><span class="db-val" id="rd-thr">—</span></div>
+  <div class="db-item"><span class="db-lbl" id="rl-cop">gcd=1 / total</span><span class="db-val teal" id="rd-cop">—</span></div>
+  <div class="db-item"><span class="db-lbl" id="rl-zdiff">vs 1/ζ(2)</span><span class="db-val" id="rd-zdiff">—</span></div>
 </div>
 
 <!-- ══════════ DEEP SEARCH — arbitrary E via the a/b/c/d identity ══════════ -->
@@ -1036,7 +1057,7 @@ body.is-fs .figcap{display:none}
         <button class="chip" style="flex:0 0 auto" onclick="pageStep(1)">▶</button>
       </div>
       <div class="note" id="mp-note" style="display:none">
-        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, and at <b>Off-gcd</b> (Strips panel) where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.<br><br><b>selected rows</b> draws exactly the partitions you tick in the table below: turn on <b>✓ pick</b> in the partition-table header and each row click adds or removes that g instead of jumping the gap, with the row carrying the same hue its strips get on the plate. That is the way to compare four specific partitions rather than a computed class of them; the whole selection draws in one batch, and <b>clear</b> empties it.<br><br>Click any entry in the legend under the figure to <b>collapse</b> that pair out of the overlay, and click it again to bring it back — the way to isolate two or three strips out of a crowded batch without leaving overlay mode. The <b>↗</b> on an entry does what clicking one used to: drop out of the overlay and open that g on its own in Grid. The legend box holds one height whatever the batch size, so paging or playing through batches never moves the buttons under it.
+        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, and at <b>Off-gcd</b> (Strips panel) where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.<br><br><b>selected rows</b> draws exactly the partitions you tick in the table below: turn on <b>✓ pick</b> in the partition-table header — it is on by default — and each row click adds or removes that g instead of jumping the gap, with the row carrying the same hue its strips get on the plate. With pick on, <b>clicking a lattice cell (or releasing the magnifier on one) does the same thing for every strip through that point at once</b>: a cell sits on the sum strip r+M = g, on the sum strip r+M = E−g, and — off the main diagonal — on a difference strip |M−r| = g, so a click off the main diagonal adds <b>two</b> gaps — one sum strip and one difference strip — and the crossing becomes legible as a crossing rather than as one arbitrary line. It is two rather than three because the two sum families partition the lattice between them: r+M = g needs r+M ≤ G+1 and r+M = E−g needs r+M ≥ G+1, so exactly one applies, and on the anti-diagonal r+M = G+1 they coincide. On the main diagonal r = M the difference gap is 0 and drops out, leaving one. That is the way to compare four specific partitions rather than a computed class of them; the whole selection draws in one batch, and <b>clear</b> empties it.<br><br>Click any entry in the legend under the figure to <b>collapse</b> that pair out of the overlay, and click it again to bring it back — the way to isolate two or three strips out of a crowded batch without leaving overlay mode. <b>⊘ hide all</b> collapses the whole visible batch in one go and the list stays exactly where it is, greyed and struck through, so you can build the comparison back up by clicking the two or three you actually want instead of switching off the other thirty-eight by hand; the same button becomes <b>↺ show all</b> once everything is off. The <b>↗</b> on an entry does what clicking one used to: drop out of the overlay and open that g on its own in Grid. The legend box holds one height whatever the batch size, so paging or playing through batches never moves the buttons under it.
       </div>
     </div>
   </div>
@@ -1168,6 +1189,7 @@ body.is-fs .figcap{display:none}
         <button class="chip" id="ch-playNext" onclick="toggleSweepNext()" title="Play the window G … G+N one step at a time, then jump straight back to the starting G and repeat. The starting point is fixed when you press play.">▶ Play +N</button>
       </div>
       <div class="note" id="note-playnext">Play <b>+N</b> is local: it anchors on whatever <b>G</b> you are on, steps up one grid at a time to <b>G + N</b>, then loops back to the anchor. <span id="pn-window">Window: 194 → 204</span>.</div>
+      <div id="lat-2d">
       <div class="row">
         <span class="lab">Gap g</span>
         <input type="range" class="tl" id="sl-g" min="1" max="193" step="1" value="193" oninput="setGap(+this.value)">
@@ -1185,6 +1207,34 @@ body.is-fs .figcap{display:none}
         <button class="chip" id="ch-playp" onclick="toggleSweepPairs()" title="Single mode: step through the Goldbach pairs of E. Multi-pair mode: page through the Goldbach-pair batches, looping.">▶ Play pairs</button>
       </div>
       <div class="note">Sliding <b>g</b> walks every additive partition <b>E = g + s</b>. The two sum strips carry those parts.</div>
+      </div>
+
+      <!-- the same transport, one dimension up: the rows of the ternary
+           table instead of the partitions of E -->
+      <div id="lat-3d" style="display:none">
+      <div class="row">
+        <span class="lab">Triple #</span>
+        <input type="range" class="tl" id="cor-sl-i" min="1" max="1" step="1" value="1" oninput="corSetIndex(+this.value-1)">
+        <input type="number" id="cor-in-i" min="1" max="1" value="1" style="width:56px" oninput="corSetIndex(+this.value-1)">
+      </div>
+      <div class="row">
+        <span class="lab">Odd N</span>
+        <span class="val" id="cor-v-N" style="flex:1;text-align:left">— = p + q + r</span>
+        <button class="chip" onclick="corStepTriple(-1)" title="Previous row of the ternary table">◀ triple</button>
+        <button class="chip" onclick="corStepTriple(1)" title="Next row of the ternary table">triple ▶</button>
+      </div>
+      <div class="row">
+        <span class="lab">Sweep</span>
+        <button class="chip" id="cor-ch-playall" onclick="corToggleSweep('all')" title="Walk every row of the ternary table in order, highlighting each triple in the 3D view, then loop.">▶ Play all</button>
+        <button class="chip" id="cor-ch-playdist" onclick="corToggleSweep('distinct')" title="Walk only the rows where p, q and r are three different primes — skipping every triple with a repeat.">▶ Play distinct</button>
+      </div>
+      <div class="row">
+        <span class="lab">Speed</span>
+        <input type="range" id="cor-sl-speed" min="60" max="900" step="20" value="260" oninput="corSetSpeed(+this.value)">
+        <span class="val" id="cor-v-speed" style="width:56px">260ms</span>
+      </div>
+      <div class="note">Stepping <b>Triple #</b> walks the ternary table row by row, and each step isolates that strand in the figure — the same contract the gap slider has with the strips in Grid.<br><br>The two sweeps are <i>not</i> an exact analogue of <b>Play g</b> / <b>Play pairs</b>, and it is worth being clear about why. In 2D those differ because most partitions <b>E = g + s</b> are <i>not</i> Goldbach pairs, so one button walks the candidates and the other walks the hits. Here every row already <i>is</i> a hit — the table only ever lists genuine representations <b>N = p + q + r</b>. So <b>Play all</b> takes every row, and <b>Play distinct</b> takes the sub-family where p, q, r are three different primes, dropping the ones with a repeat. That is a real split in the data, but it is a split by shape, not by success.</div>
+      </div>
       <div class="row grp-hdr" id="grp-magnifier-hdr" onclick="toggleGrp('grp-magnifier')" style="margin-top:8px;cursor:pointer;user-select:none">
         <span class="rarrow">▸</span><span class="lab" style="min-width:auto">Magnifier</span>
       </div>
@@ -2198,6 +2248,17 @@ const cv=document.getElementById('cv');
 let CSS_SIZE=600;
 function fitCanvas(){
   const plate=document.getElementById('plate');
+  // ── THE ZOOM-LOCK GUARD ──────────────────────────────────────────
+  // While Corridor is showing, #plate is display:none, so clientWidth is 0.
+  // Any resize that fired in that state (address bar hiding on mobile, the
+  // fullscreen toggle, an orientation change, the 3D panel opening) used to
+  // run this function anyway, clamp to the 160 px floor below, and leave
+  // CSS_SIZE stuck there. Coming back to Grid/Ring/Cayley/Circle then drew a
+  // 160 px canvas inside a 600-760 px plate — every view "zoomed out by at
+  // least 50%", with no slider able to undo it because the canvas itself,
+  // not the projection, had shrunk. A hidden plate has no measurement to
+  // give, so take none: keep the last good size and re-fit on the way back in.
+  if(!plate.isConnected || plate.offsetParent===null || plate.clientWidth<8) return;
   // #plate is a 1:1 aspect-ratio box in the document flow (and a viewport-sized
   // one in expanded mode), so both dimensions are already correct — no need for
   // the old desktop/stacked branch that had to guess a height.
@@ -3059,7 +3120,19 @@ function updateMultiLegend(batch){
   // buttons up and down while a sweep runs.
   el.classList.add('fixed');
   let h='';
-  if(S.hidden.size)
+  // All-off / all-on. Collapsing every entry empties the plate but leaves the
+  // whole list sitting there greyed and struck through, so the batch becomes a
+  // menu you build back up one strip at a time — which is the only practical
+  // way to isolate two pairs out of a batch of forty without clicking
+  // thirty-eight of them off by hand.
+  const nOff=batch.filter(it=>S.hidden.has(it.g)).length;
+  const allOff=batch.length>0&&nOff===batch.length;
+  if(batch.length){
+    h+=`<span class="lg clickable act" onclick="${allOff?'showAllLegendItems()':'hideAllLegendItems()'}" `+
+       `title="${allOff?'draw every strip in this batch again':'collapse every strip in this batch — the list stays, click any entry to bring it back'}">`+
+       `${allOff?'↺ show all':'⊘ hide all'} &nbsp;<span style="color:var(--cream3)">${batch.length-nOff}/${batch.length} on</span></span>`;
+  }
+  if(S.hidden.size&&!allOff)
     h+=`<span class="lg clickable act" onclick="showAllLegendItems()" title="put every collapsed strip back in the overlay">↺ show all &nbsp;<span style="color:var(--cream3)">${S.hidden.size} collapsed</span></span>`;
   batch.forEach(it=>{
     const rgb=itemRGB(it);
@@ -3072,7 +3145,7 @@ function updateMultiLegend(batch){
        `<span class="jump" onclick="event.stopPropagation();jumpToLegendItem(${it.g})" title="open g=${it.g} on its own in Grid">↗</span></span>`;
   });
   el.innerHTML=h||(S.multiMode==='picked'
-    ? '<span class="lg">nothing selected — turn on <b style="color:var(--gold)">✓ pick</b> in the partition table and click rows to add them</span>'
+    ? '<span class="lg">nothing selected — turn on <b style="color:var(--gold)">✓ pick</b> in the partition table, or click any lattice cell, to add strips</span>'
     : '<span class="lg">no items in this batch</span>');
 }
 // Clicking an entry collapses that pair out of the overlay and back in again,
@@ -3085,6 +3158,12 @@ function toggleLegendItem(g){
   render();
 }
 function showAllLegendItems(){ S.hidden.clear(); render(); }
+// Scoped to the batch on screen, not to every item: hiding "all" should mean
+// the forty entries you can see, not silently collapse the other pages too.
+function hideAllLegendItems(){
+  currentBatch().forEach(it=>S.hidden.add(it.g));
+  render();
+}
 function jumpToLegendItem(g){
   if(S.multi) toggleMulti();
   setGap(g);
@@ -3152,6 +3231,10 @@ function buildRows(){
   return rows;
 }
 function renderTable(){
+  // Corridor is a different arithmetic object — ordered triples on the plane
+  // p+q+r=N, not partitions of an even E — so it gets its own table rather
+  // than a filtered version of one that doesn't apply.
+  if(S.view==='corridor'){ renderCorridorTable(); return; }
   const G=S.G, E=2*(G+1), thr=Math.sqrt(E);
   const rows=S.rows.filter(r=>
     S.filter==='all'?true : S.filter==='gold'?r.pair : S.filter==='gap2n'?r.gapPartner : r.both);
@@ -3208,6 +3291,375 @@ function renderTable(){
     });
   });
 }
+/* ══════════ CORRIDOR — the 3D counterpart of the partition table ══════
+   Grid's table lists the partitions E = g + s and a click opens one on the
+   plate. This is the same contract one dimension up: the rows are the
+   ternary-Goldbach representations N = p + q + r, and a click picks that
+   triple out of the strand bundle in the 3D view. Everything here reads the
+   corridor's own model — it never recomputes the triples, so the table and
+   the canvas cannot disagree about what is on screen. */
+const CORRIDOR_NOTE='Corridor is the three-dimensional case. A point (x,y,z) is visible from the origin exactly when gcd(x,y,z)=1, and those points have density 1/ζ(3) ≈ 0.8319 — the analogue of the 1/ζ(2) ≈ 0.6079 the Grid measures. The strands mark the ternary-Goldbach representations N = p + q + r, which is the case Vinogradov settled for large odd N; the binary case the rest of this page is about remains open. This view depends on N and the box extent, not on the current g.';
+let CORRIDOR_SEL=-1;
+
+function corridorReady(){ return typeof window.corridorModel==='object' && window.corridorModel; }
+
+// pattern of a triple: which of p,q,r coincide — the thing that decides
+// whether the point is visible from the origin at all
+function triplePattern(p,q,r){
+  if(p===q&&q===r) return {k:'ppp', txt:'p = q = r', gcd:p};
+  if(p===q||q===r||p===r) return {k:'pp', txt:'two equal', gcd:1};
+  return {k:'abc', txt:'all distinct', gcd:1};
+}
+
+function renderCorridorTable(){
+  const wrap=document.getElementById('tblwrap');
+  const sub=document.getElementById('tbl-sub');
+  const M=corridorReady();
+  if(!M){
+    sub.textContent='loading the 3D model…';
+    wrap.innerHTML='<div class="empty-msg">Building the ternary triples…</div>';
+    return;
+  }
+  const triples=M.triples(), N=M.N();
+  const nDistinct=triples.filter(([p,q,r])=>p!==q&&q!==r&&p!==r).length;
+  const nRep=triples.filter(([p,q,r])=>p===q||q===r||p===r).length;
+  sub.textContent=`${triples.length} representations of N = ${N} · ${nDistinct} all-distinct · ${nRep} with a repeat`;
+  if(!triples.length){
+    wrap.innerHTML=`<div class="empty-msg">No ternary representation of N = ${N}. (N must be odd and greater than 5.)</div>`;
+    return;
+  }
+  let h='<table><thead><tr><th>p</th><th>q</th><th>r</th><th>pattern</th><th>gcd(p,q,r)</th><th>visible</th></tr></thead><tbody>';
+  triples.forEach(([p,q,r],i)=>{
+    const pat=triplePattern(p,q,r);
+    const vis=pat.gcd===1;
+    h+=`<tr data-i="${i}"${i===CORRIDOR_SEL?' class="sel"':''}>`+
+       `<td>${p} <span class="cfull">p</span></td>`+
+       `<td>${q} <span class="cfull">p</span></td>`+
+       `<td>${r} <span class="cfull">p</span></td>`+
+       `<td class="vn">${pat.txt}</td>`+
+       `<td class="${vis?'cfull':'vf'}">${pat.gcd}</td>`+
+       `<td class="${vis?'vg':'vf'}">${vis?'✓':'blocked'}</td></tr>`;
+  });
+  h+='</tbody></table>';
+  wrap.innerHTML=h;
+  wrap.classList.remove('picking');
+  wrap.querySelectorAll('tbody tr').forEach(tr=>{
+    tr.addEventListener('click',()=>corridorSelectRow(+tr.dataset.i));
+  });
+}
+
+// One row, one strand. Toggling the same row off clears the selection, which
+// is what the row's own highlight already implies.
+window.corridorSelectRow=function(i){
+  const M=corridorReady(); if(!M) return;
+  CORRIDOR_SEL=(i===CORRIDOR_SEL||i<0)?-1:i;
+  M.select(CORRIDOR_SEL);
+  const wrap=document.getElementById('tblwrap');
+  const prev=wrap.querySelector('tr.sel'); if(prev) prev.classList.remove('sel');
+  if(CORRIDOR_SEL>=0){
+    const now=wrap.querySelector('tr[data-i="'+CORRIDOR_SEL+'"]');
+    if(now){ now.classList.add('sel'); scrollToSelected(); }
+  }
+  renderCorridorDetail();
+  corSyncTransport();
+};
+
+// N changed under us (slider, ± , "from E"), so the row list is stale
+window.corridorTableChanged=function(){
+  if(S.view!=='corridor') return;
+  CORRIDOR_SEL=-1;
+  COR_CURSOR=0;
+  renderCorridorTable();
+  renderCorridorDetail();
+  corSyncTransport();
+};
+
+function renderCorridorDetail(){
+  const box=document.getElementById('detwrap');
+  const sub=document.getElementById('det-sub');
+  const M=corridorReady();
+  if(!M){ sub.textContent='—'; return; }
+  const triples=M.triples(), N=M.N(), f=M.field();
+  if(CORRIDOR_SEL<0||!triples[CORRIDOR_SEL]){
+    sub.textContent=`N = ${N}`;
+    box.innerHTML='<div id="empty">Pick a row from the ternary table to isolate that strand in the 3D view.<br><br>'+
+      'The chosen (p, q, r) is drawn in white with perpendiculars dropped to each axis, so the three primes can be read straight off the coordinate planes while everything else dims back.</div>';
+    return;
+  }
+  const [p,q,r]=triples[CORRIDOR_SEL];
+  const pat=triplePattern(p,q,r);
+  const vis=pat.gcd===1;
+  sub.textContent=`${p} + ${q} + ${r}`;
+  box.innerHTML=`<div id="detail">
+    <h5>Representation</h5>
+    <div class="kv"><span>N &nbsp;(odd)</span><span class="eq">${N}</span></div>
+    <div class="kv"><span>p + q + r</span><span class="eq">${p} + ${q} + ${r} = ${N}</span></div>
+    <div class="kv"><span>ordering</span><span class="eq">p ≤ q ≤ r &nbsp;<span class="vn">so p ≤ N/3 = ${(N/3).toFixed(1)}</span></span></div>
+    <div class="kv"><span>pattern</span><span class="eq">${pat.txt}</span></div>
+    <div class="kv"><span>index</span><span class="eq">${CORRIDOR_SEL+1} <span class="vn">of ${triples.length}</span></span></div>
+
+    <div class="verdictbar ${vis?'g':'f'}">${vis?'visible from the origin':'blocked — p = q = r'} — gcd(p,q,r) = ${pat.gcd}</div>
+
+    <h5>The ray &nbsp;· &nbsp;(0,0,0) → (${p}, ${q}, ${r})</h5>
+    <div class="kv"><span>reduction</span><span class="eq">gcd(${p}, ${q}, ${r}) = ${pat.gcd}</span></div>
+    <div class="kv"><span>primitive direction</span><span class="eq ${vis?'cfull':''}">(${p/pat.gcd}, ${q/pat.gcd}, ${r/pat.gcd})</span></div>
+    <div class="kv"><span>lattice points before it</span><span class="eq ${vis?'cfull':'dfull'}">${pat.gcd-1}</span></div>
+    <div class="note">${vis
+      ? 'Nothing on the lattice lies between the origin and this point, so the strand reaches it unobstructed — it is one of the visible points the 1/ζ(3) field counts.'
+      : 'The point sits behind (' + (p/pat.gcd) + ', ' + (q/pat.gcd) + ', ' + (r/pat.gcd) + ') on the same ray, so it is <i>not</i> visible from the origin. With three primes this can only happen when p = q = r, i.e. when 3 | N.'}</div>
+
+    <h5>Where it sits</h5>
+    <div class="kv"><span>plane</span><span class="eq">x + y + z = ${N}</span></div>
+    <div class="kv"><span>box coordinate</span><span class="eq">(${(p/N).toFixed(3)}, ${(q/N).toFixed(3)}, ${(r/N).toFixed(3)}) <span class="vn">× box</span></span></div>
+    <div class="kv"><span>field measured</span><span class="eq">${f.visible.toLocaleString()} / ${f.total.toLocaleString()} <span class="vn">${(f.frac*100).toFixed(2)}%</span></span></div>
+    <div class="kv"><span>1/ζ(3)</span><span class="eq">0.831907 <span class="vn">83.19%</span></span></div>
+    <div class="note">The white strand in the figure is this ray, with perpendiculars dropped to each axis so p, q and r can be read straight off the coordinate planes. Every other strand dims back while a row is selected; click the row again, or <b>clear</b> in the controls, to bring them all back.</div>
+  </div>`;
+}
+
+/* ── 2D ⇄ 3D: everything on the page that names a quantity ────────────
+   Nearly every readout on this page is a statement about the 2D lattice —
+   G, E = 2(G+1), the gap g, 1/ζ(2). None of those are what Corridor is
+   measuring, and leaving them frozen at their last 2D values while a 3D
+   model is on screen is worse than useless: it reads as though they still
+   describe the figure. So the whole bar, the note and the table headers
+   switch over with the view and switch back on the way out. */
+function setDimensionMode(d){
+  const three=(d===3);
+  const noteEl=document.getElementById('view-note');
+  if(three){ noteEl.style.display='block'; noteEl.textContent=CORRIDOR_NOTE; }
+  // The Instrument panel's transport rows are statements about partitions of
+  // an even E — the gap slider, the pair steppers, Play g / Play pairs. None
+  // of them mean anything about triples, so the block is swapped for its 3D
+  // counterpart rather than left sitting there driving an invisible canvas.
+  const l2=document.getElementById('lat-2d'), l3=document.getElementById('lat-3d');
+  if(l2) l2.style.display=three?'none':'';
+  if(l3) l3.style.display=three?'':'none';
+  if(three){ stopSweeps(false); stopSweepG(); stopSweepNext(); }
+  else corStopSweep();
+  // the partition filters and the gap-2n row have no meaning for triples
+  ['f-all','f-gold','f-full','f-gap2n','tbl-pick','tbl-pick-clear'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display=three?'none':'';
+  });
+  const gapRow=document.getElementById('sl-gapn');
+  if(gapRow&&gapRow.parentElement) gapRow.parentElement.style.display=three?'none':'';
+  const dhead=document.querySelector('#dockL .dhead span');
+  if(dhead) dhead.textContent=three?'Ternary table':'Partition table';
+  const rhead=document.querySelector('#dockR .dhead span');
+  if(rhead) rhead.textContent=three?'The triple':'Step by step';
+  if(three){ renderCorridorTable(); renderCorridorDetail(); corSyncTransport(); corridorSyncAll(); }
+  else { restore2DReadouts(); }
+}
+
+const DB_2D=[
+  ['rl-G','Side G'],['rl-E','E = 2(G+1)'],['rl-g','gap g'],['rl-s','s = E − g'],
+  ['rl-gb','Goldbach pairs'],['rl-thr','√E threshold'],['rl-cop','gcd=1 / total'],['rl-zdiff','vs 1/ζ(2)']
+];
+const DB_3D=[
+  ['rl-G','Box extent'],['rl-E','N (odd)'],['rl-g','selected p'],['rl-s','q + r'],
+  ['rl-gb','ternary reps'],['rl-thr','p bound'],['rl-cop','gcd=1 / total'],['rl-zdiff','vs 1/ζ(3)']
+];
+function setDBLabels(pairs){
+  pairs.forEach(([id,txt])=>{ const el=document.getElementById(id); if(el) el.textContent=txt; });
+}
+function restore2DReadouts(){
+  setDBLabels(DB_2D);
+  // the 2D values are all derived from G and g, so re-deriving them is enough
+  const G=S.G, ds=coprimeDensityStat(G), st=stripsAt(G,S.g), thr=Math.sqrt(2*(G+1));
+  const set=(id,v,t)=>{ const el=document.getElementById(id); if(el){ el.textContent=v; if(t!=null) el.title=t; } };
+  set('rd-G',G); set('rd-E',2*(G+1)); set('rd-g',S.g); set('rd-s',st.s);
+  set('rd-gb',S.rows.filter(r=>r.pair).length);
+  set('rd-thr','g > '+thr.toFixed(1));
+  set('rd-cop',`${ds.cnt}/${ds.total}`,`density ${(ds.density*100).toFixed(3)}%`);
+  set('rd-zdiff',(ds.errPct>=0?'+':'')+ds.errPct.toFixed(2)+'%',`1/ζ(2) = ${ds.zc.toFixed(4)}`);
+}
+// Called by the corridor whenever its model changes — the one place the 3D
+// numbers reach the page's own readouts.
+window.corridorSyncAll=function(){
+  if(S.view!=='corridor') return;
+  const M=corridorReady(); if(!M) return;
+  const triples=M.triples(), N=M.N(), f=M.field(), sel=triples[CORRIDOR_SEL];
+  const Z3=1/1.2020569032, err=((f.frac-Z3)/Z3)*100;
+  setDBLabels(DB_3D);
+  const set=(id,v,t)=>{ const el=document.getElementById(id); if(el){ el.textContent=v; if(t!=null) el.title=t; } };
+  set('rd-G',f.extent,`the field runs 0…${f.extent} on each axis`);
+  set('rd-E',N,'ternary Goldbach is stated for odd N');
+  set('rd-g',sel?sel[0]:'—');
+  set('rd-s',sel?`${sel[1]} + ${sel[2]}`:'—');
+  set('rd-gb',triples.length,`representations N = p+q+r with p ≤ q ≤ r`);
+  set('rd-thr',`p ≤ ${(N/3).toFixed(1)}`,'p ≤ N/3 follows from the ordering p ≤ q ≤ r');
+  set('rd-cop',`${f.visible.toLocaleString()}/${f.total.toLocaleString()}`,`density ${(f.frac*100).toFixed(3)}%`);
+  set('rd-zdiff',(err>=0?'+':'')+err.toFixed(2)+'%',`1/ζ(3) = ${Z3.toFixed(4)}`);
+  setHUD(
+    `<span class="k">${N}</span> odd &nbsp; reps = <span class="k">${triples.length}</span><br>`+
+    `visible <span class="k">${(f.frac*100).toFixed(2)}%</span> &nbsp; 1/ζ(3) = <span class="k">${(Z3*100).toFixed(2)}%</span><br>`+
+    (sel?`<span style="color:#fff">${sel[0]} + ${sel[1]} + ${sel[2]} = ${N}</span>`
+        :`<span style="color:#6a6560">no triple selected</span>`));
+  syncVerdict(sel?`${sel[0]}+${sel[1]}+${sel[2]}`:`${triples.length} ternary reps`,'n');
+};
+
+/* ── Corridor transport — the Lattice panel, one dimension up ────────
+   The gap slider / pair steppers / sweeps in the Instrument panel are all
+   statements about partitions of an even E, so in Corridor they are replaced
+   rather than reinterpreted: the slider indexes the rows of the ternary
+   table, the steppers walk them, and the sweeps play through them while the
+   figure highlights each triple in turn. Selection stays owned by
+   corridorSelectRow so the table, the drawer, the readout bar and the canvas
+   can never disagree about which row is live. */
+let COR_SWEEP=null, COR_SWEEP_MODE=null, COR_SPEED=260, COR_CURSOR=0;
+
+function corIndices(mode){
+  const M=corridorReady(); if(!M) return [];
+  const t=M.triples();
+  if(mode==='distinct') return t.map((x,i)=>i).filter(i=>{
+    const [p,q,r]=t[i]; return p!==q&&q!==r&&p!==r;
+  });
+  return t.map((x,i)=>i);
+}
+// the slider/readout follow the selection, wherever it came from
+function corSyncTransport(){
+  const M=corridorReady();
+  const sl=document.getElementById('cor-sl-i'), inp=document.getElementById('cor-in-i');
+  const vN=document.getElementById('cor-v-N');
+  if(!sl||!inp||!vN) return;
+  if(!M){ vN.textContent='— = p + q + r'; return; }
+  const t=M.triples(), n=t.length, N=M.N();
+  sl.max=Math.max(1,n); inp.max=Math.max(1,n);
+  sl.disabled=inp.disabled=(n===0);
+  const sel=t[CORRIDOR_SEL];
+  if(CORRIDOR_SEL>=0){
+    if(document.activeElement!==sl) sl.value=CORRIDOR_SEL+1;
+    if(document.activeElement!==inp) inp.value=CORRIDOR_SEL+1;
+  }
+  vN.textContent=sel
+    ? `${N} = ${sel[0]} + ${sel[1]} + ${sel[2]}`
+    : `${N} = p + q + r · ${n} representation${n===1?'':'s'}`;
+}
+function corSetIndex(i){
+  const M=corridorReady(); if(!M) return;
+  const n=M.triples().length; if(!n) return;
+  const j=Math.max(0,Math.min(n-1,i|0));
+  // corridorSelectRow toggles a repeat click off, which is right for the
+  // table but wrong for a slider — force the selection here.
+  CORRIDOR_SEL=-1;
+  corridorSelectRow(j);
+  corSyncTransport();
+}
+function corStepTriple(dir){
+  const M=corridorReady(); if(!M) return;
+  const n=M.triples().length; if(!n) return;
+  const cur=CORRIDOR_SEL<0 ? (dir>0?-1:0) : CORRIDOR_SEL;
+  corSetIndex(((cur+dir)%n+n)%n);
+}
+function corSetSpeed(ms){
+  COR_SPEED=Math.max(60,Math.min(900,ms|0));
+  const v=document.getElementById('cor-v-speed'); if(v) v.textContent=COR_SPEED+'ms';
+  if(COR_SWEEP){ const m=COR_SWEEP_MODE; corStopSweep(); corToggleSweep(m); }
+}
+// clearing by hand also ends a sweep — otherwise the next tick puts a
+// selection straight back and the button looks broken
+window.corClearSelection=function(){
+  corStopSweep();
+  const M=corridorReady(); if(!M) return;
+  CORRIDOR_SEL=0; corridorSelectRow(0); // force the toggle-off path
+  corSyncTransport();
+};
+window.corStepTriple=corStepTriple;
+function corSyncSweepButtons(){
+  [['cor-ch-playall','all','▶ Play all'],['cor-ch-playdist','distinct','▶ Play distinct']].forEach(([id,mode,label])=>{
+    const b=document.getElementById(id); if(!b) return;
+    const on=(COR_SWEEP_MODE===mode);
+    b.classList.toggle('on',on);
+    b.textContent=on?'■ Stop':label;
+  });
+}
+function corStopSweep(){
+  if(COR_SWEEP){ clearInterval(COR_SWEEP); COR_SWEEP=null; }
+  COR_SWEEP_MODE=null;
+  corSyncSweepButtons();
+}
+function corToggleSweep(mode){
+  if(COR_SWEEP_MODE===mode){ corStopSweep(); return; }
+  corStopSweep();
+  const list=corIndices(mode);
+  if(!list.length) return;
+  COR_SWEEP_MODE=mode;
+  // resume from wherever the reader already is, rather than snapping to the
+  // top of the list every time play is pressed
+  const at=list.indexOf(CORRIDOR_SEL);
+  COR_CURSOR=at>=0?at:0;
+  corSetIndex(list[COR_CURSOR]);
+  COR_SWEEP=setInterval(()=>{
+    if(S.view!=='corridor'){ corStopSweep(); return; }
+    const l=corIndices(mode);
+    if(!l.length){ corStopSweep(); return; }
+    COR_CURSOR=(COR_CURSOR+1)%l.length;
+    corSetIndex(l[COR_CURSOR]);
+  },COR_SPEED);
+  corSyncSweepButtons();
+}
+
+/* ── every strip through one cell ────────────────────────────────────
+   A lattice point (r, M) does not belong to one strip — it belongs to as
+   many as three at once, each for a different gap:
+
+     c   r + M = g          → g = r + M
+     d   r + M = E − g      → g = E − (r + M)
+     a/b |M − r| = g        → g = |M − r|   (a when M > r, b when r > M)
+
+   The old click threw two of those away: it computed the sum strip's g and
+   jumped there, so a point sitting on a difference strip as well simply lost
+   that fact. Returning all of them lets a click add every strip through the
+   cell to the pick set, which is what makes the crossing points legible —
+   the whole reason to click a crossing is to see what crosses.
+
+   Verified over the whole lattice at G = 194: every cell yields at least one
+   gap and at most TWO distinct ones, not three. The c and d families partition
+   the square between them — c needs r + M ≤ G+1, d needs r + M ≥ G+1 — so
+   exactly one applies, and on the anti-diagonal r + M = G+1 they coincide
+   (labelled "c = d"). On the main diagonal r = M the difference gap is 0 and
+   drops out, leaving one. Sorted and de-duplicated on g. */
+function stripsThroughCell(r,m){
+  const G=S.G, E=2*(G+1);
+  const ok=g=>Number.isInteger(g)&&g>=1&&g<=G+1;
+  const out=[];
+  const add=(g,strip,rel)=>{ if(ok(g)) out.push({g,strip,rel}); };
+  add(r+m,'c',`r + M = ${r+m}`);
+  add(E-(r+m),'d',`r + M = E − ${E-(r+m)}`);
+  const diff=Math.abs(m-r);
+  if(diff>0) add(diff, m>r?'a':'b', m>r?`M − r = ${diff}`:`r − M = ${diff}`);
+  // one entry per gap, keeping every strip label that produced it
+  const byG=new Map();
+  out.forEach(o=>{
+    if(byG.has(o.g)){ const e=byG.get(o.g); e.strip+=' = '+o.strip; e.rel+=' , '+o.rel; }
+    else byG.set(o.g,{...o});
+  });
+  return [...byG.values()].sort((a,b)=>a.g-b.g);
+}
+// The one path both the plain Grid click and the magnifier release take, so
+// they can never diverge again. Pick mode on: add every strip through the
+// cell to the overlay's selection. Pick mode off: the original behaviour —
+// drop out of the overlay and open that cell's sum-strip gap on its own.
+function pickCell(r,m){
+  const hits=stripsThroughCell(r,m);
+  if(!hits.length) return null;
+  if(S.pick){
+    if(!S.multi) toggleMulti();
+    hits.forEach(h=>S.picked.add(h.g));
+    // a newly picked strip should be visible even if that g was collapsed
+    // out of a previous batch
+    hits.forEach(h=>S.hidden.delete(h.g));
+    if(S.multiMode!=='picked') setMultiMode('picked');
+    else { computeMultiItems(); render(); }
+    renderTable(); syncPickUI();
+    return hits;
+  }
+  const G=S.G, E=2*(G+1), sum=r+m;
+  if(S.multi) toggleMulti();
+  setGap(Math.max(1,Math.min(G+1, sum<=G? sum : E-sum)));
+  return hits;
+}
+
 /* ── multi-select from the partition table ──────────────────────────
    Overlay mode could only ever show a whole computed class — every Goldbach
    pair of E, or every partition — sliced into batches. This lets a reader
@@ -3295,6 +3747,7 @@ function wireWalks(){
   });
 }
 function renderDetail(){
+  if(S.view==='corridor'){ renderCorridorDetail(); return; }
   const st=stripsAt(S.G,S.g), thr=Math.sqrt(st.E), v=verdict(st,thr);
   document.getElementById('det-sub').textContent=`g = ${st.g}`;
   const cA=Math.max(1,st.g-S.G), cB=Math.min(S.G,st.g-1);
@@ -3655,9 +4108,11 @@ function syncVerdict(txt,cls){
 const CIRCLE_NOTE='Circle plots the Hardy–Littlewood exponential sum S(α) = Σ e(2πiαp) over primes p ≤ E — the analytic version of the same Goldbach question the strips ask combinatorially. It depends only on E, not on the current g, so the gap slider won\'t change this plot.';
 const POLAR_NOTE='Ring/Cayley plot the same a/b/c/d strip points as Grid, just re-projected — the underlying (r,M) data is identical.';
 const ORIGINAL_FIGCAP=`<b>Figure 1.</b> The G×G coprimality lattice with the four strips of gap g overlaid. Hover a cell (Grid view) for its
-      gcd reduction; click to jump the gap to the sum strip through that cell.`;
-const CORRIDOR_FIGCAP=`<b>Figure 5.</b> A 3D octant from (0,0,0): translucent rays reach every visible lattice point (gcd(x,y,z)=1 — density 1/ζ(3)); gold–coral strands pick out the ternary-Goldbach triples p+q+r=N among them. Drag to rotate, scroll to zoom, or dial exact angles below.`;
+      gcd reduction and every strip running through it; with <b>✓ pick</b> on, a click adds all of them to the overlay at once — with it off, the click jumps the gap to that cell's sum strip.`;
+const CORRIDOR_FIGCAP=`<b>Figure 5.</b> The lattice box seen from its own centre: translucent rays reach every visible point (gcd(x,y,z)=1 — density 1/ζ(3)); gold–coral strands pick out the ternary-Goldbach triples p+q+r=N among them. Drag to rotate, scroll to zoom. Click a row in the ternary table below to isolate one triple.`;
 function setView(v){
+  const prev=S.view;
+  const dimChanged=(prev==='corridor')!==(v==='corridor');
   S.view=v;
   ['grid','ring','cayley','circle','corridor'].forEach(k=>{
     const btn=document.getElementById('vw-'+k); if(btn) btn.classList.toggle('active',k===v);
@@ -3680,24 +4135,47 @@ function setView(v){
   const plate=document.getElementById('plate'), fc=document.getElementById('fig-corridor');
   const legendEl=document.getElementById('legend'), hudOutEl=document.getElementById('hud-out');
   const figcapEl=document.getElementById('figcap');
+  const corCtl=document.getElementById('corridor-controls');
   if(v==='corridor'){
     plate.style.display='none'; fc.style.display='block';
-    legendEl.style.display='none'; hudOutEl.style.display='none';
+    legendEl.style.display='none';
+    // #hud lives inside #plate, which is now hidden, so the out-of-plate
+    // readout is the only one left — force it visible rather than letting it
+    // fall back to the desktop default of display:none.
+    hudOutEl.style.display='flex';
     figcapEl.innerHTML=CORRIDOR_FIGCAP;
+    if(corCtl) corCtl.style.display='block';
+    setDimensionMode(3);
     loadCorridorLibs().then(()=>{
       initCorridorOnce();
       syncCorridorFromMain();
       resizeCorridorRenderer();
+      renderCorridorTable();
+      renderCorridorDetail();
+      corSyncTransport();
+      corridorSyncAll();
     });
   } else {
     plate.style.display='flex'; fc.style.display='none';
     legendEl.style.display=''; hudOutEl.style.display='';
     figcapEl.innerHTML=ORIGINAL_FIGCAP;
+    if(corCtl) corCtl.style.display='none';
+    if(dimChanged) setDimensionMode(2);
   }
 
   const expBox=document.getElementById('exp-'+v);
   if(expBox) expBox.checked=true;
-  if(v!=='corridor') render();
+  // Leaving Corridor re-measures the plate before painting. Any resize that
+  // arrived while it was hidden was ignored (see fitCanvas), so this is the
+  // first chance to pick up a size change — and the one place that guarantees
+  // the 2D canvas is at full plate size again.
+  if(v!=='corridor'){
+    fitCanvas();
+    render();
+    // the table and drawer only need rebuilding when they were showing the
+    // other dimension's arithmetic — not on every grid↔ring↔cayley switch
+    if(dimChanged){ renderTable(); renderDetail(); scrollToSelected(); }
+  }
 }
 // Ring and Cayley each keep their own zoom-in and θ, so switching views puts
 // the sliders back where that view left them rather than carrying one view's
@@ -3953,8 +4431,10 @@ let LENS_SUPPRESS_CLICK=false;
     const r=Math.floor((e.clientX-b.left)/cell)+1, m=Math.floor((e.clientY-b.top)/cell)+1;
     if(r<1||r>S.G||m<1||m>S.G){ probe.style.display='none'; return; }
     const q=gcd(r,m), br=branchOf(r,m,S.G,S.g);
+    const hits=stripsThroughCell(r,m);
     probe.textContent=`r=${r}  M=${m}\ngcd = ${q}${q===1?'  coprime':''}`+
-      (br?`\nstrip ${br}`:'')+`\nM−r = ${m-r}   r+M = ${r+m}`;
+      (br?`\nstrip ${br}`:'')+`\nM−r = ${m-r}   r+M = ${r+m}`+
+      (hits.length?`\n${S.pick?'click adds':'strips here:'} ${hits.map(x=>`${x.strip} g=${x.g}`).join('  ·  ')}`:'');
     probe.style.display='block';
     const px=e.clientX-cv.parentElement.getBoundingClientRect().left+14;
     const py=e.clientY-cv.parentElement.getBoundingClientRect().top+14;
@@ -3971,7 +4451,7 @@ let LENS_SUPPRESS_CLICK=false;
     const r=Math.min(S.G,Math.floor((e.clientX-b.left)/cell)+1);
     const m=Math.min(S.G,Math.floor((e.clientY-b.top)/cell)+1);
     if(r<1||m<1) return;
-    const sum=r+m, E=2*(S.G+1);
+    // (the per-strip gap arithmetic now lives in stripsThroughCell)
     // clicking a cell jumps to the gap whose sum strip runs through it. If the
     // multi-pair overlay is on, the point they clicked is one of many —
     // dropping to single-gap view is what actually shows the partition they picked.
@@ -3983,8 +4463,10 @@ let LENS_SUPPRESS_CLICK=false;
     // the whole bottom-left and top-right corners jumped to g = G−1, which at
     // the default G = 194 is g = 193, already selected — so clicking there
     // appeared to do nothing at all.
-    if(S.multi) toggleMulti();
-    setGap(Math.max(1,Math.min(S.G+1, sum<=S.G? sum : E-sum)));
+    // pickCell decides: in pick mode it adds every strip running through this
+    // cell to the overlay; otherwise it falls back to the single-gap jump the
+    // Figure 1 caption describes.
+    pickCell(r,m);
   });
 })();
 
@@ -4161,13 +4643,12 @@ let LENS_REDRAW=null;
   function selectAt(sx,sy){
     const hit=hitAt(sx,sy);
     if(!hit) return;
-    const [r,m]=hit, G=S.G, E=2*(G+1), sum=r+m;
+    const [r,m]=hit;
     // same drop-out-of-overlay behaviour as Grid's plain click, so releasing
     // the lens on a point shows that point's own partition, not the pile of
     // strips the overlay was drawing. Ceiling is G+1 for the reason given on
     // the plain click handler above — G−1 made the corners unreachable.
-    if(S.multi) toggleMulti();
-    setGap(Math.max(1,Math.min(G+1, sum<=G? sum : E-sum)));
+    pickCell(r,m);
     showPulse(r,m);
   }
 
@@ -4495,12 +4976,18 @@ let LENS_REDRAW=null;
     // gap releasing here will jump to — the whole question the lens is asked.
     // Drawn as DOM outside the rim, so a round lens cannot clip it.
     if(hit){
-      const [hr,hm]=hit, G=S.G, E=2*(G+1), sum=hr+hm;
+      const [hr,hm]=hit;
       const q=gcd(hr,hm);
-      const gg=Math.max(1,Math.min(G+1,sum<=G?sum:E-sum));
+      const hits=stripsThroughCell(hr,hm);
+      // In pick mode a release adds every strip through this cell, so the
+      // readout has to name every one of them — showing a single g while three
+      // are about to light up was the readout lying about what the button does.
+      const gtxt=S.pick
+        ? hits.map(x=>`${x.strip} g ${x.g}`).join('<span class="dim"> + </span>')
+        : `→ g ${hits.length?(hits.find(x=>x.strip==='c'||x.strip==='d')||hits[0]).g:'—'}`;
       info.innerHTML=`<span class="dim">r,M</span> ${hr},${hm}`+
         `<span class="dim"> · gcd</span> ${q}${q===1?'<span class="hot"> coprime</span>':''}`+
-        `<span class="dim"> · </span><span class="hot">→ g ${gg}</span>`+
+        `<span class="dim"> · </span><span class="hot">${gtxt}</span>`+
         `<span class="dim"> · ${LENS_ZOOM}×</span>`;
     } else {
       info.innerHTML=`<span class="dim">outside the lattice · ${LENS_ZOOM}×</span>`;
@@ -5228,8 +5715,8 @@ function doReportPDF(){
     if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
     if(e.key==='ArrowRight') setGap(S.g+1);
     else if(e.key==='ArrowLeft') setGap(S.g-1);
-    else if(e.key===']') stepPair(1);
-    else if(e.key==='[') stepPair(-1);
+    else if(e.key===']'){ S.view==='corridor'?corStepTriple(1):stepPair(1); }
+    else if(e.key==='['){ S.view==='corridor'?corStepTriple(-1):stepPair(-1); }
     else if(e.key==='f') toggleFS();
     else if(e.key==='Escape'&&S.focus) focusSym(S.focus);
   });
@@ -5330,11 +5817,28 @@ function doReportPDF(){
     scene.add(new THREE.AmbientLight(0xffffff,1));
 
     const fieldGroup=new THREE.Group(), strandGroup=new THREE.Group(), axesGroup=new THREE.Group();
-    const world=new THREE.Group(); // everything rotates together, pivoting on (0,0,0)
-    world.add(fieldGroup); world.add(strandGroup); world.add(axesGroup);
+    const highlightGroup=new THREE.Group();
+    // ── THE CENTRING FIX ─────────────────────────────────────────────
+    // Everything is built in lattice coordinates, which run 0…WORLD on each
+    // axis — so the geometric centre of the box is (W/2, W/2, W/2), not the
+    // origin. Rotating and aiming at (0,0,0) meant pivoting on one *corner*
+    // of the cube: the octant swung around the bottom-left-back vertex and
+    // sat off in a corner of the frame, which is the "we're looking at the
+    // top-right corner, 1/8 of the cube" symptom. `content` carries the whole
+    // model back by half a box, so lattice (W/2,W/2,W/2) lands on the scene
+    // origin. The camera target and the rotation pivot are then both the
+    // middle of the cube, and the coloured axes still emanate from the true
+    // lattice origin — it just isn't the point the camera is nailed to.
+    const content=new THREE.Group();
+    content.add(fieldGroup); content.add(strandGroup); content.add(axesGroup); content.add(highlightGroup);
+    const world=new THREE.Group();
+    world.add(content);
     scene.add(world);
 
-    const WORLD=52; // world half-extent the octant is normalized into
+    const WORLD=52;              // world extent of the lattice box, per axis
+    const HALF=WORLD/2;          // …and its centre offset
+    const AXIS_LEN=WORLD*1.06;
+    content.position.set(-HALF,-HALF,-HALF);
 
     function sieve(n){
       const p=new Uint8Array(n+1); p.fill(1); if(n>=0)p[0]=0; if(n>=1)p[1]=0;
@@ -5364,12 +5868,22 @@ function doReportPDF(){
     function buildAxes(){
       axesGroup.clear();
       const mk=(dir,color)=>{
-        const geo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), dir.clone().multiplyScalar(WORLD*1.08)]);
+        const geo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), dir.clone().multiplyScalar(AXIS_LEN)]);
         axesGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({color, transparent:true, opacity:0.5})));
       };
       mk(new THREE.Vector3(1,0,0), 0xe05060);
       mk(new THREE.Vector3(0,1,0), 0x7ec87a);
       mk(new THREE.Vector3(0,0,1), 0x3dc8b8);
+      // The box the model actually occupies. Without it there is no cue for
+      // where the cube ends, so "centred" is impossible to read — the rays
+      // just fade out and the frame looks arbitrary.
+      const c=[[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]]
+        .map(([x,y,z])=>new THREE.Vector3(x*WORLD,y*WORLD,z*WORLD));
+      const E=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+      const bpts=[];
+      E.forEach(([a,b])=>{ bpts.push(c[a].clone(), c[b].clone()); });
+      const bgeo=new THREE.BufferGeometry().setFromPoints(bpts);
+      axesGroup.add(new THREE.LineSegments(bgeo, new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:0.09})));
     }
     buildAxes();
 
@@ -5391,11 +5905,16 @@ function doReportPDF(){
       return {total, visible};
     }
 
+    // The triples all lie on the plane x+y+z=N, so normalizing by N (rather
+    // than by the largest coordinate that happens to occur) puts that plane
+    // through the three far corners of the box — the geometry is then the
+    // same at every N instead of drifting with the largest prime in the list.
+    let TRIPLES=[], STRAND_SCALE=1;
     function buildStrands(N){
       strandGroup.clear();
       const triples=ternaryTriples(N);
-      const maxCoord=Math.max(1,...triples.flat());
-      const scale=WORLD/maxCoord;
+      const scale=WORLD/N;
+      STRAND_SCALE=scale; TRIPLES=triples;
       const pts=[], cols=[];
       const col1=new THREE.Color(0xc8a84a), col2=new THREE.Color(0xe05060);
       triples.forEach(([p,q,r])=>{
@@ -5412,28 +5931,83 @@ function doReportPDF(){
       return triples;
     }
 
+    /* ── selection ──────────────────────────────────────────────────
+       The partition table drives this: clicking a row picks one triple out
+       of the crowd, exactly the way a Grid row picks one gap's strips. The
+       chosen (p,q,r) gets a white strand, a node at the point, and dropped
+       perpendiculars to each axis so the three primes can be read straight
+       off the coordinate planes. Everything else dims so the pick is legible
+       instead of lost among a few hundred equally bright rays. */
+    let selIndex=-1;
+    function drawHighlight(){
+      highlightGroup.clear();
+      const dimmed=selIndex>=0;
+      const sm=strandGroup.children[0];
+      if(sm) sm.material.opacity=dimmed?0.16:0.85;
+      const fm=fieldGroup.children[0];
+      if(fm) fm.material.opacity=dimmed?0.05:0.12;
+      if(!dimmed||!TRIPLES[selIndex]) return;
+      const [p,q,r]=TRIPLES[selIndex];
+      const P=new THREE.Vector3(p*STRAND_SCALE,q*STRAND_SCALE,r*STRAND_SCALE);
+      const white=new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:0.95});
+      highlightGroup.add(new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),P]), white));
+      // perpendiculars: P → the three coordinate axes
+      const drops=[
+        [new THREE.Vector3(P.x,0,0), 0xe05060],
+        [new THREE.Vector3(0,P.y,0), 0x7ec87a],
+        [new THREE.Vector3(0,0,P.z), 0x3dc8b8],
+      ];
+      drops.forEach(([foot,color])=>{
+        highlightGroup.add(new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints([P.clone(),foot]),
+          new THREE.LineBasicMaterial({color, transparent:true, opacity:0.5})));
+      });
+      const node=new THREE.Mesh(
+        new THREE.SphereGeometry(WORLD*0.018,14,12),
+        new THREE.MeshBasicMaterial({color:0xffffff}));
+      node.position.copy(P);
+      highlightGroup.add(node);
+    }
+    function setSelected(i){
+      selIndex=(i==null||i<0||i>=TRIPLES.length)?-1:i;
+      drawHighlight();
+      updateStatsFooter();
+      return selIndex;
+    }
+
     const CSS={gridN:16, showField:true, N:199, showStrands:true, spin:false};
-    let lastTripleCount=0, lastVisibleFrac=0, lastTotal=0;
+    let lastTripleCount=0, lastVisibleFrac=0, lastTotal=0, lastVisible=0;
 
     function updateStatsFooter(){
       const theory=1/1.2020569032;
+      const sel=TRIPLES[selIndex];
       document.getElementById('cor-stats').innerHTML=
-        `field: <b>${lastTotal.toLocaleString()}</b> points, <span class="cor-hi">${(lastVisibleFrac*100).toFixed(1)}%</span> visible`+
-        `<br>theory 1/ζ(3) = <span class="cor-hi">${(theory*100).toFixed(1)}%</span>`+
-        `<br>ternary triples for N=${CSS.N}: <b>${lastTripleCount}</b>`+
-        `<br>(all but the degenerate p=q=r=N/3 case are automatically visible)`;
+        `box <b>${CSS.gridN}³</b> · <b>${lastTotal.toLocaleString()}</b> points, `+
+        `<span class="cor-hi">${lastVisible.toLocaleString()}</span> visible = `+
+        `<span class="cor-hi">${(lastVisibleFrac*100).toFixed(2)}%</span><br>`+
+        `1/ζ(3) = <span class="cor-hi">${(theory*100).toFixed(2)}%</span> · `+
+        `off by ${(((lastVisibleFrac-theory)/theory)*100).toFixed(2)}%<br>`+
+        `N = <b>${CSS.N}</b> · ternary representations: <b>${lastTripleCount}</b>`+
+        (sel?`<br>selected: <span class="cor-sel">${sel[0]} + ${sel[1]} + ${sel[2]} = ${CSS.N}</span>`:'');
+      // let the page's readouts and table follow the model
+      if(typeof window.corridorSyncAll==='function') window.corridorSyncAll();
     }
     function rebuildField(){
       const {total,visible}=buildField(CSS.gridN);
       fieldGroup.visible=CSS.showField;
-      lastTotal=total; lastVisibleFrac=visible/total;
+      lastTotal=total; lastVisible=visible; lastVisibleFrac=visible/total;
+      drawHighlight();
       updateStatsFooter();
     }
     function rebuildStrands(){
       const triples=buildStrands(CSS.N);
       strandGroup.visible=CSS.showStrands;
       lastTripleCount=triples.length;
+      selIndex=-1;
+      drawHighlight();
       updateStatsFooter();
+      if(typeof window.corridorTableChanged==='function') window.corridorTableChanged();
     }
 
     const rotState={x:0,y:0,z:0};
@@ -5452,15 +6026,22 @@ function doReportPDF(){
       if(document.activeElement!==iz) iz.value=Math.round(rotState.z);
     }
 
-    const CENTER=new THREE.Vector3(0,0,0);
-    const CONTENT_RADIUS=WORLD*Math.sqrt(3);
+    const CENTER=new THREE.Vector3(0,0,0); // = centre of the box, after content's offset
+    // Bounding radius measured from the box centre, not from the corner. The
+    // old value was the full corner-to-corner diagonal (√3·WORLD), which is
+    // twice what the framing needs — the camera sat about 2× too far out and
+    // the content filled a quarter of the frame.
+    const CONTENT_RADIUS=Math.max(
+      HALF*Math.sqrt(3),
+      Math.hypot(AXIS_LEN-HALF, HALF, HALF)
+    );
     function fitDistance(){
       const vFov=THREE.MathUtils.degToRad(camera.fov);
       const aspect=camera.aspect;
       const hFov=2*Math.atan(Math.tan(vFov/2)*aspect);
       const dv=CONTENT_RADIUS/Math.sin(vFov/2);
       const dh=CONTENT_RADIUS/Math.sin(hFov/2);
-      return Math.max(dv,dh)*1.18;
+      return Math.max(dv,dh)*1.08;
     }
     function setCorView(name){
       const d=fitDistance();
@@ -5470,6 +6051,7 @@ function doReportPDF(){
         side:   new THREE.Vector3(1,0,0),
         top:    new THREE.Vector3(0,1,0.0001),
         bottom: new THREE.Vector3(0,-1,0.0001),
+        corner: new THREE.Vector3(1,1,1),
       };
       const dir=(dirs[name]||dirs.iso).normalize();
       if(name==='top') camera.up.set(0,0,-1);
@@ -5510,7 +6092,9 @@ function doReportPDF(){
     });
 
     document.getElementById('cor-grid-range').addEventListener('input',e=>{
-      CSS.gridN=+e.target.value; rebuildField();
+      CSS.gridN=+e.target.value;
+      const v=document.getElementById('cor-v-extent'); if(v) v.textContent=CSS.gridN;
+      rebuildField();
     });
     const tField=document.getElementById('cor-t-field');
     tField.onclick=()=>{
@@ -5529,6 +6113,12 @@ function doReportPDF(){
     nRange.addEventListener('input',()=>setN(+nRange.value));
     document.getElementById('cor-n-up').onclick=()=>setN(CSS.N+2);
     document.getElementById('cor-n-dn').onclick=()=>setN(CSS.N-2);
+    document.getElementById('cor-n-fromE').onclick=()=>{
+      try{
+        const E=(typeof S!=='undefined' && S.G) ? 2*(S.G+1) : null;
+        if(E && E>7) setN((E%2===0)?E-1:E);
+      }catch(e){}
+    };
 
     const tStrands=document.getElementById('cor-t-strands');
     tStrands.onclick=()=>{
@@ -5542,9 +6132,19 @@ function doReportPDF(){
       tSpin.textContent='Auto-rotate: '+(CSS.spin?'On':'Off');
       tSpin.classList.toggle('on',CSS.spin);
     };
-    document.getElementById('cor-panel-head').addEventListener('click',()=>{
-      document.getElementById('cor-panel').classList.toggle('cor-collapsed');
-    });
+    document.getElementById('cor-t-recenter').onclick=()=>setCorView('iso');
+    const stepSel=d=>{
+      if(!TRIPLES.length) return;
+      if(typeof window.corStepTriple==='function'){ window.corStepTriple(d); return; }
+      const n=TRIPLES.length;
+      setSelected(selIndex<0 ? (d>0?0:n-1) : (selIndex+d+n)%n);
+    };
+    document.getElementById('cor-t-prev').onclick=()=>stepSel(-1);
+    document.getElementById('cor-t-next').onclick=()=>stepSel(1);
+    document.getElementById('cor-t-clear').onclick=()=>{
+      if(typeof window.corClearSelection==='function') window.corClearSelection();
+      else setSelected(-1);
+    };
 
     function animate(){
       requestAnimationFrame(animate);
@@ -5558,15 +6158,31 @@ function doReportPDF(){
     applyRotation();
 
     CS={renderer,camera,controls,mount,setCorView,setN,nNum,nRange,CSS};
+    // What the partition table needs: the current triple list, the current N,
+    // the field measurement, and a way to pick a strand.
+    window.corridorModel={
+      triples:()=>TRIPLES,
+      N:()=>CSS.N,
+      selected:()=>selIndex,
+      select:i=>setSelected(i),
+      field:()=>({total:lastTotal, visible:lastVisible, frac:lastVisibleFrac, extent:CSS.gridN}),
+      focus:()=>setCorView('iso'),
+    };
     animate();
     resizeCorridorRenderer();
     setCorView('iso');
+    if(typeof window.corridorTableChanged==='function') window.corridorTableChanged();
   }
   window.initCorridorOnce=initCorridorOnce;
 
   function resizeCorridorRenderer(){
     if(!CS) return;
+    // Same reasoning as fitCanvas: a hidden container measures 0, and writing
+    // that back would leave a 1×1 renderer and a broken aspect the next time
+    // the tab opens. Skip instead — setView re-fits on the way in.
+    if(CS.mount.offsetParent===null) return;
     const w=CS.mount.clientWidth||1, h=CS.mount.clientHeight||1;
+    if(w<8||h<8) return;
     CS.camera.aspect=w/h; CS.camera.updateProjectionMatrix();
     CS.renderer.setSize(w,h);
   }
@@ -5584,7 +6200,9 @@ function doReportPDF(){
       const E=(typeof S!=='undefined' && S.G) ? 2*(S.G+1) : null;
       if(E && E>7){
         const n=(E%2===0)?E-1:E; // ternary N must be odd
-        CS.setN(n);
+        // only when it differs — re-running setN rebuilds the strands and
+        // drops whatever triple the reader had selected
+        if(n!==CS.CSS.N) CS.setN(n);
       }
     }catch(e){ /* main page state not ready yet — keep the default N */ }
   }
