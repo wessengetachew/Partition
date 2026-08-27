@@ -198,6 +198,16 @@ h1.hero-title{font-family:var(--disp);font-size:clamp(1.4rem,4vw,2.2rem);letter-
 }
 .vm-btn:hover{color:var(--cream2)}
 .vm-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+/* plate rotator — parked at the far end of the view bar, since it acts on
+   whichever view is showing rather than choosing between them */
+#rot-grp{margin-left:auto;display:flex;align-items:center;flex-shrink:0;padding-right:4px}
+.vm-btn.rot{padding:10px 8px;font-size:14px;line-height:1;letter-spacing:0}
+#rot-read{
+  font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--cream3);
+  min-width:30px;text-align:center;user-select:none;
+}
+#rot-reset{opacity:.3;pointer-events:none}
+#rot-reset.lit{opacity:1;pointer-events:auto;color:var(--gold)}
 
 /* ── figure ────────────────────────────────────────────────────── */
 #figure{background:var(--bg1);border:1px solid var(--edge);border-top:none;border-radius:0 0 4px 4px;padding:16px 16px 0}
@@ -874,6 +884,12 @@ body.is-fs .figcap{display:none}
     <button class="vm-btn" id="vw-cayley" onclick="setView('cayley')" title="The same ring points, 1:1, run through a Möbius map. Three are selectable in the Instrument panel: Γ(z)=(z−1)/(z+1) on an annulus, the Blaschke automorphism φₐ on the disk, and K(z)=(z−i)/(z+i) on Ford coordinates. The plate readout gives the measured maximum and what falls outside it.">Cayley</button>
     <button class="vm-btn" id="vw-circle" onclick="setView('circle')" title="The Hardy–Littlewood exponential sum S(α) = Σ e(2πiαp) over primes p ≤ E, plotted across α ∈ [0,1). Peaks at rationals p/q (major arcs) are where the circle method predicts Goldbach representations come from. Depends only on E, not on the current g.">Circle</button>
     <button class="vm-btn" id="vw-corridor" onclick="setView('corridor')" title="A 3D view: rays to every visible lattice point (gcd(x,y,z)=1, density 1/ζ(3)) with the ternary-Goldbach triples p+q+r=N highlighted among them. Independent of g; N defaults from the current E.">Corridor</button>
+    <span id="rot-grp">
+      <button class="vm-btn rot" id="rot-ccw" onclick="rotateView(-1)" title="Turn the whole plate 90° counter-clockwise (shift-R). Cells, strips, overlays, the click target and the magnifier all turn with it; the labels stay upright.">&#8634;</button>
+      <span id="rot-read">0&deg;</span>
+      <button class="vm-btn rot" id="rot-cw" onclick="rotateView(1)" title="Turn the whole plate 90° clockwise (R). Cells, strips, overlays, the click target and the magnifier all turn with it; the labels stay upright.">&#8635;</button>
+      <button class="vm-btn rot" id="rot-reset" onclick="setRot90(0)" title="Back to 0°">&#10226;</button>
+    </span>
   </div>
 
   <div id="figure">
@@ -1072,7 +1088,7 @@ body.is-fs .figcap{display:none}
         <button class="chip" style="flex:0 0 auto" onclick="pageStep(1)">▶</button>
       </div>
       <div class="note" id="mp-note" style="display:none">
-        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, and at <b>Off-gcd</b> (Strips panel) where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.<br><br><b>pair → pair</b> narrows that to a single run: every partition from one Goldbach pair up to the next, endpoints included, drawn as one band with <b>◀ run</b> / <b>run ▶</b> to step to the next. It exists because of what the band looks like — the two ends are the only fully coprime strips in it, since c is complete exactly when g is prime and d exactly when E−g is prime, so the edges are unbroken lines and the interior is punctured. <b>▶ Play pairs</b> walks the runs in order while this mode is live.<br><br><b>selected rows</b> draws exactly the partitions you tick in the table below: the <b>Pick</b> chip in the partition-table header reads its own state — <i>Pick on — row click selects</i> or <i>Pick off — row click jumps</i> — and is on by default; and each row click adds or removes that g instead of jumping the gap, with the row carrying the same hue its strips get on the plate. With pick on, <b>clicking a lattice cell (or releasing the magnifier on one) does the same thing for every strip through that point at once</b>: a cell sits on the sum strip r+M = g, on the sum strip r+M = E−g, and — off the main diagonal — on a difference strip |M−r| = g, so a click off the main diagonal brings in <b>two</b> gaps — one sum strip and one difference strip — and the crossing becomes legible as a crossing rather than as one arbitrary line. The two gestures differ in one way worth knowing: a <b>plain click accumulates</b>, which is how you build a comparison out of four separate crossings, while a <b>magnifier release replaces</b> — it clears the selection and leaves only the strips through the point you landed on. That asymmetry is deliberate: you reach for the lens at 20× precisely because the other thirty strips are in the way, so keeping them after the release would defeat the gesture. The lens readout shows <i>only</i> before the gaps it is about to leave standing. There is no modifier key on a phone, so which gesture you used carries the distinction. Because a plain click accumulates two gaps at a time, <b>✕ clear</b> sits in the legend directly under the figure — it empties the selection outright, which is not what <b>⊘ hide all</b> does (that collapses the strips and keeps the list). The same action is on the <b>clear</b> chip in the partition-table header. It is two rather than three because the two sum families partition the lattice between them: r+M = g needs r+M ≤ G+1 and r+M = E−g needs r+M ≥ G+1, so exactly one applies, and on the anti-diagonal r+M = G+1 they coincide. On the main diagonal r = M the difference gap is 0 and drops out, leaving one. That is the way to compare four specific partitions rather than a computed class of them; the whole selection draws in one batch, and <b>clear</b> empties it.<br><br>Click any entry in the legend under the figure to <b>collapse</b> that pair out of the overlay, and click it again to bring it back — the way to isolate two or three strips out of a crowded batch without leaving overlay mode. <b>⊘ hide all</b> collapses the whole visible batch in one go and the list stays exactly where it is, greyed and struck through, so you can build the comparison back up by clicking the two or three you actually want instead of switching off the other thirty-eight by hand; the same button becomes <b>↺ show all</b> once everything is off. The <b>↗</b> on an entry does what clicking one used to: drop out of the overlay and open that g on its own in Grid. The legend box holds one height whatever the batch size, so paging or playing through batches never moves the buttons under it.
+        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, and at <b>Off-gcd</b> (Strips panel) where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.<br><br><b>pair → pair</b> narrows that to a single run: every partition from one Goldbach pair up to the next, endpoints included, drawn as one band with <b>◀ run</b> / <b>run ▶</b> to step to the next. It exists because of what the band looks like — the two ends are the only fully coprime strips in it, since c is complete exactly when g is prime and d exactly when E−g is prime, so the edges are unbroken lines and the interior is punctured. <b>▶ Play Goldbach pairs</b> walks the runs in order while this mode is live.<br><br><b>selected rows</b> draws exactly the partitions you tick in the table below: the <b>Pick</b> chip in the partition-table header reads its own state — <i>Pick on — row click selects</i> or <i>Pick off — row click jumps</i> — and is on by default; and each row click adds or removes that g instead of jumping the gap, with the row carrying the same hue its strips get on the plate. With pick on, <b>clicking a lattice cell (or releasing the magnifier on one) does the same thing for every strip through that point at once</b>: a cell sits on the sum strip r+M = g, on the sum strip r+M = E−g, and — off the main diagonal — on a difference strip |M−r| = g, so a click off the main diagonal brings in <b>two</b> gaps — one sum strip and one difference strip — and the crossing becomes legible as a crossing rather than as one arbitrary line. The two gestures differ in one way worth knowing: a <b>plain click accumulates</b>, which is how you build a comparison out of four separate crossings, while a <b>magnifier release replaces</b> — it clears the selection and leaves only the strips through the point you landed on. That asymmetry is deliberate: you reach for the lens at 20× precisely because the other thirty strips are in the way, so keeping them after the release would defeat the gesture. The lens readout shows <i>only</i> before the gaps it is about to leave standing. There is no modifier key on a phone, so which gesture you used carries the distinction. Because a plain click accumulates two gaps at a time, <b>✕ clear</b> sits in the legend directly under the figure — it empties the selection outright, which is not what <b>⊘ hide all</b> does (that collapses the strips and keeps the list). The same action is on the <b>clear</b> chip in the partition-table header. It is two rather than three because the two sum families partition the lattice between them: r+M = g needs r+M ≤ G+1 and r+M = E−g needs r+M ≥ G+1, so exactly one applies, and on the anti-diagonal r+M = G+1 they coincide. On the main diagonal r = M the difference gap is 0 and drops out, leaving one. That is the way to compare four specific partitions rather than a computed class of them; the whole selection draws in one batch, and <b>clear</b> empties it.<br><br>Click any entry in the legend under the figure to <b>collapse</b> that pair out of the overlay, and click it again to bring it back — the way to isolate two or three strips out of a crowded batch without leaving overlay mode. <b>⊘ hide all</b> collapses the whole visible batch in one go and the list stays exactly where it is, greyed and struck through, so you can build the comparison back up by clicking the two or three you actually want instead of switching off the other thirty-eight by hand; the same button becomes <b>↺ show all</b> once everything is off. The <b>↗</b> on an entry does what clicking one used to: drop out of the overlay and open that g on its own in Grid. The legend box holds one height whatever the batch size, so paging or playing through batches never moves the buttons under it.
       </div>
     </div>
   </div>
@@ -1200,7 +1216,7 @@ body.is-fs .figcap{display:none}
         <input type="range" id="sl-G" min="1" max="1024" step="1" value="194" oninput="setG(+this.value)" title="Slides 1–1024 for fine control. Type into the box on the right to go higher, up to 4096.">
         <button class="chip" onclick="setG(S.G+1)" title="G + 1">+</button>
         <input type="number" id="in-G" min="1" max="4096" value="194" style="width:56px" oninput="setG(+this.value)">
-        <button class="chip" id="ch-playG" onclick="toggleSweepG()" title="Play G: climbs from 1 up to whatever G is currently set, then descends back down to 1, back and forth. Runs independently of Play g / Play pairs — both keep sweeping while G moves.">▶ Play G</button>
+        <button class="chip" id="ch-playG" onclick="toggleSweepG()" title="Play G: climbs from 1 up to whatever G is currently set, then descends back down to 1, back and forth. Runs independently of Play g / Play Goldbach pairs — both keep sweeping while G moves.">▶ Play G</button>
       </div>
       <div class="row" id="row-playnext" style="flex-wrap:wrap">
         <span class="lab">Next N</span>
@@ -1226,8 +1242,8 @@ body.is-fs .figcap{display:none}
       </div>
       <div class="row">
         <span class="lab">Sweep</span>
-        <button class="chip" id="ch-play" onclick="toggleSweep()" title="Single mode: walk g from 1 to G−1 and back. Multi-pair mode: page through every batch (all partitions).">▶ Play g</button>
-        <button class="chip" id="ch-playp" onclick="toggleSweepPairs()" title="Single mode: step through the Goldbach pairs of E. Multi-pair mode: page through the Goldbach-pair batches, looping.">▶ Play pairs</button>
+        <button class="chip" id="ch-play" onclick="toggleSweep()" title="Walks g from 1 to G−1 and back. Drops out of multi-pair overlay first if it's on, so there's a single g to actually watch move.">▶ Play g</button>
+        <button class="chip" id="ch-playp" onclick="toggleSweepPairs()" title="Steps through the Goldbach pairs of E, one at a time, looping. In pair→pair run mode it walks the runs themselves instead; any other multi-pair overlay mode drops back to single-gap so there's an actual g to step through.">▶ Play Goldbach pairs</button>
       </div>
       <div class="note">Sliding <b>g</b> walks every additive partition <b>E = g + s</b>. The two sum strips carry those parts.</div>
       </div>
@@ -1256,7 +1272,7 @@ body.is-fs .figcap{display:none}
         <input type="range" id="cor-sl-speed" min="60" max="900" step="20" value="260" oninput="corSetSpeed(+this.value)">
         <span class="val" id="cor-v-speed" style="width:56px">260ms</span>
       </div>
-      <div class="note">Stepping <b>Triple #</b> walks the ternary table row by row, and each step isolates that strand in the figure — the same contract the gap slider has with the strips in Grid.<br><br>The two sweeps are <i>not</i> an exact analogue of <b>Play g</b> / <b>Play pairs</b>, and it is worth being clear about why. In 2D those differ because most partitions <b>E = g + s</b> are <i>not</i> Goldbach pairs, so one button walks the candidates and the other walks the hits. Here every row already <i>is</i> a hit — the table only ever lists genuine representations <b>N = p + q + r</b>. So <b>Play all</b> takes every row, and <b>Play distinct</b> takes the sub-family where p, q, r are three different primes, dropping the ones with a repeat. That is a real split in the data, but it is a split by shape, not by success.</div>
+      <div class="note">Stepping <b>Triple #</b> walks the ternary table row by row, and each step isolates that strand in the figure — the same contract the gap slider has with the strips in Grid.<br><br>The two sweeps are <i>not</i> an exact analogue of <b>Play g</b> / <b>Play Goldbach pairs</b>, and it is worth being clear about why. In 2D those differ because most partitions <b>E = g + s</b> are <i>not</i> Goldbach pairs, so one button walks the candidates and the other walks the hits. Here every row already <i>is</i> a hit — the table only ever lists genuine representations <b>N = p + q + r</b>. So <b>Play all</b> takes every row, and <b>Play distinct</b> takes the sub-family where p, q, r are three different primes, dropping the ones with a repeat. That is a real split in the data, but it is a split by shape, not by success.</div>
       </div>
       <div class="row grp-hdr" id="grp-magnifier-hdr" onclick="toggleGrp('grp-magnifier')" style="margin-top:8px;cursor:pointer;user-select:none">
         <span class="rarrow">▸</span><span class="lab" style="min-width:auto">Magnifier</span>
@@ -1430,7 +1446,7 @@ body.is-fs .figcap{display:none}
       </div>
       <div class="row" id="sector-row" style="display:none">
         <span class="lab" title="How many sectors are banded, and how many rows the census table shows.">sectors</span>
-        <input type="range" id="sl-secrays" min="1" max="25" step="1" value="8" oninput="setSectorRays(+this.value)" style="flex:1">
+        <input type="range" id="sl-secrays" min="1" max="194" step="1" value="8" oninput="setSectorRays(+this.value)" style="flex:1">
         <span class="val" id="v-secrays" style="width:28px">8</span>
         <button class="chip on" id="ch-seclab" onclick="toggleSectorLabels()" style="flex:0 0 auto" title="Label each band with its sector number.">S_s</button>
       </div>
@@ -1447,7 +1463,7 @@ body.is-fs .figcap{display:none}
         <button class="chip" id="cf-block" onclick="toggleCnFilter()" style="flex:1" title="Draw only the points surviving gcd(r,M+j)=1 for every j=0…n — the exact condition C(n) is the density of. Off draws every coprime point, which is the picture this page has always shown. At n=0 the two coincide, because the block condition is then just coprimality.">block n</button>
       </div>
       <div class="row">
-        <span class="lab" title="The same lock the prime spiral runs under, applied to Goldbach partitions: the pair steppers and ▶ Play pairs skip any partition C(n) has removed at the live n.">pair lock</span>
+        <span class="lab" title="The same lock the prime spiral runs under, applied to Goldbach partitions: the pair steppers and ▶ Play Goldbach pairs skip any partition C(n) has removed at the live n.">pair lock</span>
         <button class="chip on" id="pl-off" onclick="setPairLock('off')" style="flex:1" title="No lock — every Goldbach pair of E stays in the list, whatever n does to its points.">off</button>
         <button class="chip" id="pl-empty" onclick="setPairLock('empty')" style="flex:1" title="Skip a partition once a sum strip has NO surviving points at this n — the analogue of the spiral's dropout ring, where the residue itself vanishes.">empty</button>
         <button class="chip" id="pl-ratio" onclick="setPairLock('ratio')" style="flex:1" title="Skip a partition once its surviving share falls below the absolute threshold below. Note that survival is ~40% at n=1 and ~24% at n=2, so an absolute bar much above that empties the list immediately — which is what 'vs D(n)' fixes.">ratio</button>
@@ -1506,7 +1522,7 @@ body.is-fs .figcap{display:none}
         <input type="range" id="sl-lddot" min="4" max="40" step="1" value="10" oninput="liftSetDot(+this.value/10)" style="flex:1">
         <span class="val" id="v-lddot" style="width:34px">1.0×</span>
       </div>
-      <div class="note"><b>C(n) filter</b> and <b>Lift dynamics</b> are the index page's own machinery, not new constructions. With <b>block n</b> on, the plate stops drawing every gcd(r,M)=1 point and draws only those clearing gcd(r,M+j)=1 for <i>every</i> j = 0…n — the exact condition C(n) is the density of. At n = 0 it changes nothing, because the block condition is then just coprimality.<br><br><b>lock to C(n)</b> is the bridge between the two halves: a prime is skipped once C(n)'s local factor 1−min(n+1,p)/p² has already bottomed out on it at 1−1/p, which happens exactly when p ≤ n+1. So sweeping n walks the spiral forward through the primes C(n) has not yet saturated.<br><br><b>pair lock</b> applies the same discipline to the partitions: the steppers and ▶ Play pairs skip any partition the filter has removed. <b>vs D(n)</b> is the reading worth starting with — survival on a sum strip is only ~40% at n=1 and ~24% at n=2, so an absolute bar empties the list immediately, while survival measured in units of D(n) sits near 1.00 and actually separates the partitions.</div>
+      <div class="note"><b>C(n) filter</b> and <b>Lift dynamics</b> are the index page's own machinery, not new constructions. With <b>block n</b> on, the plate stops drawing every gcd(r,M)=1 point and draws only those clearing gcd(r,M+j)=1 for <i>every</i> j = 0…n — the exact condition C(n) is the density of. At n = 0 it changes nothing, because the block condition is then just coprimality.<br><br><b>lock to C(n)</b> is the bridge between the two halves: a prime is skipped once C(n)'s local factor 1−min(n+1,p)/p² has already bottomed out on it at 1−1/p, which happens exactly when p ≤ n+1. So sweeping n walks the spiral forward through the primes C(n) has not yet saturated.<br><br><b>pair lock</b> applies the same discipline to the partitions: the steppers and ▶ Play Goldbach pairs skip any partition the filter has removed. <b>vs D(n)</b> is the reading worth starting with — survival on a sum strip is only ~40% at n=1 and ~24% at n=2, so an absolute bar empties the list immediately, while survival measured in units of D(n) sits near 1.00 and actually separates the partitions.</div>
       <div class="note">These three read the rest of the site's own math into this page rather than adding new machinery of their own.<br><br><b>Block n</b> extends every strip point's test from the plain gcd(r,g)=1 this page has always used to <b>gcd(r,g+j)=1 for every j=0…n at once</b> — literally the C(n) condition from the index page, walked along a sum/difference strip instead of averaged over the whole (r,M) lattice. At n=0 nothing changes; raise it and the partition table grows a <b>block n</b> column showing how much of each strip survives the stronger test, and the verdict line reports whether both strips are <b>block-full</b>.<br><br><b>Lift · saturation</b> names the primes p ≤ n+1 that C(n)'s local factor 1−min(n+1,p)/p² has already pinned at its floor 1−1/p (every residue mod p is forbidden by some j, not just some) — the same "saturated primes" the index opener tracks — and shows them in the readout for whatever n is set here.<br><br><b>Sector S_s</b> is Page 11's partition of the coprime pairs, applied to this plate. Page 11's object is the set of coprime (r,m) with 1 ≤ r ≤ m ≤ N bucketed by which Farey interval S_s = (1/(s+1), 1/s] the fraction r/m falls in — that bucket is s = ⌊m/r⌋ — and its count obeys F(s,N) ~ (3/π²)N²/(s(s+1)), with sector width 1/(s(s+1)). Every lattice point here <i>is</i> such a pair, so the sectors apply to the plate directly: each sector is drawn as a translucent band underneath the points — a region, not a line, so its width 1/(s(s+1)) is what you see — and the census table compares the exact count per sector against F(s,N) at N = G. Use <b>isolate</b> to show one sector at a time; past the first few the wedges are too narrow to separate all at once. The <b>g-strip</b> column is this page's own addition — of the points actually lying on the two sum strips of the partition on screen, how many fall in each sector. n*(N) is marked because past it the residual exact − F(s,N) is pinned positive and cannot change sign again.</div>
       </div>
       </div>
@@ -2499,7 +2515,7 @@ function pairSpent(g){
   }
 }
 function pairLocked(g){ return S.pairLock!=='off'&&pairSpent(g); }
-// The live pair list — what the steppers, ▶ Play pairs and the overlay all
+// The live pair list — what the steppers, ▶ Play Goldbach pairs and the overlay all
 // walk. Identical to goldbachGaps() whenever the lock is off or n = 0.
 function livePairs(){
   const all=goldbachGaps();
@@ -2768,6 +2784,8 @@ function sectorCensus(G){
 // coprime, so a gap in the line is a real gap. Turn it up to see the full
 // geometric line again.
 const S={G:194,g:193,col:'modular_distance',lbl:'off',dim:0,stripDim:0,stripThick:0.6,view:'grid',
+         // rot90: global plate orientation, in clockwise quarter turns (0-3).
+         rot90:0,
          lblScale:1,lblAdapt:0.55,thetaMode:'clamp',
          // dotScale: a flat multiplier on Ring/Cayley point radius, on top of
          // the zoom-driven size. 1× is the plain dotR formula with nothing
@@ -2824,7 +2842,7 @@ const S={G:194,g:193,col:'modular_distance',lbl:'off',dim:0,stripDim:0,stripThic
          // Restrict the pair overlay/table to partitions whose sum strips
          // retain at least cnPairThr of their points under the block-n test.
          // pairLock: which reading of "this partition's points were removed"
-         // the steppers and ▶ Play pairs obey. 'off' | 'empty' | 'ratio' |
+         // the steppers and ▶ Play Goldbach pairs obey. 'off' | 'empty' | 'ratio' |
          // 'addend' — see pairSpent().
          // cnPairThr is an ABSOLUTE survival share; cnPairRel is survival
          // measured in units of D(n). 0.10 and 1.00 are the defaults because
@@ -3658,7 +3676,96 @@ function fitCanvas(){
   cv.width=Math.floor(CSS_SIZE*dpr); cv.height=Math.floor(CSS_SIZE*dpr);
 }
 // One renderer for screen and export; `px` is the pixel side of the target.
+/* ── global plate rotation ────────────────────────────────────
+   One control, four positions. Two facts make a quarter turn cheap here
+   rather than a rewrite of every drawing routine:
+
+     · the plate is square and every painter fills 0,0,px,px, so a quarter
+       turn about its centre maps the plate exactly onto itself — nothing
+       is letterboxed, nothing rescales, and no cached layer (baseLayer,
+       the polar backdrop) has to be rebuilt, since they are all drawn
+       through the same rotated context;
+     · the inverse is the same table read backwards, so every pixel →
+       (r,M) recovery needs one coordinate swap, not a new search.
+
+   Labels are the exception that would otherwise sink it. Rotating the
+   context rotates the type with it, and sideways axis numbers are the
+   one thing this must not do. Every glyph on the plate goes through
+   fillText/strokeText, so instead of hunting down several hundred call
+   sites, the rotated context gets those two methods wrapped: each one
+   counter-rotates about its own anchor before drawing. The anchor still
+   travels with the geometry — a cell label stays on its cell — but the
+   glyphs come out upright, and any local rotation a caller applied
+   itself (the radial Ring labels) survives untouched, because in 2D
+   rotations commute: θ + φ − θ = φ.
+
+   The 3D corridor is not this canvas and is left alone. */
+const ROT_LABEL=['0\u00b0','90\u00b0','180\u00b0','270\u00b0'];
+function rotQ(){ return (((S.rot90|0)%4)+4)%4; }
+function rotAngle(){ return rotQ()*Math.PI/2; }
+// plate → screen, both measured in the same square of side px
+function rotPt(x,y,px){
+  switch(rotQ()){
+    case 1: return [px-y,x];
+    case 2: return [px-x,px-y];
+    case 3: return [y,px-x];
+    default: return [x,y];
+  }
+}
+// screen → plate
+function unrotPt(x,y,px){
+  switch(rotQ()){
+    case 1: return [y,px-x];
+    case 2: return [px-x,px-y];
+    case 3: return [px-y,x];
+    default: return [x,y];
+  }
+}
+// Swap in upright fillText/strokeText on a rotated context. The originals
+// come off the prototype rather than off ctx, so a double wrap is
+// impossible; the returned undo deletes the two own properties and hands
+// the prototype methods back.
+function uprightText(ctx,theta){
+  if(!theta) return function(){};
+  const F=CanvasRenderingContext2D.prototype.fillText;
+  const T=CanvasRenderingContext2D.prototype.strokeText;
+  const wrap=fn=>function(t,x,y,mw){
+    this.save();
+    this.translate(x,y); this.rotate(-theta);
+    if(mw===undefined) fn.call(this,t,0,0); else fn.call(this,t,0,0,mw);
+    this.restore();
+  };
+  ctx.fillText=wrap(F); ctx.strokeText=wrap(T);
+  return function(){ delete ctx.fillText; delete ctx.strokeText; };
+}
+// Run fn with ctx turned about the centre of a square of side px, type upright.
+function withRot(ctx,px,fn){
+  const th=rotAngle();
+  if(!th) return fn();
+  ctx.save();
+  ctx.translate(px/2,px/2); ctx.rotate(th); ctx.translate(-px/2,-px/2);
+  const undo=uprightText(ctx,th);
+  try{ fn(); } finally { undo(); ctx.restore(); }
+}
+function setRot90(q){
+  S.rot90=(((q|0)%4)+4)%4;
+  syncRotUI();
+  if(typeof LENS_REDRAW==='function') LENS_REDRAW();
+  render();
+}
+function rotateView(dir){ setRot90(rotQ()+(dir<0?3:1)); }
+function syncRotUI(){
+  const el=document.getElementById('rot-read');
+  if(el) el.textContent=ROT_LABEL[rotQ()];
+  const rs=document.getElementById('rot-reset');
+  if(rs) rs.classList.toggle('lit',rotQ()!==0);
+}
+// Everything below paints in plate coordinates and knows nothing about the
+// rotation; this is the single seam where it is applied.
 function paint(ctx,px,G,g){
+  withRot(ctx,px,()=>paintPlate(ctx,px,G,g));
+}
+function paintPlate(ctx,px,G,g){
   if(S.view==='ring'||S.view==='cayley') return paintPolar(ctx,px,G,g,S.view);
   if(S.view==='circle') return paintCircle(ctx,px,G,g);
   return paintGrid(ctx,px,G,g);
@@ -4767,7 +4874,7 @@ function sectorTableHTML(rows){
       if(sec!=null) gbCount.set(sec,(gbCount.get(sec)||0)+1);
     }
   }
-  const maxRow=Math.min(S.sectorRays,25);
+  const maxRow=Math.min(S.sectorRays,G);
   let h='<div class="sector-hist" style="margin-top:10px;font-size:9px;color:var(--cream3)">'+
     `<div style="margin-bottom:5px;color:var(--cream2)">Farey sectors S_s = (1/(s+1), 1/s] of the plate's coprime pairs (r,m), s = ⌊m/r⌋, at N = G = ${G}. `+
     `Page 11's F(s,N) = (3/&pi;²)N²/(s(s+1)); n*(N) = ${nStar.toFixed(1)}.</div>`+
@@ -5042,7 +5149,7 @@ function setDimensionMode(d){
   const noteEl=document.getElementById('view-note');
   if(three){ noteEl.style.display='block'; noteEl.textContent=CORRIDOR_NOTE; }
   // The Instrument panel's transport rows are statements about partitions of
-  // an even E — the gap slider, the pair steppers, Play g / Play pairs. None
+  // an even E — the gap slider, the pair steppers, Play g / Play Goldbach pairs. None
   // of them mean anything about triples, so the block is swapped for its 3D
   // counterpart rather than left sitting there driving an invisible canvas.
   const l2=document.getElementById('lat-2d'), l3=document.getElementById('lat-3d');
@@ -5431,6 +5538,15 @@ function setG(v){
   document.getElementById('in-g').max=G+1;
   if(S.g>G+1) S.g=Math.max(1,G+1);
   slg.value=S.g; document.getElementById('in-g').value=S.g;
+  const slsec=document.getElementById('sl-secrays');
+  if(slsec){
+    slsec.max=G;
+    if(S.sectorRays>G){
+      S.sectorRays=Math.max(1,G);
+      const vsec=document.getElementById('v-secrays'); if(vsec) vsec.textContent=S.sectorRays;
+    }
+    slsec.value=S.sectorRays;
+  }
   document.getElementById('rd-G').textContent=G;
   document.getElementById('rd-E').textContent=2*(G+1);
   // Whole-lattice coprime density vs the classical limit 1/ζ(2)=6/π². Lives in
@@ -5560,7 +5676,7 @@ function stopSweeps(restore){
   if(sweepId){ clearInterval(sweepId); sweepId=null; }
   ['ch-play','ch-playp'].forEach((id,i)=>{
     const b=document.getElementById(id);
-    if(b){ b.textContent=i?'▶ Play pairs':'▶ Play g'; b.classList.remove('on'); }
+    if(b){ b.textContent=i?'▶ Play Goldbach pairs':'▶ Play g'; b.classList.remove('on'); }
   });
   if(restore&&sweepFrom!=null){
     // in run mode sweepFrom is a run index, not a page index
@@ -5575,20 +5691,11 @@ function toggleSweep(){
   if(sweepId){ stopSweeps(false); return; }
   stopSweeps(false);
   const b=document.getElementById('ch-play');
-  if(S.multi){
-    // page through every batch — all partitions if that's not already the mode
-    if(S.multiMode!=='all') setMultiMode('all');
-    sweepFrom=S.page;
-    b.textContent='■ Stop'; b.classList.add('on');
-    sweepDir=1; S.page=0; render();
-    sweepId=setInterval(()=>{
-      const hi=totalPages()-1;
-      let n=S.page+sweepDir;
-      if(n>=hi){ n=hi; sweepDir=-1; } else if(n<=0){ n=0; sweepDir=1; }
-      S.page=n; render();
-    },700);
-    return;
-  }
+  // Multi-pair overlay has no single g to walk, and paging its batches instead
+  // was a dead button whenever everything fit on one page — nothing moved,
+  // Stop just sat there. Dropping back to single-gap mode is what actually
+  // makes "play" play something.
+  if(S.multi) toggleMulti();
   sweepFrom=S.g;
   b.textContent='■ Stop'; b.classList.add('on');
   sweepDir=1; setGap(1);
@@ -5714,15 +5821,12 @@ function toggleSweepPairs(){
     return;
   }
   if(S.multi){
-    // page through the Goldbach-pair batches only, forward, looping
-    if(S.multiMode!=='pairs') setMultiMode('pairs');
-    if(!S.items.length) return;
-    sweepFrom=S.page;
-    b.textContent='■ Stop'; b.classList.add('on');
-    let i=0;
-    S.page=0; render();
-    sweepId=setInterval(()=>{ S.page=i%totalPages(); i++; render(); },900);
-    return;
+    // Any other multi-pair mode has no single g to step through, and paging
+    // its batches was a dead button whenever every pair fit on one page —
+    // nothing moved, Stop just sat there doing nothing visible. Dropping
+    // back to single-gap mode is what actually makes "play" step through
+    // the pairs themselves.
+    toggleMulti();
   }
   const pairs=(S.pairLock!=='off'&&S.blockN>0)
     ? livePairs()
@@ -6060,9 +6164,11 @@ function toggleSector(){
 }
 function invalidateSectorCensus(){ _secCensus=null; _secCensusKey=''; }
 function setSectorRays(v){
-  S.sectorRays=Math.max(1,Math.min(25,Math.round(v)));
+  S.sectorRays=Math.max(1,Math.min(S.G,Math.round(v)));
   const el=document.getElementById('v-secrays');
   if(el) el.textContent=S.sectorRays;
+  const sl=document.getElementById('sl-secrays');
+  if(sl) sl.value=S.sectorRays;
   renderTable(); render();
 }
 function setSectorPick(v){
@@ -6440,7 +6546,11 @@ let LENS_SUPPRESS_CLICK=false;
     if(S.view!=='grid'){ probe.style.display='none'; return; }
     const b=cv.getBoundingClientRect();
     const cell=b.width/S.G;
-    const r=Math.floor((e.clientX-b.left)/cell)+1, m=Math.floor((e.clientY-b.top)/cell)+1;
+    // The pointer arrives in screen space; the lattice lives in plate space,
+    // so undo the global quarter turn before the cell arithmetic. At 0° this
+    // is the identity and the maths below is exactly what it always was.
+    const [ux,uy]=unrotPt(e.clientX-b.left,e.clientY-b.top,b.width);
+    const r=Math.floor(ux/cell)+1, m=Math.floor(uy/cell)+1;
     if(r<1||r>S.G||m<1||m>S.G){ probe.style.display='none'; return; }
     const q=gcd(r,m), br=branchOf(r,m,S.G,S.g);
     const hits=stripsThroughCell(r,m);
@@ -6460,8 +6570,9 @@ let LENS_SUPPRESS_CLICK=false;
     // clamped, not rejected: a click exactly on the right or bottom edge floors
     // to G+1 and used to be discarded, so the outermost row and column were
     // unclickable
-    const r=Math.min(S.G,Math.floor((e.clientX-b.left)/cell)+1);
-    const m=Math.min(S.G,Math.floor((e.clientY-b.top)/cell)+1);
+    const [ux,uy]=unrotPt(e.clientX-b.left,e.clientY-b.top,b.width);
+    const r=Math.min(S.G,Math.floor(ux/cell)+1);
+    const m=Math.min(S.G,Math.floor(uy/cell)+1);
     if(r<1||m<1) return;
     // (the per-strip gap arithmetic now lives in stripsThroughCell)
     // clicking a cell jumps to the gap whose sum strip runs through it. If the
@@ -6648,8 +6759,11 @@ let LENS_REDRAW=null;
     const px=cv.width;
     const [ix,iy]=S.view==='grid' ? [(r-0.5)*px/S.G,(m-0.5)*px/S.G] : projFor(S.view)(r,m,S.G,px);
     const b=cv.getBoundingClientRect(), pb=plate.getBoundingClientRect();
-    pulse.style.left=(b.left-pb.left+ix/cv.width*b.width)+'px';
-    pulse.style.top=(b.top-pb.top+iy/cv.height*b.height)+'px';
+    // the projections answer in plate coordinates — the DOM marker sits on
+    // screen, so it has to be turned to match the plate under it
+    const [sx0,sy0]=rotPt(ix,iy,px);
+    pulse.style.left=(b.left-pb.left+sx0/cv.width*b.width)+'px';
+    pulse.style.top=(b.top-pb.top+sy0/cv.height*b.height)+'px';
     pulse.classList.remove('go'); void pulse.offsetWidth; pulse.classList.add('go');
   }
   function selectAt(sx,sy){
@@ -6943,7 +7057,11 @@ let LENS_REDRAW=null;
     const fx=Math.max(b.left,Math.min(b.right,clientX));
     const fy=Math.max(b.top,Math.min(b.bottom,clientY));
     const sx=(fx-b.left)/b.width*cv.width, sy=(fy-b.top)/b.height*cv.height;
-    lastSX=sx; lastSY=sy; lastCX=clientX; lastCY=clientY;
+    // Plate-space pointer. Everything the lens hit-tests and re-draws works
+    // in plate coordinates, so this — not the screen point — is what gets
+    // remembered for the release, and what centres the source window.
+    const [gx,gy]=unrotPt(sx,sy,cv.width);
+    lastSX=gx; lastSY=gy; lastCX=clientX; lastCY=clientY;
     // LENS_ZOOM is now the magnification the reader actually sees. It used to
     // set the source window to canvas/ZOOM — a window sized against the PLATE,
     // not against the lens — so "3×" showed a third of the plate inside a lens
@@ -6958,41 +7076,54 @@ let LENS_REDRAW=null;
     // canvas pixel, so the window has to be allowed to go sub-pixel for the
     // high end to mean anything. Only a degenerate zero is excluded.
     const srcSize=Math.max(0.02,(lensSize/LENS_ZOOM)*canvasPerCss);
-    const sX=sx-srcSize/2, sY=sy-srcSize/2;
+    // The same window twice: once in plate coordinates for everything that is
+    // re-drawn from the lattice, once in screen coordinates for the one thing
+    // that is copied out of the already-rotated canvas (the Ring/Cayley blit).
+    // Both are centred on the same physical point, so a plate-space drawing
+    // turned about the LENS centre lands exactly where the screen-space blit
+    // put it — which is what withRot(lctx, lens.width, …) does below.
+    const sX=gx-srcSize/2, sY=gy-srcSize/2;
+    const sXs=sx-srcSize/2, sYs=sy-srcSize/2;
     const k=lens.width/srcSize;              // source px → lens px
     lctx.setTransform(1,0,0,1,0,0);
     lctx.imageSmoothingEnabled=false;
     lctx.clearRect(0,0,lens.width,lens.height);
     lctx.fillStyle='#04040d'; lctx.fillRect(0,0,lens.width,lens.height);
     if(S.view==='grid'){
-      lensPaintGrid(sX,sY,srcSize,k);
+      withRot(lctx,lens.width,()=>lensPaintGrid(sX,sY,srcSize,k));
     } else {
       // Ring / Cayley have no uniform pitch and their backdrop is a cached
       // raster, so there is nothing to re-typeset wholesale — the blit stays,
       // but drawLensLabels puts crisp text on top of it.
-      const ix0=Math.max(0,sX), iy0=Math.max(0,sY);
-      const ix1=Math.min(cv.width,sX+srcSize), iy1=Math.min(cv.height,sY+srcSize);
+      // cv already holds rotated pixels, so the blit is pure screen space —
+      // rotating it again here would turn the image twice.
+      const ix0=Math.max(0,sXs), iy0=Math.max(0,sYs);
+      const ix1=Math.min(cv.width,sXs+srcSize), iy1=Math.min(cv.height,sYs+srcSize);
       if(ix1>ix0&&iy1>iy0){
         lctx.drawImage(cv,ix0,iy0,ix1-ix0,iy1-iy0,
-                          (ix0-sX)*k,(iy0-sY)*k,(ix1-ix0)*k,(iy1-iy0)*k);
+                          (ix0-sXs)*k,(iy0-sYs)*k,(ix1-ix0)*k,(iy1-iy0)*k);
       }
-      drawLensLabels(sX,sY,srcSize,k);
+      // the labels are typeset from the lattice, so they are plate space
+      withRot(lctx,lens.width,()=>drawLensLabels(sX,sY,srcSize,k));
     }
     // the lattice boundary, wherever it falls inside the lens
     lctx.strokeStyle='rgba(200,168,74,.5)'; lctx.lineWidth=Math.max(1,lens.width/240);
     lctx.setLineDash([lens.width/40,lens.width/40]);
-    lctx.strokeRect((0-sX)*k,(0-sY)*k,cv.width*k,cv.height*k);
+    withRot(lctx,lens.width,()=>lctx.strokeRect((0-sX)*k,(0-sY)*k,cv.width*k,cv.height*k));
     lctx.setLineDash([]);
     // The bare + told you where the pointer was, not which lattice point that
     // resolves to — and at any real magnification those are different questions,
     // since the crosshair sits somewhere inside a cell rather than on it. Run
     // the same hit test the release will use and mark its answer, so what gets
     // selected is visible before you let go rather than after.
-    const hit=hitAt(sx,sy);
+    const hit=hitAt(gx,gy);
     const c=lens.width/2, arm=lens.width*0.030;
     if(hit){
       const [hr,hm]=hit, G=S.G;
       lctx.save();
+      // the marker is drawn from (r,M), so it turns with the plate; no text
+      // here, so it needs the transform but not the upright-type wrapper
+      if(rotAngle()){ lctx.translate(c,c); lctx.rotate(rotAngle()); lctx.translate(-c,-c); }
       if(S.view==='grid'){
         const cell=cv.width/G;
         const hx=((hr-1)*cell-sX)*k, hy=((hm-1)*cell-sY)*k, hs=cell*k;
@@ -7657,6 +7788,7 @@ function doReportPDF(){
       const shownStr=`sum ${S.show.sum?'✓':'✗'} · diff ${S.show.diff?'✓':'✗'} · frame ${S.show.frame?'✓':'✗'} · r=M ${S.show.diag?'✓':'✗'}`;
       const rows=[
         ['view',S.view,'active projection'],
+        ['plate rotation',ROT_LABEL[rotQ()],'global quarter turns, clockwise'],
         ['colour mode',S.col,'rendering'],
         ['label mode',S.lbl,'per-cell label'],
         ['label size',`${S.lblScale.toFixed(2)}× · grade ${Math.round(S.lblAdapt*100)}%`,'type size · radial grading'],
@@ -7789,10 +7921,12 @@ function doReportPDF(){
     else if(e.key==='ArrowLeft') setGap(S.g-1);
     else if(e.key===']'){ S.view==='corridor'?corStepTriple(1):stepPair(1); }
     else if(e.key==='['){ S.view==='corridor'?corStepTriple(-1):stepPair(-1); }
+    else if(e.key==='r'||e.key==='R'){ if(S.view!=='corridor') rotateView(e.shiftKey?-1:1); }
     else if(e.key==='f') toggleFS();
     else if(e.key==='Escape'&&S.focus) focusSym(S.focus);
   });
   syncPolarControls();
+  syncRotUI();
   // The C(n) engine and lift-dynamics panels are state-driven like the rest,
   // so their chips/sliders have to be synced from S at boot rather than
   // relying on the markup's initial classes.
