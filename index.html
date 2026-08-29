@@ -206,6 +206,24 @@ h1.hero-title{font-family:var(--disp);font-size:clamp(1.4rem,4vw,2.2rem);letter-
   font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--cream3);
   min-width:30px;text-align:center;user-select:none;
 }
+/* constants grid */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin:4px 0 8px}
+.ccard{border:1px solid var(--edge);padding:7px 9px;background:rgba(255,255,255,.015)}
+.ccard .cnm{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold2)}
+.ccard .cvl{font-family:var(--mono);font-size:12px;color:var(--cream);margin:3px 0 2px;word-break:break-all}
+.ccard .cds{font-size:9.5px;color:var(--cream3);line-height:1.45}
+.ccard .csettle{font-family:var(--mono);font-size:9.5px;color:var(--gold);opacity:.75;margin-top:3px;border-top:1px solid var(--edge);padding-top:3px}
+.fu-cv{width:100%;display:block;border:1px solid var(--edge);background:#04040d;margin:6px 0}
+/* ladder & constants panels: collapsed by default, same accordion pattern
+   used by deep search / controls / reading above */
+#ladder-hdr .rarrow{display:inline-block;transition:transform .25s;color:var(--gold);margin-right:6px}
+#ladder-hdr.open .rarrow{transform:rotate(90deg)}
+#ladder-body{display:none}
+#ladder-body.open{display:block}
+#fupanel-hdr .rarrow{display:inline-block;transition:transform .25s;color:var(--gold);margin-right:6px}
+#fupanel-hdr.open .rarrow{transform:rotate(90deg)}
+#fupanel-body{display:none}
+#fupanel-body.open{display:block}
 #rot-reset{opacity:.3;pointer-events:none}
 #rot-reset.lit{opacity:1;pointer-events:auto;color:var(--gold)}
 
@@ -419,6 +437,15 @@ body.is-fs #hud-out{display:flex;flex:0 0 auto;margin-top:6px}
 .lg .jump{color:var(--cream3);font-size:10px;padding:0 2px;border-radius:2px}
 .lg .jump:hover{color:var(--gold);background:rgba(200,168,74,.12)}
 .lg.act{color:var(--gold);border:1px solid rgba(200,168,74,.35);padding:1px 5px;margin:-2px -4px}
+/* Sector S_s labels, moved off the plate itself — they used to be drawn as
+   canvas text at each wedge's mid-radius, which at G≈200 with 10+ rays
+   clustered into an unreadable pile near the rim (the S5…S13 crowd in the
+   corner). Same swatch+tag idiom as the a/b/c/d legend above, just for
+   whichever sectors are currently active. */
+#sector-legend{
+  display:flex;gap:6px 14px;flex-wrap:wrap;justify-content:center;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;padding:2px 4px 10px;
+}
 #probe{
   position:absolute;pointer-events:none;font-family:var(--mono);font-size:10px;
   background:rgba(4,4,13,.94);border:1px solid var(--edge2);border-radius:3px;
@@ -621,11 +648,11 @@ body.is-fs #figure-sect{order:1;position:sticky;top:calc(var(--wg-navh,0px) + va
 }
 body.is-fs #density-bar{order:3}
 body.is-fs #reading{order:4}
-body.is-fs #multitop{order:5}
-body.is-fs #controls{order:6}
-body.is-fs #drawer{order:7}
-body.is-fs #claim{order:9}
-  body.is-fs #views{order:10}
+body.is-fs #multitop{order:8}
+body.is-fs #controls{order:9}
+body.is-fs #drawer{order:10}
+body.is-fs #claim{order:11}
+  body.is-fs #views{order:12}
 /* #content is a flex column in this mode, and an item with no `order` gets
    the default 0 — which sorts it BEFORE #figure-sect at order:1. That is why
    the Corridor controls jumped above the canvas in full screen while every
@@ -635,7 +662,16 @@ body.is-fs #claim{order:9}
    Deep search had the same latent bug and is placed here too — it was
    sitting above the locked canvas for the same reason, just less visibly. */
 body.is-fs #corridor-controls{order:2}
-body.is-fs #deepsearch{order:8}
+/* Deep search, Ladder and Constants had the same latent bug: no explicit
+   order meant the default 0, which sorts before #figure-sect's order:1 —
+   so in full screen they rendered above the locked canvas instead of
+   below it. Give them slots right after Reading, ahead of the much taller
+   Instrument/drawer panels — otherwise they're technically present but
+   buried thousands of pixels down, which reads as "not there". All three
+   are collapsed accordions by default, so this costs almost no height. */
+body.is-fs #deepsearch{order:5}
+body.is-fs #ladder{order:6}
+body.is-fs #fupanel{order:7}
 body.is-fs #plate{max-width:min(92vw,58vh)}
 body.is-fs .figcap{display:none}
 
@@ -916,6 +952,7 @@ body.is-fs .figcap{display:none}
       <span class="lg"><i style="background:var(--gold)"></i>c &nbsp;r+M=g<span class="ar">↗</span></span>
       <span class="lg"><i style="background:var(--coral)"></i>d &nbsp;r+M=E−g<span class="ar">↗</span></span>
     </div>
+    <div id="sector-legend" style="display:none"></div>
     <div class="figcap" id="figcap">
       <b>Figure 1.</b> The G×G coprimality lattice with the four strips of gap g overlaid. Hover a cell (Grid view) for its
       gcd reduction; click to jump the gap to the sum strip through that cell.
@@ -977,6 +1014,7 @@ body.is-fs .figcap{display:none}
           <span class="lab">Show</span>
           <button class="chip on" id="cor-t-field" style="flex:1">Field: On</button>
           <button class="chip on" id="cor-t-strands" style="flex:1">Strands: On</button>
+          <button class="chip" id="cor-t-planes" style="flex:1" title="The gap ladder one dimension up: for g &ge; 5, the plane x+y+z = g is fully coprime at every interior point exactly when g is prime &mdash; the same argument as the sum strip, since gcd(x,y,z) divides x+y+z. Each outline is a prime, and the spacing between outlines is the prime gap. (g = 4 is the lone composite the argument misses: its only interior points are permutations of (1,1,2).)">Prime planes: Off</button>
         </div>
         <div class="note">A point (x,y,z) is <b>visible from the origin</b> when gcd(x,y,z) = 1 — nothing else on the lattice sits between it and (0,0,0). Their density in the cube tends to <b>1/ζ(3) ≈ 0.8319</b>, the 3D analogue of the 1/ζ(2) ≈ 0.6079 the Grid view measures. Raising <b>Extent</b> pushes the measured fraction toward it.</div>
       </div>
@@ -1041,6 +1079,84 @@ body.is-fs .figcap{display:none}
           <span id="ds-pageinfo" class="ds-pageinfo"></span>
           <button class="chip" id="ds-next" onclick="dsPage(1)">Next ▸</button>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ GAP LADDER — forward diagonals ══════════ -->
+<div class="sect" id="ladder">
+  <div class="sect-hdr" id="ladder-hdr" onclick="toggleGrp('ladder')"><span class="rarrow">&#9656;</span>Gap ladder &mdash; forward diagonals</div>
+  <div id="ladder-body">
+    <div class="grp" style="border:none;padding:0 0 4px">
+      <div class="row">
+        <span class="lab">Ladder</span>
+        <button class="chip" id="ld-on" onclick="toggleLadder()" style="flex:1">Off</button>
+      </div>
+      <div class="row" id="ld-opt-row" style="display:none;flex-wrap:wrap">
+        <span class="lab">Draw</span>
+        <button class="chip on" id="ld-bands" onclick="ldToggle('bands')" style="flex:1" title="Wash the dark band between consecutive lit strips. Its width IS the gap.">bands</button>
+        <button class="chip on" id="ld-rail" onclick="ldToggle('rail')" style="flex:1" title="The forward connection: a rail down r=M with a rung at every lit strip.">rail</button>
+        <button class="chip on" id="ld-labels" onclick="ldToggle('labels')" style="flex:1" title="Print the gap in each band wide enough to hold it.">gap</button>
+        <button class="chip" id="ld-phi" onclick="ldToggle('phi')" style="flex:1" title="Shade every composite strip by &phi;(g)/(g&minus;1) — how nearly it lit. The strips stop being on/off and become a totient meter.">&phi; shading</button>
+      </div>
+      <div class="row" id="ld-only-row" style="display:none">
+        <span class="lab">Plate</span>
+        <button class="chip" id="ld-solo" onclick="ldToggle('solo')" style="flex:1" title="Hide the a/b/c/d strips and the pair overlay so the ladder stands alone on the bare coprimality field.">ladder only</button>
+      </div>
+      <div class="row" id="ld-gap-row" style="display:none">
+        <span class="lab">Gap = 2n</span>
+        <select id="ld-gap-sel" onchange="setLadderGapFilter(this.value)" style="flex:1;background:var(--bg1);color:var(--cream);border:1px solid var(--edge);font-family:var(--mono);font-size:11px;padding:5px 6px">
+          <option value="">All gaps</option>
+        </select>
+      </div>
+      <div id="ld-out" style="display:none"></div>
+      <div class="note" id="ld-note" style="display:none">
+        A sum strip <b>r + M = g</b> is fully coprime exactly when <b>g is prime</b>: on that line gcd(r,M) divides g and is smaller than g, so a prime leaves nothing but 1s, while a composite g = a&middot;b always puts gcd &ge; a at the point (a, g&minus;a). Every lit diagonal below is therefore a prime, found by looking rather than by dividing.<br><br>
+        Connect each lit strip <b>forward</b> to the next and the dark band between them is the prime gap &mdash; not a number computed and printed, but the literal width of the band, <b>gap = (dark strips between) + 1</b>. Perpendicular spacing is gap/&radic;2 cells, so a long gap is a wide band.<br><br>
+        <b>The one limit.</b> The test only reads true for <b>g &le; G+1</b>. Past that the strip is clipped by the edge of the plate and the visible window can miss every witness &mdash; on a 5&times;5 grid, g = 9 shows only r = 4, 5, both coprime to 9, so 3&sup2; would read as prime. The ladder therefore stops at G+1 and nothing beyond it is drawn or claimed. To go further, raise G.<br><br>
+        <b>&phi; shading</b> turns the remaining strips from off to dim: the lit cells on strip g number exactly &phi;(g), because gcd(r, g&minus;r) = gcd(r, g), so the strip is scanning r = 1&hellip;g&minus;1 against g. A prime is the case &phi;(g) = g&minus;1. g = 9 sits at 0.75, g = 18 at 0.35 &mdash; you can see how composite a number is before being told.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ CONSTANTS & F(u) ══════════ -->
+<div class="sect" id="fupanel">
+  <div class="sect-hdr" id="fupanel-hdr" onclick="toggleGrp('fupanel');renderFuPanel()"><span class="rarrow">&#9656;</span>Constants &amp; the lift function F(u)</div>
+  <div id="fupanel-body">
+    <div class="grp" style="border:none;padding:0 0 4px">
+      <div class="note" style="margin-top:0">
+        Every value below is computed in the page from the <b>prime zeta function</b> P(s), not read off a stored digit string and not truncated at a prime bound. A partial product or partial sum cut at p &lt; 50,000 and printed to twelve places is wrong from the sixth &mdash; the tail of &sum;1/p&sup2; is far too fat for that &mdash; so these are assembled from P(s) = &sum;<sub>n</sub> &mu;(n)/n &middot; log &zeta;(ns) instead, which carries no truncation at all.
+      </div>
+      <div class="row" style="margin-top:8px">
+        <span class="lab">Settle</span>
+        <input type="range" id="settle-sl" min="0" max="1000" value="380" step="1" oninput="setSettlePos(+this.value)" style="flex:1">
+      </div>
+      <div class="note" id="settle-read" style="margin-top:2px;margin-bottom:6px"></div>
+      <div class="cgrid" id="cgrid"></div>
+
+      <div class="row" style="margin-top:8px">
+        <span class="lab">u</span>
+        <input type="range" id="fu-sl" min="0" max="3.99" step="0.01" value="2" oninput="setFuU(+this.value)" style="flex:1">
+        <input type="number" id="fu-in" min="-20" max="3.99" step="0.01" value="2" style="width:64px" oninput="setFuU(+this.value)">
+      </div>
+      <div class="row" style="margin-top:4px;flex-wrap:wrap">
+        <span class="lab">Jump to</span>
+        <button class="chip" onclick="setFuU(0)" style="flex:1" title="F(0) = ζ(2)">u = 0</button>
+        <button class="chip" onclick="setFuU(1)" style="flex:1" title="F(1) = 1 — the normalisation point">u = 1</button>
+        <button class="chip on" onclick="setFuU(2)" style="flex:1" title="F(2) = C, the lift survival constant">u = 2</button>
+        <button class="chip" onclick="setFuU(3.99)" style="flex:1" title="approaching the first zero at u = 4 = 2²">u → 4</button>
+      </div>
+      <div id="fu-read" class="note" style="margin-top:6px"></div>
+      <canvas id="fu-cv" class="fu-cv" height="150"></canvas>
+      <div class="note" style="margin-top:0">
+        <b>Figure A.</b> F(u) = &prod;<sub>p</sub>(p&sup2;&minus;u)/(p&sup2;&minus;1) on [0, 4]. Strictly decreasing, because d/du log F = &minus;&sum;<sub>p</sub> 1/(p&sup2;&minus;u) is negative wherever every p&sup2; &gt; u. Four landmarks: F(0) = &zeta;(2), F(1) = 1, F(2) = C, F(4) = 0 &mdash; the first zero, contributed by p = 2.
+      </div>
+
+      <canvas id="fz-cv" class="fu-cv" height="112"></canvas>
+      <div class="note" style="margin-top:0">
+        <b>Figure B.</b> The zero set of F, laid on the ladder's own axis. F(u) = 0 exactly at u = p&sup2;, each zero simple, so plotting in <b>&radic;u</b> puts the zeros on the primes &mdash; the same sequence the lit strips pick out on the plate, arrived at analytically instead of geometrically. Ticks are the zeros, bands are the gaps between them in the ladder's colours, and the strip along the bottom is sign F(u) = (&minus;1)<sup>#{q&nbsp;:&nbsp;q&sup2;&nbsp;&lt;&nbsp;u}</sup>, which flips at every zero. So the sign of F alternates once per rung: <b>the ladder is the zero spectrum of F</b>.
       </div>
     </div>
   </div>
@@ -1331,18 +1447,18 @@ body.is-fs .figcap{display:none}
       </div>
       <div class="row" style="margin-top:10px">
         <span class="lab">Dim off</span>
-        <input type="range" id="sl-dim" min="0" max="100" step="5" value="0" oninput="setDim(+this.value)">
-        <span class="val" id="v-dim">0%</span>
+        <input type="range" id="sl-dim" min="0" max="100" step="5" value="40" oninput="setDim(+this.value)">
+        <span class="val" id="v-dim">40%</span>
       </div>
       <div class="row" style="margin-top:8px">
         <span class="lab">Off-gcd</span>
-        <input type="range" id="sl-sdim" min="0" max="100" step="5" value="0" oninput="setStripDim(+this.value)" title="Opacity of a strip point where gcd(r,M) ≠ 1. At 0 the strip is drawn only where it is coprime.">
-        <span class="val" id="v-sdim">0%</span>
+        <input type="range" id="sl-sdim" min="0" max="100" step="5" value="40" oninput="setStripDim(+this.value)" title="Opacity of a strip point where gcd(r,M) ≠ 1. At 0 the strip is drawn only where it is coprime.">
+        <span class="val" id="v-sdim">40%</span>
       </div>
       <div class="row" style="margin-top:8px">
         <span class="lab">Strip thickness</span>
-        <input type="range" id="sl-sthick" min="20" max="150" step="5" value="60" oninput="setStripThick(+this.value)" title="Global size of the a/b/c/d strip points, in Grid, Ring and Cayley alike — one knob, all three views. 100% sits at the same radius as an ordinary lattice point; below that the strip stops being a blob and reads as a coloured pick-out over the same-size lattice underneath it.">
-        <span class="val" id="v-sthick">60%</span>
+        <input type="range" id="sl-sthick" min="20" max="150" step="5" value="110" oninput="setStripThick(+this.value)" title="Global size of the a/b/c/d strip points, in Grid, Ring and Cayley alike — one knob, all three views. 100% sits at the same radius as an ordinary lattice point; below that the strip stops being a blob and reads as a coloured pick-out over the same-size lattice underneath it.">
+        <span class="val" id="v-sthick">110%</span>
       </div>
       <div class="note">Everything not on a strip is washed back by <b>Dim off</b>, so the four lines read against the full coprimality field rather than replacing it.<br><br><b>Off-gcd</b> is the other half of that: a strip point where gcd(r,M) ≠ 1 is a point the strip <i>misses</i>, and drawing it faintly used to make the line look continuous through cells it never occupies — c appearing to run straight through 2, 4, 6. At <b>0%</b> those points are not drawn at all, so a break in the line is a real break and the coprime count in the readout matches what is on screen. Raise it to see the full geometric line, misses included.<br><br><b>Strip thickness</b> used to be baked into each view separately — Ring/Cayley even sized a coprime strip point 15% larger than a missed one — so a strip at high point-size could blot out the lattice it sits on. One slider now scales all three views the same way, and 100% is calibrated to match the ordinary lattice dot radius exactly, so the strip becomes a colour, not a size, difference.</div>
       </div>
@@ -1865,8 +1981,12 @@ body.is-fs .figcap{display:none}
     </div>
     <div class="formula-block coral">
       <b>Leonhard Euler</b>, "De summis serierum reciprocarum" (1735) &amp; <i>Introductio in analysin
-      infinitorum</i> (1748) — the Basel-sum identity 6/π² = 1/ζ(2) behind the density bar, and the totient
-      φ(g) = g − 1 test used for a full strip.
+      infinitorum</i> (1748) — the Basel-sum identity 6/π² = 1/ζ(2) behind the density bar.
+    </div>
+    <div class="formula-block gold">
+      <b>Leonhard Euler</b>, "Theoremata arithmetica nova methodo demonstrata" (1763) — the totient
+      function itself (defined there in words, with no symbol yet) behind the φ(g) = g − 1 test used for
+      a full strip; the φ notation is Gauss's, introduced in the <i>Disquisitiones</i> below.
     </div>
     <div class="formula-block gold">
       <b>Carl Friedrich Gauss</b>, <i>Disquisitiones Arithmeticae</i> (1801) — primitive M-th roots of unity
@@ -1877,15 +1997,16 @@ body.is-fs .figcap{display:none}
       reduced fractions r/M ∈ (0,1) that the clamp mode exposes.
     </div>
     <div class="formula-block coral">
-      <b>August Ferdinand Möbius</b> (1827) — the general fractional linear map (az+b)/(cz+d) that every map
-      in the Cayley view specializes.
+      <b>August Ferdinand Möbius</b>, "Die Theorie der Kreisverwandtschaft in rein geometrischer
+      Darstellung" (1855) — the general fractional linear map (az+b)/(cz+d) that every map in the Cayley
+      view specializes.
     </div>
     <div class="formula-block gold">
       <b>Bernhard Riemann</b>, "Über die Anzahl der Primzahlen..." (1859) — the zeta function ζ(s) underlying the
       6/π² = 1/ζ(2) density constant.
     </div>
     <div class="formula-block teal">
-      <b>Arthur Cayley</b> (1878) — the Cayley transform Γ(z) = (z−1)/(z+1) and its Ford-coordinate cousin
+      <b>Arthur Cayley</b> (1846) — the Cayley transform Γ(z) = (z−1)/(z+1) and its Ford-coordinate cousin
       K(z) = (z−i)/(z+i), connecting the upper half-plane to the disk.
     </div>
     <div class="formula-block coral">
@@ -1900,6 +2021,11 @@ body.is-fs .figcap{display:none}
       <b>G. H. Hardy &amp; J. E. Littlewood</b>, "Some problems of 'partitio numerorum' III" (1923) — the circle
       method, the exponential sum S(α) = Σ e(2πiαp), and the singular series 𝔖(E) that the Circle view
       implements for Goldbach partitions.
+    </div>
+    <div class="formula-block gold">
+      <b>Ivan M. Vinogradov</b>, "Some theorems concerning the theory of primes" (1937) — the proof that
+      every sufficiently large odd N is a sum of three primes, which the Corridor view's ternary-Goldbach
+      strands (N = p + q + r) are built around; the binary case the rest of this page is about remains open.
     </div>
     <div class="formula-block coral">
       <b>Lester R. Ford Sr.</b>, "Fractions" (1938) — the tangent-circle coordinates y = gain·M^(−κ), with κ = 1
@@ -2264,29 +2390,25 @@ function drawSectorBands(ctx,xy,G,px){
   }
   ctx.restore();
 }
-// Labels go on top — they are type, not paint, and are unreadable under a
-// point cloud. Kept separate from the fills for that reason alone.
+// Sector labels used to be canvas text at each wedge's mid-radius — type
+// sitting directly on top of the point cloud (and, past S5 or so, on top of
+// each other). They now live in the #sector-legend strip below the figure
+// instead, outside the canvas entirely; this just keeps that strip in sync
+// with whatever sectors are currently active. xy/px are unused now (kept in
+// the signature so every existing call site — Grid, Ring/Cayley, the lens —
+// still works unchanged) and only G decides which S values are listable.
 function drawSectorLabels(ctx,xy,G,px){
-  if(!S.sectorOn||!S.sectorLabels||!xy) return;
+  const el=document.getElementById('sector-legend');
+  if(!el) return;
+  if(!S.sectorOn||!S.sectorLabels){ el.style.display='none'; el.innerHTML=''; return; }
   const pick=S.sectorPick;
   const list=pick>0?[pick]:[];
   if(!list.length) for(let i=1;i<=Math.min(S.sectorRays,G);i++) list.push(i);
-  ctx.save();
-  ctx.font=`${Math.max(8,px*0.013)}px "JetBrains Mono",monospace`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  for(const sVal of list){
-    const m=Math.round(G*0.82);
-    if(m<sVal) continue;
-    const rMid=m*(1/sVal+1/(sVal+1))/2;        // centre of the wedge at this m
-    const P=xy(Math.min(rMid,G),m);
-    if(!P||!isFinite(P[0])||!isFinite(P[1])) continue;
+  el.innerHTML=list.map(sVal=>{
     const [cr,cg,cb]=sectorColorRGB(sVal);
-    ctx.lineWidth=Math.max(2.5,px*0.004); ctx.strokeStyle='rgba(4,4,13,.92)';
-    ctx.strokeText('S'+sVal,P[0],P[1]);
-    ctx.fillStyle=`rgba(${cr},${cg},${cb},1)`;
-    ctx.fillText('S'+sVal,P[0],P[1]);
-  }
-  ctx.restore();
+    return `<span class="lg"><i style="background:rgb(${cr},${cg},${cb})"></i>S${sVal}</span>`;
+  }).join('');
+  el.style.display='flex';
 }
 
 function drawLiftDynamics(ctx,xy,G,px,skipLegend){
@@ -2783,9 +2905,11 @@ function sectorCensus(G){
 // FAILS to hit. 0 is the honest default: the strip is drawn only where it is
 // coprime, so a gap in the line is a real gap. Turn it up to see the full
 // geometric line again.
-const S={G:194,g:193,col:'modular_distance',lbl:'off',dim:0,stripDim:0,stripThick:0.6,view:'grid',
+const S={G:194,g:193,col:'modular_distance',lbl:'off',dim:0.4,stripDim:0.4,stripThick:1.1,view:'grid',
          // rot90: global plate orientation, in clockwise quarter turns (0-3).
          rot90:0,
+         // the forward-gap ladder: lit sum strips (= primes) and the bands between them
+         ladder:{on:false,bands:true,rail:true,labels:true,phi:false,solo:false,gapFilter:null},
          lblScale:1,lblAdapt:0.55,thetaMode:'clamp',
          // dotScale: a flat multiplier on Ring/Cayley point radius, on top of
          // the zoom-driven size. 1× is the plain dotR formula with nothing
@@ -3961,6 +4085,526 @@ function paintCircle(ctx,px,G,g){
     ctx.fillText(`${lab} · ${sub}`,bx+bw/2,rowTop+bh*0.72,bw*0.94);
   });
 }
+/* ── prime zeta, the constants, and F(u) ──────────────────────────────
+   The constants this suite runs on — C, the Feller–Tornier product, J,
+   D₀ — are all sums or products over ALL primes, and every one of them
+   converges too slowly to be reached by stopping at a prime bound. A
+   partial sum cut at p < 50,000 and printed to twelve places is already
+   wrong in the sixth: the deficit is Σ_{p>N} 1/p² ≈ 1/(N log N), which at
+   N = 5·10⁴ is 1.7·10⁻⁶. So nothing here is a partial sum. Everything is
+   built from the prime zeta function
+
+       P(s) = Σ_p p^{-s} = Σ_{n≥1} μ(n)/n · log ζ(ns)
+
+   which has no tail to discard, and ζ itself comes from Euler–Maclaurin.
+
+   One trap, and it is the reason the direct branch below exists. The tail
+   sums T_k = Σ_{p≥5} p^{-2k} are formed by subtracting 2^{-2k} and 3^{-2k}
+   off P(2k) — fine while those are distinguishable, but by k ≈ 27 the
+   quantity 1 + 2^{-2k} rounds to exactly 1 in a double, ζ comes back as 1,
+   P(2k) comes back as 0, and the "tail" is pure rounding noise. The 2^k or
+   u^k standing in front of it then amplifies that noise into the 10th
+   decimal of C and the 5th of F(3). Past k = 2 the sum is therefore taken
+   over primes directly, where there is no cancellation to lose and, at
+   exponent 6 and above, nothing past 10⁴ that a double can hold. */
+function zetaS(s){
+  if(s===2) return Math.PI*Math.PI/6;
+  const M=2000; let t=0;
+  for(let n=1;n<M;n++) t+=Math.pow(n,-s);
+  const Ms=Math.pow(M,-s);
+  t+= M*Ms/(s-1) + Ms/2 + s*Ms/(12*M) - s*(s+1)*(s+2)*Ms/(720*M*M*M);
+  return t;
+}
+const FU_MU=(()=>{ const N=64, mu=new Int8Array(N+1).fill(1), pr=[], comp=new Uint8Array(N+1);
+  for(let i=2;i<=N;i++){ if(!comp[i]){ pr.push(i); mu[i]=-1; }
+    for(const q of pr){ if(i*q>N) break; comp[i*q]=1;
+      if(i%q===0){ mu[i*q]=0; break; } mu[i*q]=-mu[i]; } }
+  mu[1]=1; return mu; })();
+const PZ_CACHE={};
+function primeZeta(s){
+  if(PZ_CACHE[s]!==undefined) return PZ_CACHE[s];
+  let t=0;
+  for(let n=1;n<=60;n++){
+    if(!FU_MU[n]) continue;
+    const z=zetaS(n*s); if(z<=1+1e-18) break;
+    t+=FU_MU[n]/n*Math.log(z);
+  }
+  return PZ_CACHE[s]=t;
+}
+const FU_TP=(()=>{ const N=10000, c=new Uint8Array(N+1), out=[];
+  for(let i=2;i<=N;i++){ if(c[i]) continue; if(i>=5) out.push(i);
+    for(let j=i*i;j<=N;j+=i) c[j]=1; }
+  return out; })();
+const TK_CACHE={};
+function tailK(k){                       // Σ_{p≥5} p^(−2k)
+  if(TK_CACHE[k]!==undefined) return TK_CACHE[k];
+  let t;
+  if(k<=2) t=primeZeta(2*k)-Math.pow(2,-2*k)-Math.pow(3,-2*k);
+  else { t=0; for(let i=0;i<FU_TP.length;i++){ const v=Math.pow(FU_TP[i],-2*k); if(v<1e-300) break; t+=v; } }
+  return TK_CACHE[k]=t;
+}
+// F(u) = ∏_p (p²−u)/(p²−1). p = 2 and 3 exactly, the rest as a series in
+// u^k/p^{2k}, which converges fast because u/25 ≤ 0.16 over the whole
+// range this panel shows.
+function Fu(u){
+  if(u===1) return 1;
+  if(u===4) return 0;
+  if(u>4) return NaN;                    // past the first zero, not this panel's business
+  let lg=Math.log((4-u)/3)+Math.log((9-u)/8);
+  for(let k=1;k<=140;k++){
+    const t=-(Math.pow(u,k)-1)/k*tailK(k);
+    lg+=t;
+    if(Math.abs(t)<1e-18&&k>4) break;
+  }
+  return Math.exp(lg);
+}
+const CONST=(()=>{
+  let lg=Math.log(0.5)+Math.log(7/9);
+  for(let k=1;k<=140;k++){ const t=-Math.pow(2,k)/k*tailK(k); lg+=t; if(Math.abs(t)<1e-18&&k>4) break; }
+  const dFT=Math.exp(lg);
+  let D0=0; for(let j=1;j<=200;j++) D0+=primeZeta(2*j);
+  let J=0;  for(let k=2;k<=200;k++) J+=primeZeta(k);
+  const z2=Math.PI*Math.PI/6;
+  return {z2, dFT, cFT:(1+dFT)/2, C:z2*dFT, P2:primeZeta(2), D0, J};
+})();
+/* ── "watch it settle" — naive partial sums/products, for contrast with
+   the exact analytic values above. Cut at the k-th prime instead of the
+   page's usual P(s)=Σμ(n)/n·logζ(ns): this is deliberately the wrong way
+   (the note above already says why), kept only so the slider has
+   something visibly slow to show. Prefix arrays give O(1) lookup per
+   slider tick instead of resumming from scratch. */
+const SETTLE_SIEVE_N=50000;
+let SETTLE=null;
+function buildSettleData(){
+  if(SETTLE) return SETTLE;
+  const N=SETTLE_SIEVE_N, comp=new Uint8Array(N+1), primes=[];
+  for(let i=2;i<=N;i++){ if(!comp[i]){ primes.push(i); for(let j=i*i;j<=N;j+=i) comp[j]=1; } }
+  const K=primes.length;
+  const logZ2=new Float64Array(K), logDFT=new Float64Array(K);
+  const sumP2=new Float64Array(K), sumD0=new Float64Array(K), sumJ=new Float64Array(K);
+  let lz2=0, ldft=0, sp2=0, sd0=0, sj=0;
+  for(let i=0;i<K;i++){
+    const p=primes[i], p2=p*p;
+    lz2+=Math.log(p2/(p2-1)); ldft+=Math.log(1-2/p2);
+    sp2+=1/p2; sd0+=1/(p2-1); sj+=1/(p*(p-1));
+    logZ2[i]=lz2; logDFT[i]=ldft; sumP2[i]=sp2; sumD0[i]=sd0; sumJ[i]=sj;
+  }
+  return SETTLE={primes,logZ2,logDFT,sumP2,sumD0,sumJ,K};
+}
+let SETTLE_POS=380; // 0..1000, exponential over the prime index so early
+                     // (fast-moving) primes and late (slow-tail) ones both
+                     // get usable slider range
+function settleK(){
+  const st=buildSettleData(), t=SETTLE_POS/1000;
+  return Math.max(1,Math.min(st.K,Math.round(Math.pow(st.K,t))));
+}
+function partialConst(){
+  const st=buildSettleData(), k=settleK(), i=k-1;
+  const z2=Math.exp(st.logZ2[i]), dFT=Math.exp(st.logDFT[i]);
+  return {k, p:st.primes[i], z2, dFT, cFT:(1+dFT)/2, C:z2*dFT, P2:st.sumP2[i], D0:st.sumD0[i], J:st.sumJ[i]};
+}
+function setSettlePos(v){
+  SETTLE_POS=Math.max(0,Math.min(1000,Math.round(+v||0)));
+  const sl=document.getElementById('settle-sl'); if(sl) sl.value=SETTLE_POS;
+  renderFuPanel();
+}
+let FU_U=2;
+function setFuU(v){
+  FU_U=Math.max(-20,Math.min(3.99,+v||0));
+  const sl=document.getElementById('fu-sl'), inp=document.getElementById('fu-in');
+  if(sl&&FU_U>=0) sl.value=FU_U;
+  if(inp&&document.activeElement!==inp) inp.value=FU_U;
+  renderFuPanel();
+}
+function renderFuPanel(){
+  const grid=document.getElementById('cgrid');
+  if(!grid) return;
+  const K=CONST, f=(x,n)=>x.toFixed(n===undefined?12:n);
+  const PT=partialConst();
+  const cards=[
+    ['&zeta;(2) = F(0)', f(K.z2), f(PT.z2), '&prod;<sub>p</sub> p&sup2;/(p&sup2;&minus;1) = &pi;&sup2;/6. The bare coprimality field of the plate: 1/&zeta;(2) of its cells are coprime.'],
+    ['C = F(2)', f(K.C), f(PT.C), '&prod;<sub>p</sub>(p&sup2;&minus;2)/(p&sup2;&minus;1) = &zeta;(2)&middot;d<sub>FT</sub>. OEIS A065469.'],
+    ['d<sub>FT</sub>', f(K.dFT), f(PT.dFT), '&prod;<sub>p</sub>(1&minus;2/p&sup2;) = 2C<sub>FT</sub>&minus;1. Also the density of n with n and n+1 both squarefree (Carlitz, Mirsky). OEIS A065474.'],
+    ['C<sub>FT</sub>', f(K.cFT), f(PT.cFT), '&frac12;(1 + d<sub>FT</sub>), the Feller&ndash;Tornier constant (1933). OEIS A065493.'],
+    ['P(2)', f(K.P2), f(PT.P2), '&sum;<sub>p</sub> 1/p&sup2;, the prime zeta function at 2.'],
+    ['D&#8320;', f(K.D0), f(PT.D0), '&sum;<sub>p</sub> 1/(p&sup2;&minus;1) = &sum;<sub>j&ge;1</sub> P(2j). Equals &minus;F&prime;(1), since F(1) = 1.'],
+    ['J', f(K.J), f(PT.J), '&sum;<sub>p</sub> 1/(p(p&minus;1)) = &sum;<sub>k&ge;2</sub> P(k).']
+  ];
+  grid.innerHTML=cards.map(([n,v,pv,d])=>
+    `<div class="ccard"><div class="cnm">${n}</div><div class="cvl">${pv}</div><div class="cds">${d}</div><div class="csettle">exact &rarr; ${v}</div></div>`).join('');
+  const sread=document.getElementById('settle-read');
+  if(sread) sread.innerHTML=`Naive partial sum/product over the first <b>${PT.k}</b> primes (up to p = <b>${PT.p}</b>) &mdash; the numbers above are this partial value, settling toward the exact one as the slider moves right. This is exactly the truncation the note above warns is wrong at six figures.`;
+
+  const u=FU_U, val=Fu(u);
+  const nz=[];
+  for(let q=2;q<=64;q++){ let pr=q>1; for(let d=2;d*d<=q;d++) if(q%d===0){pr=false;break;} if(pr) nz.push(q); }
+  const below=nz.filter(q=>q*q<u).length;
+  const read=document.getElementById('fu-read');
+  if(read){
+    const nextZ=nz.find(q=>q*q>=u);
+    read.innerHTML=
+      `F(<span class="k">${u.toFixed(2)}</span>) = <span class="k">${isFinite(val)?val.toFixed(12):'&mdash;'}</span>`+
+      ` &nbsp;&middot;&nbsp; sign ${below%2?'&minus;':'+'} (${below} zero${below===1?'':'s'} passed)`+
+      (nextZ?` &nbsp;&middot;&nbsp; next zero at u = ${nextZ}&sup2; = ${nextZ*nextZ}`:'')+
+      (u===2?' &nbsp;&middot;&nbsp; this is C':u===0?' &nbsp;&middot;&nbsp; this is &zeta;(2)':u===1?' &nbsp;&middot;&nbsp; the normalisation point':'');
+  }
+  drawFuCurve();
+  drawFuZeros();
+}
+function fuCanvas(id,h){
+  const c=document.getElementById(id); if(!c) return null;
+  const dpr=Math.min(window.devicePixelRatio||1,3);
+  const w=Math.max(200,c.clientWidth||c.parentElement.clientWidth);
+  c.width=Math.round(w*dpr); c.height=Math.round(h*dpr);
+  const ctx=c.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle='#04040d'; ctx.fillRect(0,0,w,h);
+  return {ctx,w,h};
+}
+function drawFuCurve(){
+  const K=fuCanvas('fu-cv',150); if(!K) return;
+  const {ctx,w,h}=K, L=42, R=w-14, T=12, B=h-24;
+  const X=u=>L+(u/4)*(R-L), Y=v=>B-(v/1.75)*(B-T);
+  ctx.strokeStyle='rgba(255,255,255,.10)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,B); ctx.lineTo(R,B); ctx.stroke();
+  ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(255,255,255,.42)';
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  [0,0.5,1,1.5].forEach(v=>{ ctx.fillText(v.toFixed(1),L-5,Y(v));
+    ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.beginPath(); ctx.moveTo(L,Y(v)); ctx.lineTo(R,Y(v)); ctx.stroke(); });
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  [0,1,2,3,4].forEach(u=>ctx.fillText(String(u),X(u),B+5));
+  // the curve
+  ctx.strokeStyle='rgba(200,168,74,.95)'; ctx.lineWidth=1.8;
+  ctx.beginPath();
+  for(let i=0;i<=400;i++){ const u=4*i/400, v=Fu(Math.min(u,3.9999));
+    const x=X(u), y=Y(u>=4?0:v); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  ctx.stroke();
+  // landmarks
+  const marks=[[0,CONST.z2,'ζ(2)',[61,200,184]],[1,1,'1',[155,127,232]],[2,CONST.C,'C',[224,80,96]],[4,0,'0',[236,232,222]]];
+  marks.forEach(([u,v,t,q])=>{
+    ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},.95)`;
+    ctx.beginPath(); ctx.arc(X(u),Y(v),3,0,Math.PI*2); ctx.fill();
+    ctx.font='9px "JetBrains Mono",monospace'; ctx.textAlign=u>3?'right':'left'; ctx.textBaseline='bottom';
+    ctx.fillText(t,X(u)+(u>3?-5:5),Y(v)-4);
+  });
+  // the live cursor
+  if(FU_U>=0&&FU_U<4){
+    const v=Fu(FU_U);
+    ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.setLineDash([3,3]); ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(X(FU_U),T); ctx.lineTo(X(FU_U),B); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,255,255,.95)';
+    ctx.beginPath(); ctx.arc(X(FU_U),Y(v),3.2,0,Math.PI*2); ctx.fill();
+  }
+}
+// The zero spectrum of F, drawn on the ladder's axis: zeros at u = p² land
+// on the primes once the axis is √u, which is exactly the set of lit sum
+// strips on the plate. Same primes, one found by looking at a lattice and
+// one by asking where an Euler product vanishes.
+function drawFuZeros(){
+  const K=fuCanvas('fz-cv',112); if(!K) return;
+  const {ctx,w,h}=K;
+  const L=ladderData(S.G), top=L.top;
+  // the settle slider also drives this figure: only the zeros up to its
+  // current prime cutoff are revealed, so dragging it fills the spectrum
+  // in one rung at a time instead of showing the whole thing at once.
+  const cutoff=partialConst().p;
+  const litAll=L.lit, lit=litAll.filter(g=>g<=cutoff);
+  const X=g=>14+((g-2)/(top-2))*(w-28);
+  const yTop=16, yBot=h-30, ySign=h-20;
+  const gapOf=new Map(); L.rungs.forEach(x=>gapOf.set(x.a,x.gap));
+  // gap bands, in the ladder's colours — only bands whose far end is revealed
+  for(const rg of L.rungs){
+    if(rg.b>cutoff) continue;
+    const q=gapRGB(rg.gap);
+    ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${Math.min(0.30,0.03*rg.gap).toFixed(3)})`;
+    ctx.fillRect(X(rg.a),yTop,Math.max(0.6,X(rg.b)-X(rg.a)),yBot-yTop);
+  }
+  // the zeros
+  for(const g of lit){
+    const gp=gapOf.get(g), q=gp?gapRGB(gp):[236,232,222];
+    ctx.strokeStyle=`rgba(${q[0]},${q[1]},${q[2]},.95)`;
+    ctx.lineWidth=Math.max(0.8,Math.min(2,(w-28)/(top*1.4)));
+    ctx.beginPath(); ctx.moveTo(X(g),yTop); ctx.lineTo(X(g),yBot); ctx.stroke();
+  }
+  // sign strip: (−1)^#{q : q² < u}, flipping at every zero
+  for(let i=0;i<lit.length;i++){
+    const a=lit[i], b=(i+1<lit.length)?lit[i+1]:(lit.length===litAll.length?top:cutoff);
+    ctx.fillStyle=(i%2)?'rgba(61,200,184,.55)':'rgba(224,80,96,.55)';
+    ctx.fillRect(X(a),ySign,Math.max(0.6,X(b)-X(a)),8);
+  }
+  ctx.font='9px "JetBrains Mono",monospace';
+  ctx.fillStyle='rgba(255,255,255,.5)'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('√u  (= g on the plate)',14,2);
+  ctx.textAlign='right';
+  ctx.fillText(`${lit.length} of ${litAll.length} zeros revealed (to u = ${top}² = ${top*top})`,w-14,2);
+  ctx.textAlign='left'; ctx.textBaseline='bottom';
+  ctx.fillStyle='rgba(255,255,255,.42)';
+  ctx.fillText('2',14,h-2);
+  ctx.textAlign='right'; ctx.fillText(String(top),w-14,h-2);
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(255,255,255,.32)';
+  ctx.fillText('sign F alternates once per rung',w/2,h-2);
+}
+
+/* ── the forward-gap ladder ───────────────────────────────────────────
+   One statement, drawn rather than computed: the sum strip r + M = g is
+   fully coprime exactly when g is prime. On that line any common divisor
+   d of r and M divides r + M = g, and d ≤ min(r,M) < g, so a prime g can
+   only leave d = 1; a composite g = a·b puts gcd(a, g−a) ≥ a > 1 at a
+   point that is always on the strip. So the lit diagonals ARE the primes,
+   and connecting each one forward to the next makes the prime gap the
+   physical width of the dark band between them — gap = (dark strips in
+   between) + 1, exactly.
+
+   The hard limit is g ≤ G+1. Beyond that the strip is clipped by the edge
+   of the plate and the visible window can miss every witness: on a 5×5
+   grid, g = 9 shows only r = 4 and 5, both coprime to 9, so 3² reads as
+   fully lit. The ladder stops at G+1 rather than drawing a claim it
+   cannot support.
+
+   The lit COUNT on strip g is φ(g), since gcd(r, g−r) = gcd(r, g) means
+   the strip is just scanning r = 1…g−1 against g. So the same pass that
+   finds the primes also grades every composite by how nearly it lit, and
+   φ shading turns the ladder from on/off into a totient meter. That is
+   why the sieve below is a totient sieve and not a primality sieve — the
+   primes fall out of it as the case φ(g) = g−1, at no extra cost. */
+let LADDER_CACHE=null;
+function ladderData(G){
+  if(LADDER_CACHE&&LADDER_CACHE.G===G) return LADDER_CACHE;
+  const top=G+1;
+  const ph=new Int32Array(top+1);
+  for(let i=0;i<=top;i++) ph[i]=i;
+  for(let p=2;p<=top;p++){
+    if(ph[p]!==p) continue;                 // p already touched ⇒ composite
+    for(let j=p;j<=top;j+=p) ph[j]-=(ph[j]/p)|0;
+  }
+  const lit=[];
+  for(let g=2;g<=top;g++) if(ph[g]===g-1) lit.push(g);
+  const rungs=[];
+  for(let i=0;i<lit.length-1;i++){
+    const a=lit[i],b=lit[i+1];
+    rungs.push({a,b,gap:b-a,dark:b-a-1});
+  }
+  const census=new Map();
+  rungs.forEach(x=>census.set(x.gap,(census.get(x.gap)||0)+1));
+  let maxRung=null;
+  rungs.forEach(x=>{ if(!maxRung||x.gap>maxRung.gap) maxRung=x; });
+  LADDER_CACHE={G,top,ph,lit,rungs,census,maxRung};
+  return LADDER_CACHE;
+}
+// Gap classes reuse the plate's own four hues rather than inventing a
+// fifth palette: the reader already reads teal/violet/gold/coral as "which
+// family", and a gap class is exactly that.
+function gapRGB(gp){
+  if(gp<=1) return [236,232,222];
+  if(gp===2) return BR.a;
+  if(gp===4) return BR.b;
+  if(gp===6) return BR.c;
+  return BR.d;
+}
+/* The renderer is written against the PROJECTION, not against Grid.
+   liftProj already hands back (r,m) → [x,y] for grid, ring and cayley, so
+   everything below is one routine over three views:
+
+     · a strip r+M = c is the point set (r, c−r) for r in its visible range.
+       Grid's projection is affine, so two endpoints draw it exactly; Ring
+       and Cayley bend it into a spiral, so it is sampled instead. Same
+       object, same code, different number of samples.
+     · a band is the polygon between two consecutive lit strips — the
+       forward polyline of one and the reverse of the next. On Grid that
+       polygon IS the trapezoid the old parallelogram fill produced; on the
+       polar plates it is the swept region between two spirals, which is
+       what the gap looks like there.
+     · the rail is the locus r = M, and strip c crosses it at r = M = c/2.
+       That single fact holds in every view, because it is a statement
+       about the lattice, not about the picture: so rail ticks and gap
+       labels are placed with proj(t, t) and need no per-view special case.
+       (θ is 2π on that locus in both θ modes, so on Ring and Cayley the
+       rail is one radial spoke and the rungs are ticks along it.)
+
+   mag is the magnification the output is about to be scaled by — 1 on the
+   plate, k inside the lens. Line weights stay in plate units so they
+   magnify with everything else, but type is sized in SCREEN units and the
+   room-to-label gate is measured there too, which is why the lens shows
+   gap numbers in bands the plate is too coarse to label. */
+function drawGapLadder(ctx,px,G,mag){
+  mag=mag||1;
+  const view=(S.view==='ring'||S.view==='cayley')?S.view:'grid';
+  const proj=liftProj(view,px,G);
+  if(!proj) return;
+  const L=ladderData(G), cell=px/G, polar=view!=='grid';
+  // Gap filter: isolate one forward-gap class (e.g. only gap = 2, only
+  // gap = 6) instead of drawing every gap at once. Both endpoints of a
+  // matching rung stay lit; everything else in L is left untouched.
+  const gapFilt=S.ladder.gapFilter;
+  const rungs=gapFilt==null?L.rungs:L.rungs.filter(rg=>rg.gap===gapFilt);
+  let lit=L.lit;
+  if(gapFilt!=null){
+    const keep=new Set();
+    rungs.forEach(rg=>{ keep.add(rg.a); keep.add(rg.b); });
+    lit=L.lit.filter(g=>keep.has(g));
+  }
+
+  // Samples per strip: Grid needs the two ends and nothing else.
+  const SAMP=polar?200:1, SAMP_PHI=polar?60:1;
+  // Memoised: every lit strip is walked up to three times in one pass —
+  // once on its own account and once as each edge of the band on either
+  // side of it — and on the polar plates a walk is 200 projections.
+  const PC=new Map();
+  const poly=(c,samp)=>{
+    const key=c*4+(samp===SAMP?0:1);
+    const hit=PC.get(key); if(hit) return hit;
+    const lo=Math.max(1,c-G), hi=Math.min(G,c-1);
+    let out=[];
+    if(hi>=lo){
+      const st=Math.max(1,Math.ceil((hi-lo)/samp));
+      for(let r=lo;r<=hi;r+=st) out.push(proj(r,c-r));
+      if((hi-lo)%st) out.push(proj(hi,c-hi));
+    }
+    PC.set(key,out); return out;
+  };
+  const trace=pts=>{ ctx.beginPath(); for(let i=0;i<pts.length;i++) i?ctx.lineTo(pts[i][0],pts[i][1]):ctx.moveTo(pts[i][0],pts[i][1]); };
+
+  // ── bands: the gap as an area ──────────────────────────────────────
+  if(S.ladder.bands){
+    for(const rg of rungs){
+      const al=Math.min(0.22,0.018*rg.gap);
+      if(al<0.02) continue;
+      const A=poly(rg.a,SAMP), B=poly(rg.b,SAMP);
+      if(A.length<2||B.length<2) continue;
+      const q=gapRGB(rg.gap);
+      ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${al})`;
+      ctx.beginPath();
+      for(let i=0;i<A.length;i++) i?ctx.lineTo(A[i][0],A[i][1]):ctx.moveTo(A[i][0],A[i][1]);
+      for(let i=B.length-1;i>=0;i--) ctx.lineTo(B[i][0],B[i][1]);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+
+  // ── φ shading: every composite strip, dimmed by how nearly it lit ──
+  // Grid is two points per strip and costs nothing. The polar plates need
+  // a sampled polyline each, so the whole pass is O(G · samples) and is
+  // gated — past this size it is a fog rather than a reading anyway.
+  if(S.ladder.phi&&(!polar||G<=600)){
+    ctx.lineWidth=Math.max(1,cell*0.16);
+    for(let c=2;c<=L.top;c++){
+      if(L.ph[c]===c-1) continue;
+      const pts=poly(c,SAMP_PHI);
+      if(pts.length<2) continue;
+      ctx.strokeStyle=`rgba(255,255,255,${(0.05+0.30*(L.ph[c]/(c-1))).toFixed(3)})`;
+      trace(pts); ctx.stroke();
+    }
+  }
+
+  // ── the lit strips, coloured by forward gap ────────────────────────
+  const gapOf=new Map();
+  L.rungs.forEach(x=>gapOf.set(x.a,x.gap));
+  const lw=Math.max(1.4,cell*0.34);
+  for(const c of lit){
+    const pts=poly(c,SAMP);
+    if(pts.length<2) continue;
+    const gp=gapOf.get(c), q=gp?gapRGB(gp):[236,232,222];
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.strokeStyle='rgba(4,4,13,.75)'; ctx.lineWidth=lw+Math.max(1.4,cell*0.22);
+    trace(pts); ctx.stroke();
+    if(!gp) ctx.setLineDash([cell*1.2,cell*1.2]);
+    ctx.strokeStyle=`rgba(${q[0]},${q[1]},${q[2]},${gp?0.95:0.5})`;
+    ctx.lineWidth=lw;
+    trace(pts); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.lineCap='butt';
+
+  // ── the rail: r = M, with a rung where each lit strip crosses it ───
+  if(S.ladder.rail&&lit.length){
+    const at=t=>proj(t,t);
+    const A=at(lit[0]/2), B=at(lit[lit.length-1]/2);
+    ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.lineWidth=Math.max(1,px/1500);
+    if(polar){
+      // the locus r = M is one radial spoke, so sample it rather than
+      // assuming the two ends can be joined by a straight line
+      const lo=lit[0]/2, hi=lit[lit.length-1]/2, pts=[];
+      for(let i=0;i<=120;i++) pts.push(at(lo+(hi-lo)*i/120));
+      trace(pts); ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.moveTo(A[0],A[1]); ctx.lineTo(B[0],B[1]); ctx.stroke();
+    }
+    const tick=Math.max(2.5,cell*0.85);
+    for(const c of lit){
+      const [tx,ty]=at(c/2), gp=gapOf.get(c), q=gp?gapRGB(gp):[236,232,222];
+      ctx.strokeStyle=`rgba(${q[0]},${q[1]},${q[2]},.95)`;
+      ctx.lineWidth=Math.max(1.4,px/900);
+      ctx.beginPath(); ctx.moveTo(tx-tick,ty+tick); ctx.lineTo(tx+tick,ty-tick); ctx.stroke();
+    }
+  }
+
+  // ── gap labels, wherever the band has room in SCREEN pixels ────────
+  if(S.ladder.labels){
+    const fsS=Math.max(9,Math.min(28,cell*mag*1.15));   // on screen
+    const fs=fsS/mag;                                   // in plate units
+    ctx.font=`${fs}px "JetBrains Mono",monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    for(const rg of rungs){
+      if(rg.gap*cell*mag/Math.SQRT2 < fsS*1.3) continue;
+      const [tx,ty]=proj((rg.a+rg.b)/4,(rg.a+rg.b)/4);
+      const q=gapRGB(rg.gap);
+      ctx.lineWidth=Math.max(2,fs*0.30); ctx.lineJoin='round';
+      ctx.strokeStyle='rgba(4,4,13,.92)';
+      ctx.strokeText(String(rg.gap),tx,ty);
+      ctx.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},.98)`;
+      ctx.fillText(String(rg.gap),tx,ty);
+    }
+  }
+}
+function toggleLadder(){
+  S.ladder.on=!S.ladder.on;
+  syncLadderUI(); render();
+}
+function setLadderGapFilter(v){
+  S.ladder.gapFilter=v===''?null:+v;
+  render();
+}
+function ldToggle(k){
+  S.ladder[k]=!S.ladder[k];
+  syncLadderUI(); render();
+}
+function syncLadderUI(){
+  const on=S.ladder.on;
+  const b=document.getElementById('ld-on');
+  if(b){ b.textContent=on?'On — lit strips are the primes':'Off'; b.classList.toggle('on',on); }
+  ['ld-opt-row','ld-only-row','ld-gap-row','ld-out','ld-note'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=on?(id==='ld-opt-row'||id==='ld-only-row'||id==='ld-gap-row'?'flex':'block'):'none';
+  });
+  [['ld-bands','bands'],['ld-rail','rail'],['ld-labels','labels'],['ld-phi','phi'],['ld-solo','solo']].forEach(([id,k])=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.toggle('on',!!S.ladder[k]);
+  });
+  const sel=document.getElementById('ld-gap-sel');
+  if(sel&&on){
+    const L=ladderData(S.G);
+    const gaps=[...L.census.keys()].sort((a,b)=>a-b);
+    const cur=S.ladder.gapFilter;
+    sel.innerHTML='<option value="">All gaps</option>'+gaps.map(g=>
+      `<option value="${g}">gap ${g} (&times;${L.census.get(g)})</option>`).join('');
+    // drop a filter that no longer exists at this G rather than silently
+    // showing nothing
+    if(cur!=null&&!gaps.includes(cur)) S.ladder.gapFilter=null;
+    sel.value=S.ladder.gapFilter==null?'':String(S.ladder.gapFilter);
+  }
+  const out=document.getElementById('ld-out');
+  if(out&&on){
+    const L=ladderData(S.G);
+    const cen=[...L.census.entries()].sort((a,b)=>a[0]-b[0])
+      .map(([g,n])=>`<span class="k">${g}</span>&times;${n}`).join(' &nbsp; ');
+    const m=L.maxRung;
+    out.innerHTML=
+      `<div class="note" style="margin:0"><b>${L.lit.length}</b> lit strips (primes) up to g = ${L.top} &nbsp;·&nbsp; `+
+      `<b>${L.rungs.length}</b> bands<br>gap census &nbsp; ${cen}<br>`+
+      (m?`widest band: gap <b>${m.gap}</b> between g = ${m.a} and ${m.b} (${m.dark} dark strips)`:'')+
+      `</div>`;
+  }
+}
 function paintGrid(ctx,px,G,g){
   const E=2*(G+1);
   ctx.save();
@@ -3991,7 +4635,11 @@ function paintGrid(ctx,px,G,g){
   const cellSz=Math.max(1,cell-(cell>=4?Math.min(1.4,cell*0.13):0));
   const sz=Math.max(1,cellSz*Math.min(1,S.stripThick));
   const szOff=(cellSz-sz)/2;   // centres a shrunk strip square inside its cell
-  if(S.multi){
+  const ladderSolo=S.ladder.on&&S.ladder.solo;
+  if(ladderSolo){
+    // deliberately nothing: the ladder wants the bare coprimality field
+    // under it, not thirty a/b/c/d strips crossing every rung
+  } else if(S.multi){
     ctx.globalCompositeOperation=blendOp();
     for(const [r,m,rgb0,baseA] of multiPoints(G)){
       if(!sectorKeeps(r,m)) continue;
@@ -4002,7 +4650,7 @@ function paintGrid(ctx,px,G,g){
       ctx.fillRect((r-1)*cell+szOff,(m-1)*cell+szOff,sz,sz);
     }
     ctx.globalCompositeOperation='source-over';
-  } else if(gapOn){
+  } else if(gapOn&&!ladderSolo){
     const s=E-g;
     for(const [r,m,br] of stripPoints(G,g)){
       if(!sectorKeeps(r,m)) continue;
@@ -4094,6 +4742,7 @@ function paintGrid(ctx,px,G,g){
   }
   drawSectorLabels(ctx,liftProj('grid',px,G),G,px);
   drawLiftDynamics(ctx,liftProj('grid',px,G),G,px);
+  if(S.ladder.on) drawGapLadder(ctx,px,G);
   drawFocus(ctx,px,G,g,'grid');
   ctx.restore();
 }
@@ -4376,6 +5025,7 @@ function cayleyXY(r,m,G,px){
 }
 function paintPolar(ctx,px,G,g,view){
   const proj = view==='ring' ? ringXY : cayleyXY;
+  const ladderSolo=S.ladder.on&&S.ladder.solo;
   ctx.save();
   ctx.fillStyle='#04040d'; ctx.fillRect(0,0,px,px);
   const cx=px/2, cy=px/2, Rmax=px*0.46;
@@ -4503,6 +5153,7 @@ function paintPolar(ctx,px,G,g,view){
   ctx.fillStyle='rgba(106,101,96,.9)'; ctx.textAlign='left'; ctx.textBaseline='top';
   ctx.fillText(view==='ring'?'Ring: M=ring radius, '+THETA_CAPTION[S.thetaMode]
                             :CMAP_CAPTION(),px*0.02,px*0.02);
+  if(S.ladder.on) drawGapLadder(ctx,px,G);
   drawFocus(ctx,px,G,g,view);
   ctx.restore();
 }
@@ -5530,6 +6181,9 @@ function setG(v){
   let G=Math.max(1,Math.min(4096,Math.round(+v||121)));
   S.G=G;
   invalidateSectorCensus();   // the census is an O(G²) count keyed on G
+  if(S.ladder.on&&typeof syncLadderUI==='function') syncLadderUI();  // ladder tops out at G+1
+  if(typeof drawFuZeros==='function'&&document.getElementById('fupanel-body')&&
+     document.getElementById('fupanel-body').classList.contains('open')) drawFuZeros();
   if(typeof syncColNote==='function') setTimeout(syncColNote,0);  // after the redraw refills DEPTH_STAT
   ensureSPF(2*(G+1)+4+2*Math.max(S.gapN,S.blockN));
   document.getElementById('sl-G').value=G;
@@ -7016,6 +7670,14 @@ let LENS_REDRAW=null;
     // on-plate legend already covers it.
     drawSectorLabels(lctx,liftProj('grid',px,G),G,px);
     drawLiftDynamics(lctx,liftProj('grid',px,G),G,px,true);
+    // The lens re-renders Grid from the lattice rather than blitting it, so
+    // anything drawn on the plate has to be drawn here too or it vanishes
+    // the moment the lens opens. k is passed as the magnification: strip
+    // weights scale with the plate, but the gap numbers are sized in screen
+    // pixels, so the lens labels bands that are too thin to label at 1×.
+    // Ring and Cayley need no equivalent — their lens path is a blit of a
+    // canvas the ladder is already on.
+    if(S.ladder.on) drawGapLadder(lctx,px,G,k);
     if(S.show.diag){
       lctx.strokeStyle='rgba(255,255,255,.16)'; lctx.lineWidth=Math.max(1/k,px/1600);
       lctx.beginPath(); lctx.moveTo(0,0); lctx.lineTo(px,px); lctx.stroke();
@@ -7261,26 +7923,57 @@ function drawMultiHeader(ctx,px,top,M){
     ['shown',`${batch.length-batch.filter(x=>S.hidden.has(x.g)).length}`,'of '+S.items.length+' items','#3dc8b8'],
     ['batch',`${S.page+1} / ${pages}`,full?'full set — nothing hidden':'PARTIAL — see legend below','#e0a83d']
   ];
-  const bw=(px-2*M-(items.length-1)*px*0.008)/items.length, bh=Math.round(px*0.062);
-  items.forEach(([lab,val,sub,col],i)=>{
-    const bx=M+i*(bw+px*0.008);
-    ctx.fillStyle='rgba(255,255,255,.03)';
-    ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.fill();
-    ctx.strokeStyle=col+'88'; ctx.lineWidth=Math.max(1,px/2400);
-    ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.stroke();
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    let fs=Math.round(bh*0.34);
-    ctx.font=`600 ${fs}px "JetBrains Mono",monospace`;
-    while(fs>7&&ctx.measureText(val).width>bw*0.9){ fs-=1; ctx.font=`600 ${fs}px "JetBrains Mono",monospace`; }
-    ctx.fillStyle=col;
-    ctx.fillText(val,bx+bw/2,top+bh*0.36,bw*0.9);
-    ctx.font=`${Math.round(bh*0.17)}px "JetBrains Mono",monospace`;
-    ctx.fillStyle='rgba(106,101,96,.9)';
-    ctx.fillText(`${lab} · ${sub}`,bx+bw/2,top+bh*0.74,bw*0.94);
+  // Shared box-card renderer — used for the E/r(E)/shown/batch row above and
+  // reused below for the a/b/c/d strip-count row, so both rows share one look.
+  const drawBoxRow=(rowItems,rowTop)=>{
+    const bw=(px-2*M-(rowItems.length-1)*px*0.008)/rowItems.length, bh=Math.round(px*0.062);
+    rowItems.forEach(([lab,val,sub,col],i)=>{
+      const bx=M+i*(bw+px*0.008);
+      ctx.fillStyle='rgba(255,255,255,.03)';
+      ctx.beginPath(); ctx.roundRect(bx,rowTop,bw,bh,px*0.003); ctx.fill();
+      ctx.strokeStyle=col+'88'; ctx.lineWidth=Math.max(1,px/2400);
+      ctx.beginPath(); ctx.roundRect(bx,rowTop,bw,bh,px*0.003); ctx.stroke();
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      let fs=Math.round(bh*0.34);
+      ctx.font=`600 ${fs}px "JetBrains Mono",monospace`;
+      while(fs>7&&ctx.measureText(val).width>bw*0.9){ fs-=1; ctx.font=`600 ${fs}px "JetBrains Mono",monospace`; }
+      ctx.fillStyle=col;
+      ctx.fillText(val,bx+bw/2,rowTop+bh*0.36,bw*0.9);
+      ctx.font=`${Math.round(bh*0.17)}px "JetBrains Mono",monospace`;
+      ctx.fillStyle='rgba(106,101,96,.9)';
+      ctx.fillText(`${lab} · ${sub}`,bx+bw/2,rowTop+bh*0.74,bw*0.94);
+    });
+    return bh;
+  };
+  top+=drawBoxRow(items,top)+Math.round(px*0.020);
+
+  // ── a/b/c/d strip counts, aggregated across the shown batch ──
+  // Each item in the batch is its own g,s pair with its own a(=b)/c/d strip;
+  // this sums the coprime/total counts over every pair actually drawn (not
+  // collapsed), so the export carries the same totals the per-item legend
+  // below only shows one line at a time.
+  const shownItems=batch.filter(x=>!S.hidden.has(x.g));
+  let aSum=0,aTot=0,cSum=0,cTot=0,dSum=0,dTot=0,cFullN=0,dFullN=0;
+  shownItems.forEach(it=>{
+    const st=stripsAt(S.G,it.g);
+    aSum+=st.aCop; aTot+=st.aTot;
+    cSum+=st.cCop; cTot+=st.cTot;
+    dSum+=st.dCop; dTot+=st.dTot;
+    if(st.cFull) cFullN++;
+    if(st.dFull) dFullN++;
   });
-  top+=bh+Math.round(px*0.020);
+  const abcdItems=[
+    ['a (=b)',`${aSum}/${aTot}`,'difference pairs, summed','#3dc8b8'],
+    ['strip c',`${cSum}/${cTot}`,`${cFullN}/${shownItems.length} fully lit`,'#c8a84a'],
+    ['strip d',`${dSum}/${dTot}`,`${dFullN}/${shownItems.length} fully lit`,'#e05060'],
+    ['pairs summed',`${shownItems.length}`,'a/b/c/d totals above','#7ec87a']
+  ];
+  top+=drawBoxRow(abcdItems,top)+Math.round(px*0.020);
+
   // per-item legend strip — the actual g+s pairs baked into this image, so
-  // a partial batch never looks like it depicts the whole overlay.
+  // a partial batch never looks like it depicts the whole overlay. Each
+  // line now also carries that pair's own c/d strip counts, since the box
+  // row above is the total and this is the per-pair breakdown behind it.
   const fs2=Math.max(9,Math.round(px*0.0105));
   ctx.font=`${fs2}px "JetBrains Mono",monospace`;
   ctx.textBaseline='middle';
@@ -7294,8 +7987,10 @@ function drawMultiHeader(ctx,px,top,M){
     // it must not be listed here as though it were — it is kept in the list but
     // struck through, which is more honest than dropping it silently
     const off=S.hidden.has(it.g);
+    const st=stripsAt(S.G,it.g);
     const label=(it.kind==='pair'?`${it.g} + ${it.s}`:
       `${it.g} + ${it.s} · ${it.kind==='gOnly'?'g only':it.kind==='sOnly'?'s only':'neither'}`)
+      +`  a${st.aCop}/${st.aTot} c${st.cCop}/${st.cTot} d${st.dCop}/${st.dTot}`
       +(off?' · collapsed':'');
     const w=sw+gapX+ctx.measureText(label).width+fs2*1.1;
     if(lx+w>px-M){ lx=M; ly+=lineH; }
@@ -7344,6 +8039,116 @@ function dynamicsParts(){
 function dynamicsSummary(){
   const parts=dynamicsParts();
   return parts.length?' · '+parts.join(' · '):'';
+}
+// Shared footer line for every PNG export: the left-aligned a/b/c/d key
+// (plus dynamicsSummary() when overlays are on) alongside the right-aligned
+// wessengetachew.github.io credit, on the same baseline. With multi-pair
+// overlay, lift dynamics or a sector summary appended, that left text can
+// run long enough to collide with the URL — this measures the URL first,
+// reserves its width on the first line only, and wraps the rest of the
+// left text into subsequent full-width lines rather than letting the two
+// overlap into unreadable double-printed text. Returns the y just below
+// the last line drawn, in case a caller wants to continue past it.
+function drawFooterWithUrl(ctx,leftText,px,M,y,lineH){
+  const url='wessengetachew.github.io';
+  ctx.textBaseline='top';
+  const urlW=ctx.measureText(url).width;
+  const gap=px*0.014;
+  const firstMax=Math.max(px*0.2,px-2*M-urlW-gap);
+  const words=leftText.split(' ');
+  let line='', ly=y, first=true;
+  ctx.textAlign='left';
+  for(let n=0;n<words.length;n++){
+    const test=line+words[n]+' ';
+    const maxW=first?firstMax:(px-2*M);
+    if(ctx.measureText(test).width>maxW && n>0){
+      ctx.fillText(line,M,ly);
+      line=words[n]+' '; ly+=lineH; first=false;
+    } else line=test;
+  }
+  ctx.fillText(line,M,ly);
+  ctx.textAlign='right';
+  ctx.fillText(url,px-M,y);
+  return ly+lineH;
+}
+// True when the magenta prime-spiral overlay is switched on. The spiral
+// locus r ≡ ±p (mod M) is swept over every ring M ≤ G — it has nothing to
+// do with the single g,s pair the plate otherwise highlights, so an export
+// taken while it's on should describe the spiral itself rather than force
+// in the partition boxes below, which would look like they explain marks
+// they have no connection to.
+function liftSpiralActive(){ return !!(S.lift&&S.lift.on&&S.lift.spiral); }
+// Full, unabbreviated version of dynamicsParts() for an export's own detail
+// line — dynamicsSummary()'s one-liner in the a/b/c/d footer key is kept
+// for a quick skim, but this spells out what each active overlay actually
+// means (formula, colour) so the image explains itself without the live
+// page. excludeLift drops the lift-dynamics clause when drawSpiralStatBoxes
+// has already given it its own boxes above the plate.
+function dynamicsDetailLine(excludeLift){
+  const L=S.lift, parts=[];
+  if(S.blockN>0) parts.push(`block n=${S.blockN}${S.cnFilter==='block'?' (only block-full strips shown)':''} — every strip point must also clear gcd(r, mod+j)=1 for j=0…n`);
+  if(S.liftOn&&S.blockN>0) parts.push('lift·saturation — cells are coloured by which prime p ≤ n+1 excluded them');
+  if(!excludeLift&&L.on){
+    const bits=[];
+    if(L.spiral) bits.push(`magenta spiral r ≡ ±${liftSpiralP(S.G)} (mod M)`+(L.mirror?' with cyan mirror σ = M − r':''));
+    if(L.npath) bits.push(`chartreuse ±n path r = (M ± ${L.pathN})/2`);
+    if(L.arcs) bits.push('azure/orange lift arcs r ↦ r mod (M+1)');
+    if(bits.length) parts.push(bits.join(' · '));
+  }
+  if(S.sectorOn) parts.push(`sector ${S.sectorPick>0?('S_'+S.sectorPick):'S_s (all)'} — Farey interval (1/(s+1), 1/s] partition of the coprime pairs`);
+  return parts;
+}
+// Generic word-wrapping fillText, shared by doExport / doExportCombined for
+// the dynamics detail line (the breakdown-page exporter further down keeps
+// its own copy, scoped to its own font/colour setup).
+function wrapTextLine(ctx,text,x,y,maxWidth,lineHeight){
+  const words=text.split(' ');
+  let line='', ly=y;
+  for(let n=0;n<words.length;n++){
+    const test=line+words[n]+' ';
+    if(ctx.measureText(test).width>maxWidth && n>0){ ctx.fillText(line,x,ly); line=words[n]+' '; ly+=lineHeight; }
+    else line=test;
+  }
+  ctx.fillText(line,x,ly);
+  return ly+lineHeight;
+}
+// Companion to drawGapStatBoxes for when the prime-spiral lift overlay is
+// what the plate is actually about (see liftSpiralActive). Describes the
+// magenta spiral locus, its cyan mirror, and the chartreuse ±n path — the
+// same marks the on-screen legend uses — with their formulas spelled out.
+// View-agnostic: the overlay draws identically on Grid, Ring and Cayley.
+function drawSpiralStatBoxes(ctx,px,top,M){
+  const L=S.lift, G=S.G, p=liftSpiralP(G);
+  ctx.font=`${Math.round(px*0.0155)}px "JetBrains Mono",monospace`;
+  ctx.fillStyle='#ff2d95'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(`lift dynamics · prime spiral p = ${p} — independent of the g,s pair below`,M,top);
+  top+=Math.round(px*0.034);
+  const items=[
+    ['spiral',`${L.spiralDir==='up'?'▲':'▼'}p = ${p}`,`${isPrime(p)?'prime':'p'} · r ≡ ±p (mod M)`,'#ff2d95']
+  ];
+  if(L.mirror) items.push(['mirror','σ = M − r','reflection of the spiral point','#00e5ff']);
+  if(L.npath) items.push(['±n path',`n = ${L.pathN}`,'r = (M ± n)/2','#b8ff3d']);
+  if(L.arcs) items.push(['lift arcs','r ↦ r mod (M+1)','azure = survives · orange = dies','#4d9fff']);
+  if(L.syncCn) items.push(['C(n) lock',`n = ${S.blockN}`,'p skips saturated primes','#e0a83d']);
+  const bw=(px-2*M-(items.length-1)*px*0.008)/items.length, bh=Math.round(px*0.062);
+  items.forEach(([lab,val,sub,col],i)=>{
+    const bx=M+i*(bw+px*0.008);
+    ctx.fillStyle='rgba(255,255,255,.03)';
+    ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.fill();
+    ctx.strokeStyle=col+'88'; ctx.lineWidth=Math.max(1,px/2400);
+    ctx.beginPath(); ctx.roundRect(bx,top,bw,bh,px*0.003); ctx.stroke();
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    let fs=Math.round(bh*0.36);
+    ctx.font=`600 ${fs}px "JetBrains Mono",monospace`;
+    while(fs>7&&ctx.measureText(val).width>bw*0.9){ fs-=1; ctx.font=`600 ${fs}px "JetBrains Mono",monospace`; }
+    ctx.fillStyle=col;
+    ctx.fillText(val,bx+bw/2,top+bh*0.36,bw*0.9);
+    ctx.font=`${Math.round(bh*0.19)}px "JetBrains Mono",monospace`;
+    ctx.fillStyle='rgba(106,101,96,.9)';
+    ctx.fillText(`${lab} · ${sub}`,bx+bw/2,top+bh*0.72,bw*0.94);
+  });
+  top+=bh+Math.round(px*0.018);
+  return top;
 }
 // The single-gap partition readout: "E = g + s · strip c · strip d" line plus
 // the six stat boxes (g, s, strip c, strip d, a=b, verdict). Shared by the
@@ -7400,7 +8205,7 @@ function doExportCombined(px,views){
     const M=Math.round(px*0.042);
     const gap=Math.round(px*0.022);
     const labelH=bare?0:Math.round(px*0.028);
-    const footerH=bare?0:Math.round(px*0.034);
+    const footerH=bare?0:Math.round(px*0.052);
     const n=views.length;
     const contentW=px-2*M;
     const side=Math.floor((contentW-gap)/2);
@@ -7429,6 +8234,10 @@ function doExportCombined(px,views){
       if(S.multi){
         const r=drawMultiHeader(ctx,px,top,M);
         top=r.top;
+      } else if(liftSpiralActive()){
+        // The spiral locus is independent of g,s — describe it instead of
+        // forcing in a partition readout that has nothing to do with it.
+        top=drawSpiralStatBoxes(ctx,px,top,M);
       } else {
         // Same partition readout the single-view export shows — otherwise a
         // combined Grid+Ring+Cayley plate only carries G/E/g and the viewer
@@ -7493,16 +8302,16 @@ function doExportCombined(px,views){
     if(!bare){
       const fy=canvasH-footerH+Math.round(px*0.008);
       ctx.font=`${Math.round(px*0.0105)}px "JetBrains Mono",monospace`;
-      ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle='#6a6560';
-      ctx.fillText(`a M−r=g  ·  b r−M=g  ·  c r+M=g  ·  d r+M=E−g   ·   anti-diagonal g+s=E   ·   mode ${S.col}   ·   labels ${S.lbl}   ·   θ ${S.thetaMode}${dynamicsSummary()}`,M,fy);
-      ctx.textAlign='right';
-      ctx.fillText('wessengetachew.github.io',px-M,fy);
+      ctx.fillStyle='#6a6560';
+      drawFooterWithUrl(ctx,`a M−r=g  ·  b r−M=g  ·  c r+M=g  ·  d r+M=E−g   ·   anti-diagonal g+s=E   ·   mode ${S.col}   ·   labels ${S.lbl}   ·   θ ${S.thetaMode}${dynamicsSummary()}`,px,M,fy,Math.round(px*0.016));
     }
 
     const vtag=views.join('+');
     const fname=S.multi
       ? `goldbach-multi-G${S.G}-${S.multiMode}-combined-${vtag}-${px}.png`
-      : `goldbach-diagonal-G${S.G}-g${S.g}-combined-${vtag}-${px}.png`;
+      : liftSpiralActive()
+        ? `goldbach-spiral-G${S.G}-p${liftSpiralP(S.G)}-combined-${vtag}-${px}.png`
+        : `goldbach-diagonal-G${S.G}-g${S.g}-combined-${vtag}-${px}.png`;
     const a=document.createElement('a');
     a.download=fname;
     a.href=c.toDataURL('image/png');
@@ -7582,12 +8391,30 @@ function doExport(px,viewOverride){
         const r=drawMultiHeader(ctx,px,top,M);
         top=r.top;
         fname=`goldbach-multi-G${S.G}-${S.multiMode}-batch${S.page+1}of${r.pages}${vtag}-${px}.png`;
+      } else if(liftSpiralActive()){
+        // ── the spiral overlay is what's actually on screen — the g,s pair
+        // it happens to be sitting on top of would be a misleading caption ──
+        top=drawSpiralStatBoxes(ctx,px,top,M);
+        fname=`goldbach-spiral-G${S.G}-p${liftSpiralP(S.G)}${vtag}-${px}.png`;
       } else {
         top=drawGapStatBoxes(ctx,px,top,M);
         fname=`goldbach-diagonal-G${S.G}-g${S.g}${vtag}-${px}.png`;
       }
+      // Full detail on whatever cross-page dynamics (block-n, lift·saturation,
+      // sectors, and lift dynamics when the spiral boxes above didn't already
+      // cover it) are switched on — spelled out rather than left to the terse
+      // a/b/c/d footer key, so the image explains itself.
+      if(S.view!=='circle'){
+        const dd=dynamicsDetailLine(liftSpiralActive());
+        if(dd.length){
+          ctx.font=`${Math.round(px*0.0115)}px "JetBrains Mono",monospace`;
+          ctx.fillStyle='#a8a29a'; ctx.textAlign='left'; ctx.textBaseline='top';
+          top=wrapTextLine(ctx,'Active dynamics: '+dd.join('  ·  '),M,top,px-2*M,Math.round(px*0.016));
+          top+=Math.round(px*0.01);
+        }
+      }
     } else {
-      fname=S.multi?`goldbach-multi-G${S.G}-${S.multiMode}${vtag}-${px}.png`:`goldbach-diagonal-G${S.G}-g${S.g}${vtag}-${px}.png`;
+      fname=S.multi?`goldbach-multi-G${S.G}-${S.multiMode}${vtag}-${px}.png`:liftSpiralActive()?`goldbach-spiral-G${S.G}-p${liftSpiralP(S.G)}${vtag}-${px}.png`:`goldbach-diagonal-G${S.G}-g${S.g}${vtag}-${px}.png`;
     }
     const side=Math.min(px-2*M, px-top-(bare?M:Math.round(px*0.052)));
     const ox=Math.round((px-side)/2);
@@ -7599,13 +8426,11 @@ function doExport(px,viewOverride){
     ctx.strokeRect(ox+.5,top+.5,side-1,side-1);
     if(!bare){
       ctx.font=`${Math.round(px*0.0105)}px "JetBrains Mono",monospace`;
-      ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle='#6a6560';
+      ctx.fillStyle='#6a6560';
       const footerTxt=S.view==='circle'
         ? `major arcs at p/q, q≤6  ·  gold dashed = arc location  ·  teal = log₁₀(1+|S(α)|²)   ·   view CIRCLE`
         : `a M−r=g  ·  b r−M=g  ·  c r+M=g  ·  d r+M=E−g   ·   anti-diagonal g+s=E   ·   mode ${S.col}   ·   labels ${S.lbl}   ·   θ ${S.thetaMode}   ·   view ${S.view}${dynamicsSummary()}`;
-      ctx.fillText(footerTxt,M,px-Math.round(px*0.030));
-      ctx.textAlign='right';
-      ctx.fillText('wessengetachew.github.io',px-M,px-Math.round(px*0.030));
+      drawFooterWithUrl(ctx,footerTxt,px,M,px-Math.round(px*0.046),Math.round(px*0.016));
     }
     const a=document.createElement('a');
     a.download=fname;
@@ -7789,6 +8614,7 @@ function doReportPDF(){
       const rows=[
         ['view',S.view,'active projection'],
         ['plate rotation',ROT_LABEL[rotQ()],'global quarter turns, clockwise'],
+        ['gap ladder',S.ladder.on?`on · ${ladderData(S.G).lit.length} lit strips to g=${S.G+1}`:'off','forward-gap diagonals'],
         ['colour mode',S.col,'rendering'],
         ['label mode',S.lbl,'per-cell label'],
         ['label size',`${S.lblScale.toFixed(2)}× · grade ${Math.round(S.lblAdapt*100)}%`,'type size · radial grading'],
@@ -7922,11 +8748,17 @@ function doReportPDF(){
     else if(e.key===']'){ S.view==='corridor'?corStepTriple(1):stepPair(1); }
     else if(e.key==='['){ S.view==='corridor'?corStepTriple(-1):stepPair(-1); }
     else if(e.key==='r'||e.key==='R'){ if(S.view!=='corridor') rotateView(e.shiftKey?-1:1); }
+    else if(e.key==='l'||e.key==='L') toggleLadder();
     else if(e.key==='f') toggleFS();
     else if(e.key==='Escape'&&S.focus) focusSym(S.focus);
   });
   syncPolarControls();
   syncRotUI();
+  syncLadderUI();
+  window.addEventListener('resize',()=>{
+    const b=document.getElementById('fupanel-body');
+    if(b&&b.classList.contains('open')) renderFuPanel();
+  });
   // The C(n) engine and lift-dynamics panels are state-driven like the rest,
   // so their chips/sliders have to be synced from S at boot rather than
   // relying on the markup's initial classes.
@@ -8038,7 +8870,7 @@ function doReportPDF(){
     scene.add(new THREE.AmbientLight(0xffffff,1));
 
     const fieldGroup=new THREE.Group(), strandGroup=new THREE.Group(), axesGroup=new THREE.Group();
-    const highlightGroup=new THREE.Group();
+    const highlightGroup=new THREE.Group(), planeGroup=new THREE.Group();
     // ── THE CENTRING FIX ─────────────────────────────────────────────
     // Everything is built in lattice coordinates, which run 0…WORLD on each
     // axis — so the geometric centre of the box is (W/2, W/2, W/2), not the
@@ -8052,6 +8884,7 @@ function doReportPDF(){
     // lattice origin — it just isn't the point the camera is nailed to.
     const content=new THREE.Group();
     content.add(fieldGroup); content.add(strandGroup); content.add(axesGroup); content.add(highlightGroup);
+    content.add(planeGroup);
     const world=new THREE.Group();
     world.add(content);
     scene.add(world);
@@ -8197,7 +9030,7 @@ function doReportPDF(){
       return selIndex;
     }
 
-    const CSS={gridN:16, showField:true, N:199, showStrands:true, spin:false};
+    const CSS={gridN:16, showField:true, N:199, showStrands:true, spin:false, showPlanes:false};
     let lastTripleCount=0, lastVisibleFrac=0, lastTotal=0, lastVisible=0;
 
     function updateStatsFooter(){
@@ -8214,6 +9047,80 @@ function doReportPDF(){
       // let the page's readouts and table follow the model
       if(typeof window.corridorSyncAll==='function') window.corridorSyncAll();
     }
+    /* ── the ladder, one dimension up ─────────────────────────────────
+       The strip theorem survives the extra coordinate unchanged. On the
+       plane x + y + z = g any common divisor d of the three coordinates
+       divides their sum, so d | g; and d ≤ min(x,y,z) < g. A prime g is
+       therefore left with d = 1 at every interior point. A composite
+       g = a·b fails at (a, a, g−2a), whose gcd is gcd(a, g) ≥ a > 1 — a
+       point that is always in range, since the smallest factor a is at
+       most √g. So the fully-coprime planes are exactly the primes, the
+       same statement the lit strips make on the flat plate.
+
+       Each plane is drawn as its intersection with the box, which is the
+       polygon cut by the twelve edges — a triangle near the corner,
+       widening to a hexagon across the middle and back to a triangle. The
+       SPACING between consecutive outlines is the prime gap, so the same
+       thing the bands say in 2D is said here by the gaps between planes. */
+    function planeBoxPolygon(g,N){
+      const V=[[0,0,0],[N,0,0],[N,N,0],[0,N,0],[0,0,N],[N,0,N],[N,N,N],[0,N,N]];
+      const E=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+      const pts=[];
+      for(const [i,j] of E){
+        const A=V[i], B=V[j];
+        const sa=A[0]+A[1]+A[2]-g, sb=B[0]+B[1]+B[2]-g;
+        if(sa===sb) continue;
+        const t=sa/(sa-sb);
+        if(t<0||t>1) continue;
+        const q=[A[0]+t*(B[0]-A[0]),A[1]+t*(B[1]-A[1]),A[2]+t*(B[2]-A[2])];
+        if(!pts.some(o=>Math.abs(o[0]-q[0])<1e-9&&Math.abs(o[1]-q[1])<1e-9&&Math.abs(o[2]-q[2])<1e-9)) pts.push(q);
+      }
+      if(pts.length<3) return null;
+      // order them around the centroid, in the plane's own basis
+      const c=[0,0,0];
+      pts.forEach(q=>{c[0]+=q[0];c[1]+=q[1];c[2]+=q[2];});
+      c[0]/=pts.length; c[1]/=pts.length; c[2]/=pts.length;
+      const u=[1/Math.SQRT2,-1/Math.SQRT2,0];
+      const n=[1/Math.sqrt(3),1/Math.sqrt(3),1/Math.sqrt(3)];
+      const v=[n[1]*u[2]-n[2]*u[1], n[2]*u[0]-n[0]*u[2], n[0]*u[1]-n[1]*u[0]];
+      pts.sort((a,b)=>{
+        const da=[a[0]-c[0],a[1]-c[1],a[2]-c[2]], db=[b[0]-c[0],b[1]-c[1],b[2]-c[2]];
+        const aa=Math.atan2(da[0]*v[0]+da[1]*v[1]+da[2]*v[2], da[0]*u[0]+da[1]*u[1]+da[2]*u[2]);
+        const ab=Math.atan2(db[0]*v[0]+db[1]*v[1]+db[2]*v[2], db[0]*u[0]+db[1]*u[1]+db[2]*u[2]);
+        return aa-ab;
+      });
+      return pts;
+    }
+    function buildPlanes(N){
+      planeGroup.clear();
+      if(!CSS.showPlanes) return 0;
+      const top=3*N;
+      if(typeof ladderData!=='function') return 0;
+      const L=ladderData(top-1);                  // lit strips up to g = 3N
+      const gapOf=new Map(); L.rungs.forEach(x=>gapOf.set(x.a,x.gap));
+      const scale=WORLD/N;
+      let drawn=0;
+      for(const g of L.lit){
+        if(g<3||g>top) continue;                  // below 3 the plane misses the box interior
+        const poly=planeBoxPolygon(g,N);
+        if(!poly) continue;
+        const gp=gapOf.get(g);
+        const q=(typeof gapRGB==='function')?gapRGB(gp||0):[236,232,222];
+        const col=(q[0]<<16)|(q[1]<<8)|q[2];
+        const arr=[];
+        for(let i=0;i<poly.length;i++){
+          const a=poly[i], b=poly[(i+1)%poly.length];
+          arr.push(a[0]*scale,a[1]*scale,a[2]*scale, b[0]*scale,b[1]*scale,b[2]*scale);
+        }
+        const geo=new THREE.BufferGeometry();
+        geo.setAttribute('position',new THREE.Float32BufferAttribute(arr,3));
+        planeGroup.add(new THREE.LineSegments(geo,
+          new THREE.LineBasicMaterial({color:col,transparent:true,opacity:gp?0.72:0.35})));
+        drawn++;
+      }
+      return drawn;
+    }
+    function rebuildPlanes(){ buildPlanes(CSS.gridN); }
     function rebuildField(){
       const {total,visible}=buildField(CSS.gridN);
       fieldGroup.visible=CSS.showField;
@@ -8315,7 +9222,7 @@ function doReportPDF(){
     document.getElementById('cor-grid-range').addEventListener('input',e=>{
       CSS.gridN=+e.target.value;
       const v=document.getElementById('cor-v-extent'); if(v) v.textContent=CSS.gridN;
-      rebuildField();
+      rebuildField(); rebuildPlanes();
     });
     const tField=document.getElementById('cor-t-field');
     tField.onclick=()=>{
@@ -8346,6 +9253,14 @@ function doReportPDF(){
       CSS.showStrands=!CSS.showStrands; strandGroup.visible=CSS.showStrands;
       tStrands.textContent='Strands: '+(CSS.showStrands?'On':'Off');
       tStrands.classList.toggle('on',CSS.showStrands);
+    };
+    const tPlanes=document.getElementById('cor-t-planes');
+    if(tPlanes) tPlanes.onclick=()=>{
+      CSS.showPlanes=!CSS.showPlanes;
+      const n=CSS.showPlanes?buildPlanes(CSS.gridN):(planeGroup.clear(),0);
+      planeGroup.visible=CSS.showPlanes;
+      tPlanes.textContent=CSS.showPlanes?`Prime planes: ${n}`:'Prime planes: Off';
+      tPlanes.classList.toggle('on',CSS.showPlanes);
     };
     const tSpin=document.getElementById('cor-t-spin');
     tSpin.onclick=()=>{
