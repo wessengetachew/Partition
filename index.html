@@ -235,6 +235,15 @@ h1.hero-title{font-family:var(--disp);font-size:clamp(1.4rem,4vw,2.2rem);letter-
   border:1px solid var(--edge);border-radius:2px;
 }
 #cv{display:block;image-rendering:pixelated;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;touch-action:none}
+#cv2{display:none;image-rendering:pixelated;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;touch-action:none;pointer-events:none}
+/* Split view: two square panes side by side instead of one. #plate widens
+   from a 1:1 box to a 2:1 one so each pane still gets a full square — the
+   fitCanvas split branch does the actual pixel math, this just gives it
+   the room. The second canvas is display:none until .split is added, and
+   pointer-events:none always — it's a live mirror of the primary canvas's
+   own state, not a second independently-clickable plate. */
+#plate.split{aspect-ratio:2/1;max-width:min(148vh,1200px);gap:6px}
+#plate.split #cv2{display:block}
 
 /* ── corridor (3D ternary-Goldbach / visible-lattice view) ───────── */
 #fig-corridor{
@@ -443,9 +452,16 @@ body.is-fs #hud-out{display:flex;flex:0 0 auto;margin-top:6px}
    corner). Same swatch+tag idiom as the a/b/c/d legend above, just for
    whichever sectors are currently active. */
 #sector-legend{
-  display:flex;gap:6px 14px;flex-wrap:wrap;justify-content:center;
+  display:flex;gap:6px 14px;flex-wrap:wrap;justify-content:center;align-content:flex-start;
   font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;padding:2px 4px 10px;
+  /* Same fix as #legend above: with all sectors shown (sectorPick=0) this
+     strip can list dozens of S_s chips and used to just wrap forever,
+     pushing everything below it down the page. Cap it and scroll inside
+     instead, so turning on "all sectors" never changes the page's length. */
+  max-height:88px;overflow-y:auto;overscroll-behavior:contain;
 }
+#sector-legend::-webkit-scrollbar{width:7px}
+#sector-legend::-webkit-scrollbar-thumb{background:var(--edge2);border-radius:4px}
 #probe{
   position:absolute;pointer-events:none;font-family:var(--mono);font-size:10px;
   background:rgba(4,4,13,.94);border:1px solid var(--edge2);border-radius:3px;
@@ -559,6 +575,7 @@ tbody tr.picked td:first-child{box-shadow:inset 3px 0 0 var(--pickc,var(--gold))
 .cfull{color:var(--gold)}
 .dfull{color:var(--coral)}
 .gapn{color:var(--violet)}   /* gap-2n prime constellation badge */
+.gapn-blk{color:var(--gold);font-weight:600}   /* gap-2n partner whose own strip also survives block-n */
 #detail{padding:11px 13px;font-family:var(--mono);font-size:10px;line-height:1.75;color:var(--cream2)}
 #detail h5{font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);font-weight:500;margin:12px 0 6px}
 #detail h5:first-child{margin-top:0}
@@ -640,16 +657,17 @@ body.is-fs{overflow:visible}
    #content is a flex column so sections can be reordered here without
    moving them in the DOM: hero is hidden outright (nothing belongs above
    the locked canvas), and Reading the lattice drops from its normal spot
-   above the figure to right after it, becoming the first thing you reach
-   once you scroll past the lock — a dropdown, not a wall of text. */
+   above the figure to right after Instrument and the readout bar — the
+   first thing you reach once you scroll past the lock is the instrument
+   panel, not a wall of prose. */
 body.is-fs #hero{display:none}
 body.is-fs #figure-sect{order:1;position:sticky;top:calc(var(--wg-navh,0px) + var(--nb2-h,50px));z-index:400;
   background:var(--bg);margin:0;border-radius:0;padding-top:10px;
 }
 body.is-fs #density-bar{order:3}
-body.is-fs #reading{order:4}
-body.is-fs #multitop{order:8}
-body.is-fs #controls{order:9}
+body.is-fs #controls{order:4}
+body.is-fs #reading{order:5}
+body.is-fs #multitop{order:9}
 body.is-fs #drawer{order:10}
 body.is-fs #claim{order:11}
   body.is-fs #views{order:12}
@@ -665,14 +683,17 @@ body.is-fs #corridor-controls{order:2}
 /* Deep search, Ladder and Constants had the same latent bug: no explicit
    order meant the default 0, which sorts before #figure-sect's order:1 —
    so in full screen they rendered above the locked canvas instead of
-   below it. Give them slots right after Reading, ahead of the much taller
-   Instrument/drawer panels — otherwise they're technically present but
+   below it. Give them slots right after Instrument, ahead of the much taller
+   drawer panel — otherwise they're technically present but
    buried thousands of pixels down, which reads as "not there". All three
-   are collapsed accordions by default, so this costs almost no height. */
-body.is-fs #deepsearch{order:5}
-body.is-fs #ladder{order:6}
-body.is-fs #fupanel{order:7}
+   are collapsed accordions by default, so this costs almost no height.
+   Instrument itself sits right after the readout bar (order:4), matching
+   its normal-flow position right below the stats box. */
+body.is-fs #deepsearch{order:6}
+body.is-fs #ladder{order:7}
+body.is-fs #fupanel{order:8}
 body.is-fs #plate{max-width:min(92vw,58vh)}
+body.is-fs #plate.split{max-width:min(184vw,116vh)}
 body.is-fs .figcap{display:none}
 
 @media (max-width:920px){
@@ -918,6 +939,7 @@ body.is-fs .figcap{display:none}
     <button class="vm-btn active" id="vw-grid" onclick="setView('grid')" title="Square lattice — the original (r,M) grid, one cell per point.">Grid</button>
     <button class="vm-btn" id="vw-ring" onclick="setView('ring')" title="Concentric rings — ring M at radius M/G, point r at angle 2πr/M. Only r&lt;M sits within one turn; r&gt;M wraps past 2π onto the same ring, so nothing is dropped.">Ring</button>
     <button class="vm-btn" id="vw-cayley" onclick="setView('cayley')" title="The same ring points, 1:1, run through a Möbius map. Three are selectable in the Instrument panel: Γ(z)=(z−1)/(z+1) on an annulus, the Blaschke automorphism φₐ on the disk, and K(z)=(z−i)/(z+i) on Ford coordinates. The plate readout gives the measured maximum and what falls outside it.">Cayley</button>
+    <button class="vm-btn" id="vw-split" onclick="toggleSplit()" title="Show a second projection beside this one — Grid, Ring or Cayley, whichever two of the three you pick. Both panes paint from the exact same (r,M) state, so every click, drag, and playing sweep updates both at once.">⧉ Split</button>
     <button class="vm-btn" id="vw-circle" onclick="setView('circle')" title="The Hardy–Littlewood exponential sum S(α) = Σ e(2πiαp) over primes p ≤ E, plotted across α ∈ [0,1). Peaks at rationals p/q (major arcs) are where the circle method predicts Goldbach representations come from. Depends only on E, not on the current g.">Circle</button>
     <button class="vm-btn" id="vw-corridor" onclick="setView('corridor')" title="A 3D view: rays to every visible lattice point (gcd(x,y,z)=1, density 1/ζ(3)) with the ternary-Goldbach triples p+q+r=N highlighted among them. Independent of g; N defaults from the current E.">Corridor</button>
     <span id="rot-grp">
@@ -928,9 +950,20 @@ body.is-fs .figcap{display:none}
     </span>
   </div>
 
+  <!-- second-pane picker for Split view: only Grid/Ring/Cayley are valid
+       partners, and whichever is the current primary view is left out — a
+       pane can't sit beside itself. -->
+  <div id="split-row" style="display:none;gap:6px;align-items:center;padding:6px 12px;border-bottom:1px solid var(--edge);overflow-x:auto;scrollbar-width:none">
+    <span class="lab" style="white-space:nowrap;flex:0 0 auto">second pane</span>
+    <button class="chip" id="sv-grid" onclick="setSplitView('grid')" style="flex:0 0 auto">Grid</button>
+    <button class="chip" id="sv-ring" onclick="setSplitView('ring')" style="flex:0 0 auto">Ring</button>
+    <button class="chip" id="sv-cayley" onclick="setSplitView('cayley')" style="flex:0 0 auto">Cayley</button>
+  </div>
+
   <div id="figure">
     <div id="plate">
       <canvas id="cv"></canvas>
+      <canvas id="cv2"></canvas>
       <div id="hud"></div>
       <div id="probe"></div>
     </div>
@@ -1055,159 +1088,6 @@ body.is-fs .figcap{display:none}
   <div class="db-item"><span class="db-lbl" id="rl-thr">√E threshold</span><span class="db-val" id="rd-thr">—</span></div>
   <div class="db-item"><span class="db-lbl" id="rl-cop">gcd=1 / total</span><span class="db-val teal" id="rd-cop">—</span></div>
   <div class="db-item"><span class="db-lbl" id="rl-zdiff">vs 1/ζ(2)</span><span class="db-val" id="rd-zdiff">—</span></div>
-</div>
-
-<!-- ══════════ DEEP SEARCH — arbitrary E via the a/b/c/d identity ══════════ -->
-<div class="sect" id="deepsearch">
-  <div class="sect-hdr" id="deepsearch-hdr" onclick="toggleGrp('deepsearch')"><span class="rarrow">▸</span>Deep search — arbitrary E</div>
-  <div id="deepsearch-body">
-    <div class="grp" style="border:none;padding:0 0 4px">
-      <div class="row">
-        <span class="lab">E</span>
-        <input type="number" id="ds-E" class="ds-num" min="6" step="2" value="390" style="flex:1">
-        <button class="chip" id="ds-go" onclick="runDeepSearch()" style="flex:0 0 auto">Search</button>
-      </div>
-      <div class="ds-note">
-        A gap g is a Goldbach pair of E iff g and E−g are both prime — the a/b/c/d lines encode that, but never require it. This sieves once up to E and reads primality straight off, independent of the grid's 4096 render cap. E over ~8194 can be searched here but can't be opened on the Grid/Ring/Cayley plate.
-      </div>
-      <div id="ds-status" class="ds-status"></div>
-      <div id="ds-results" style="display:none">
-        <div id="ds-summary" class="ds-summary"></div>
-        <div id="ds-table"></div>
-        <div class="ds-pager">
-          <button class="chip" id="ds-prev" onclick="dsPage(-1)">◂ Prev</button>
-          <span id="ds-pageinfo" class="ds-pageinfo"></span>
-          <button class="chip" id="ds-next" onclick="dsPage(1)">Next ▸</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ GAP LADDER — forward diagonals ══════════ -->
-<div class="sect" id="ladder">
-  <div class="sect-hdr" id="ladder-hdr" onclick="toggleGrp('ladder')"><span class="rarrow">&#9656;</span>Gap ladder &mdash; forward diagonals</div>
-  <div id="ladder-body">
-    <div class="grp" style="border:none;padding:0 0 4px">
-      <div class="row">
-        <span class="lab">Ladder</span>
-        <button class="chip" id="ld-on" onclick="toggleLadder()" style="flex:1">Off</button>
-      </div>
-      <div class="row" id="ld-opt-row" style="display:none;flex-wrap:wrap">
-        <span class="lab">Draw</span>
-        <button class="chip on" id="ld-bands" onclick="ldToggle('bands')" style="flex:1" title="Wash the dark band between consecutive lit strips. Its width IS the gap.">bands</button>
-        <button class="chip on" id="ld-rail" onclick="ldToggle('rail')" style="flex:1" title="The forward connection: a rail down r=M with a rung at every lit strip.">rail</button>
-        <button class="chip on" id="ld-labels" onclick="ldToggle('labels')" style="flex:1" title="Print the gap in each band wide enough to hold it.">gap</button>
-        <button class="chip" id="ld-phi" onclick="ldToggle('phi')" style="flex:1" title="Shade every composite strip by &phi;(g)/(g&minus;1) — how nearly it lit. The strips stop being on/off and become a totient meter.">&phi; shading</button>
-      </div>
-      <div class="row" id="ld-only-row" style="display:none">
-        <span class="lab">Plate</span>
-        <button class="chip" id="ld-solo" onclick="ldToggle('solo')" style="flex:1" title="Hide the a/b/c/d strips and the pair overlay so the ladder stands alone on the bare coprimality field.">ladder only</button>
-      </div>
-      <div class="row" id="ld-gap-row" style="display:none">
-        <span class="lab">Gap = 2n</span>
-        <select id="ld-gap-sel" onchange="setLadderGapFilter(this.value)" style="flex:1;background:var(--bg1);color:var(--cream);border:1px solid var(--edge);font-family:var(--mono);font-size:11px;padding:5px 6px">
-          <option value="">All gaps</option>
-        </select>
-      </div>
-      <div id="ld-out" style="display:none"></div>
-      <div class="note" id="ld-note" style="display:none">
-        A sum strip <b>r + M = g</b> is fully coprime exactly when <b>g is prime</b>: on that line gcd(r,M) divides g and is smaller than g, so a prime leaves nothing but 1s, while a composite g = a&middot;b always puts gcd &ge; a at the point (a, g&minus;a). Every lit diagonal below is therefore a prime, found by looking rather than by dividing.<br><br>
-        Connect each lit strip <b>forward</b> to the next and the dark band between them is the prime gap &mdash; not a number computed and printed, but the literal width of the band, <b>gap = (dark strips between) + 1</b>. Perpendicular spacing is gap/&radic;2 cells, so a long gap is a wide band.<br><br>
-        <b>The one limit.</b> The test only reads true for <b>g &le; G+1</b>. Past that the strip is clipped by the edge of the plate and the visible window can miss every witness &mdash; on a 5&times;5 grid, g = 9 shows only r = 4, 5, both coprime to 9, so 3&sup2; would read as prime. The ladder therefore stops at G+1 and nothing beyond it is drawn or claimed. To go further, raise G.<br><br>
-        <b>&phi; shading</b> turns the remaining strips from off to dim: the lit cells on strip g number exactly &phi;(g), because gcd(r, g&minus;r) = gcd(r, g), so the strip is scanning r = 1&hellip;g&minus;1 against g. A prime is the case &phi;(g) = g&minus;1. g = 9 sits at 0.75, g = 18 at 0.35 &mdash; you can see how composite a number is before being told.
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ CONSTANTS & F(u) ══════════ -->
-<div class="sect" id="fupanel">
-  <div class="sect-hdr" id="fupanel-hdr" onclick="toggleGrp('fupanel');renderFuPanel()"><span class="rarrow">&#9656;</span>Constants &amp; the lift function F(u)</div>
-  <div id="fupanel-body">
-    <div class="grp" style="border:none;padding:0 0 4px">
-      <div class="note" style="margin-top:0">
-        Every value below is computed in the page from the <b>prime zeta function</b> P(s), not read off a stored digit string and not truncated at a prime bound. A partial product or partial sum cut at p &lt; 50,000 and printed to twelve places is wrong from the sixth &mdash; the tail of &sum;1/p&sup2; is far too fat for that &mdash; so these are assembled from P(s) = &sum;<sub>n</sub> &mu;(n)/n &middot; log &zeta;(ns) instead, which carries no truncation at all.
-      </div>
-      <div class="row" style="margin-top:8px">
-        <span class="lab">Settle</span>
-        <input type="range" id="settle-sl" min="0" max="1000" value="380" step="1" oninput="setSettlePos(+this.value)" style="flex:1">
-      </div>
-      <div class="note" id="settle-read" style="margin-top:2px;margin-bottom:6px"></div>
-      <div class="cgrid" id="cgrid"></div>
-
-      <div class="row" style="margin-top:8px">
-        <span class="lab">u</span>
-        <input type="range" id="fu-sl" min="0" max="3.99" step="0.01" value="2" oninput="setFuU(+this.value)" style="flex:1">
-        <input type="number" id="fu-in" min="-20" max="3.99" step="0.01" value="2" style="width:64px" oninput="setFuU(+this.value)">
-      </div>
-      <div class="row" style="margin-top:4px;flex-wrap:wrap">
-        <span class="lab">Jump to</span>
-        <button class="chip" onclick="setFuU(0)" style="flex:1" title="F(0) = ζ(2)">u = 0</button>
-        <button class="chip" onclick="setFuU(1)" style="flex:1" title="F(1) = 1 — the normalisation point">u = 1</button>
-        <button class="chip on" onclick="setFuU(2)" style="flex:1" title="F(2) = C, the lift survival constant">u = 2</button>
-        <button class="chip" onclick="setFuU(3.99)" style="flex:1" title="approaching the first zero at u = 4 = 2²">u → 4</button>
-      </div>
-      <div id="fu-read" class="note" style="margin-top:6px"></div>
-      <canvas id="fu-cv" class="fu-cv" height="150"></canvas>
-      <div class="note" style="margin-top:0">
-        <b>Figure A.</b> F(u) = &prod;<sub>p</sub>(p&sup2;&minus;u)/(p&sup2;&minus;1) on [0, 4]. Strictly decreasing, because d/du log F = &minus;&sum;<sub>p</sub> 1/(p&sup2;&minus;u) is negative wherever every p&sup2; &gt; u. Four landmarks: F(0) = &zeta;(2), F(1) = 1, F(2) = C, F(4) = 0 &mdash; the first zero, contributed by p = 2.
-      </div>
-
-      <canvas id="fz-cv" class="fu-cv" height="112"></canvas>
-      <div class="note" style="margin-top:0">
-        <b>Figure B.</b> The zero set of F, laid on the ladder's own axis. F(u) = 0 exactly at u = p&sup2;, each zero simple, so plotting in <b>&radic;u</b> puts the zeros on the primes &mdash; the same sequence the lit strips pick out on the plate, arrived at analytically instead of geometrically. Ticks are the zeros, bands are the gaps between them in the ladder's colours, and the strip along the bottom is sign F(u) = (&minus;1)<sup>#{q&nbsp;:&nbsp;q&sup2;&nbsp;&lt;&nbsp;u}</sup>, which flips at every zero. So the sign of F alternates once per rung: <b>the ladder is the zero spectrum of F</b>.
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ CONTROLS ══════════ -->
-<!-- ══════════ MULTI-PAIR (below the canvas, above Instrument — multi is the default view) ══════════ -->
-<div class="sect" id="multitop">
-  <div class="sect-hdr" id="multitop-hdr" onclick="toggleGrp('multitop')"><span class="rarrow">▸</span>Multi-pair</div>
-  <div id="multitop-body">
-    <div class="grp" style="border:none;padding:0 0 4px">
-      <div class="row">
-        <span class="lab">Overlay</span>
-        <button class="chip" id="ch-multi" onclick="toggleMulti()" style="flex:1">Off — single gap g</button>
-      </div>
-      <div class="row" id="mp-mode-row" style="display:none">
-        <span class="lab">Show</span>
-        <button class="chip on" id="mm-pairs" onclick="setMultiMode('pairs')" style="flex:1">Goldbach pairs</button>
-        <button class="chip" id="mm-all" onclick="setMultiMode('all')" style="flex:1">all partitions</button>
-        <button class="chip" id="mm-run" onclick="setMultiMode('run')" style="flex:1" title="One run at a time: every partition from one Goldbach pair up to the next one, inclusive. The two ends are the only fully coprime strips in the band.">pair → pair</button>
-        <button class="chip" id="mm-picked" onclick="setMultiMode('picked')" style="flex:1" title="Only the rows ticked in the partition table.">selected rows</button>
-      </div>
-      <div class="row" id="mp-run-row" style="display:none">
-        <button class="chip" style="flex:0 0 auto" onclick="runStep(-1)" title="Previous run">◀ run</button>
-        <span class="val" id="mp-run" style="flex:1;text-align:center">— → —</span>
-        <button class="chip" style="flex:0 0 auto" onclick="runStep(1)" title="Next run">run ▶</button>
-      </div>
-      <div class="note" id="mp-run-note" style="display:none"></div>
-      <div class="row" id="mp-blend-row" style="display:none">
-        <span class="lab">Overlap</span>
-        <button class="chip on" id="bl-add" onclick="setBlend('add')" style="flex:1" title="Additive: overlapping strips sum and brighten. Four or more saturate to white.">add · glow</button>
-        <button class="chip" id="bl-over" onclick="setBlend('over')" style="flex:1" title="Topmost item wins, so a stack keeps one pair's colour instead of washing out.">over · opaque</button>
-      </div>
-      <div class="row" id="mp-batch-row" style="display:none;flex-wrap:wrap">
-        <span class="lab">Batch</span>
-        <button class="chip on" data-bs="1" onclick="setBatchSize(1)">1</button>
-        <button class="chip" data-bs="5" onclick="setBatchSize(5)">5</button>
-        <button class="chip" data-bs="10" onclick="setBatchSize(10)">10</button>
-        <button class="chip" data-bs="25" onclick="setBatchSize(25)">25</button>
-        <button class="chip" data-bs="0" id="bs-all" onclick="setBatchSize(0)">all</button>
-      </div>
-      <div class="row" id="mp-pager-row" style="display:none">
-        <button class="chip" style="flex:0 0 auto" onclick="pageStep(-1)">◀</button>
-        <span class="val" id="mp-pg" style="flex:1;text-align:center">— of —</span>
-        <button class="chip" style="flex:0 0 auto" onclick="pageStep(1)">▶</button>
-      </div>
-      <div class="note" id="mp-note" style="display:none">
-        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, and at <b>Off-gcd</b> (Strips panel) where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.<br><br><b>pair → pair</b> narrows that to a single run: every partition from one Goldbach pair up to the next, endpoints included, drawn as one band with <b>◀ run</b> / <b>run ▶</b> to step to the next. It exists because of what the band looks like — the two ends are the only fully coprime strips in it, since c is complete exactly when g is prime and d exactly when E−g is prime, so the edges are unbroken lines and the interior is punctured. <b>▶ Play Goldbach pairs</b> walks the runs in order while this mode is live.<br><br><b>selected rows</b> draws exactly the partitions you tick in the table below: the <b>Pick</b> chip in the partition-table header reads its own state — <i>Pick on — row click selects</i> or <i>Pick off — row click jumps</i> — and is on by default; and each row click adds or removes that g instead of jumping the gap, with the row carrying the same hue its strips get on the plate. With pick on, <b>clicking a lattice cell (or releasing the magnifier on one) does the same thing for every strip through that point at once</b>: a cell sits on the sum strip r+M = g, on the sum strip r+M = E−g, and — off the main diagonal — on a difference strip |M−r| = g, so a click off the main diagonal brings in <b>two</b> gaps — one sum strip and one difference strip — and the crossing becomes legible as a crossing rather than as one arbitrary line. The two gestures differ in one way worth knowing: a <b>plain click accumulates</b>, which is how you build a comparison out of four separate crossings, while a <b>magnifier release replaces</b> — it clears the selection and leaves only the strips through the point you landed on. That asymmetry is deliberate: you reach for the lens at 20× precisely because the other thirty strips are in the way, so keeping them after the release would defeat the gesture. The lens readout shows <i>only</i> before the gaps it is about to leave standing. There is no modifier key on a phone, so which gesture you used carries the distinction. Because a plain click accumulates two gaps at a time, <b>✕ clear</b> sits in the legend directly under the figure — it empties the selection outright, which is not what <b>⊘ hide all</b> does (that collapses the strips and keeps the list). The same action is on the <b>clear</b> chip in the partition-table header. It is two rather than three because the two sum families partition the lattice between them: r+M = g needs r+M ≤ G+1 and r+M = E−g needs r+M ≥ G+1, so exactly one applies, and on the anti-diagonal r+M = G+1 they coincide. On the main diagonal r = M the difference gap is 0 and drops out, leaving one. That is the way to compare four specific partitions rather than a computed class of them; the whole selection draws in one batch, and <b>clear</b> empties it.<br><br>Click any entry in the legend under the figure to <b>collapse</b> that pair out of the overlay, and click it again to bring it back — the way to isolate two or three strips out of a crowded batch without leaving overlay mode. <b>⊘ hide all</b> collapses the whole visible batch in one go and the list stays exactly where it is, greyed and struck through, so you can build the comparison back up by clicking the two or three you actually want instead of switching off the other thirty-eight by hand; the same button becomes <b>↺ show all</b> once everything is off. The <b>↗</b> on an entry does what clicking one used to: drop out of the overlay and open that g on its own in Grid. The legend box holds one height whatever the batch size, so paging or playing through batches never moves the buttons under it.
-      </div>
-    </div>
-  </div>
 </div>
 
 <div class="sect" id="controls">
@@ -1564,7 +1444,7 @@ body.is-fs .figcap{display:none}
         <span class="lab" title="How many sectors are banded, and how many rows the census table shows.">sectors</span>
         <input type="range" id="sl-secrays" min="1" max="194" step="1" value="8" oninput="setSectorRays(+this.value)" style="flex:1">
         <span class="val" id="v-secrays" style="width:28px">8</span>
-        <button class="chip on" id="ch-seclab" onclick="toggleSectorLabels()" style="flex:0 0 auto" title="Label each band with its sector number.">S_s</button>
+        <button class="chip" id="ch-seclab" onclick="toggleSectorLabels()" style="flex:0 0 auto" title="Label each band with its sector number.">S_s</button>
       </div>
       <div class="row" id="sector-pick-row" style="display:none">
         <span class="lab" title="Isolate one sector. The high-s wedges are narrow — width is 1/(s(s+1)) — so showing them all at once is unreadable past the first few.">isolate</span>
@@ -1608,11 +1488,16 @@ body.is-fs .figcap{display:none}
       </div>
       <div class="row">
         <span class="lab" title="The prime the spiral traces. Type any number — it snaps to the nearest prime ≤ G.">spiral p</span>
-        <button class="chip" onclick="liftStepP(-1)" style="flex:0 0 auto">−</button>
+        <button class="chip" id="ld-pminus" onclick="liftStepP(-1)" style="flex:0 0 auto">−</button>
         <input type="number" id="ld-p" min="2" step="1" value="2" onchange="liftSetP(this.value)" style="width:64px;text-align:center">
-        <button class="chip" onclick="liftStepP(1)" style="flex:0 0 auto">+</button>
+        <button class="chip" id="ld-pplus" onclick="liftStepP(1)" style="flex:0 0 auto">+</button>
         <button class="chip" id="ld-dir" onclick="liftFlipDir()" style="flex:0 0 auto" title="Winding: ▲ r ≡ p (mod M) · ▼ r ≡ −p (mod M)">▲</button>
-        <button class="chip" id="ld-play" onclick="liftPlayP()" style="flex:0 0 auto" title="Sweep the spiral prime.">▶ p</button>
+        <button class="chip" id="ld-play" onclick="liftPlayP()" style="flex:0 0 auto" title="Sweep the spiral prime. Always starts outward from p = 2.">▶ p</button>
+      </div>
+      <div class="row">
+        <span class="lab"></span>
+        <button class="chip" id="ld-reset" onclick="liftResetP()" style="flex:1" title="Set the spiral prime back to p = 2.">reset to 2</button>
+        <button class="chip" id="ld-lock" onclick="liftFlag('spiralLock')" style="flex:1" title="Freeze the spiral prime — the ± steppers, the input, ▶ p and lock-to-C(n) all leave it untouched until unlocked.">🔒 lock p</button>
       </div>
       <div class="chips">
         <button class="chip on" id="ld-sync" onclick="liftFlag('syncCn')" title="Lock the spiral to C(n): skip every prime already accounted for — saturated by the live n — p ≤ n+1, where min(n+1,p)=p. Raising n past the current prime advances it to the first still-live one.">lock to C(n)</button>
@@ -1622,11 +1507,16 @@ body.is-fs .figcap{display:none}
       </div>
       <div class="row">
         <span class="lab" title="The offset n in r = (M ± n)/2.">path n</span>
-        <button class="chip" onclick="liftStepPathN(-1)" style="flex:0 0 auto">−</button>
+        <button class="chip" id="ld-npminus" onclick="liftStepPathN(-1)" style="flex:0 0 auto">−</button>
         <span class="val" id="v-ldn" style="width:30px">1</span>
-        <button class="chip" onclick="liftStepPathN(1)" style="flex:0 0 auto">+</button>
+        <button class="chip" id="ld-npplus" onclick="liftStepPathN(1)" style="flex:0 0 auto">+</button>
         <button class="chip" id="ld-npdir" onclick="liftFlipNPathDir()" style="flex:0 0 auto" title="Which branch: both, +n only, −n only.">↕</button>
         <button class="chip" id="ld-alln" onclick="liftFlag('allN')" style="flex:0 0 auto" title="Overlay n = 1,3,5,7,9 at once.">all n</button>
+      </div>
+      <div class="row">
+        <span class="lab"></span>
+        <button class="chip" id="ld-npreset" onclick="liftResetPathN()" style="flex:1" title="Set the ±n path offset back to n = 1.">reset to 1</button>
+        <button class="chip" id="ld-nplock" onclick="liftFlag('pathLock')" style="flex:1" title="Freeze the ±n path offset — the ± steppers leave it untouched until unlocked.">🔒 lock n</button>
       </div>
       <div class="row">
         <span class="lab" title="Opacity of the lift arcs.">arc α</span>
@@ -1639,7 +1529,7 @@ body.is-fs .figcap{display:none}
         <span class="val" id="v-lddot" style="width:34px">1.0×</span>
       </div>
       <div class="note"><b>C(n) filter</b> and <b>Lift dynamics</b> are the index page's own machinery, not new constructions. With <b>block n</b> on, the plate stops drawing every gcd(r,M)=1 point and draws only those clearing gcd(r,M+j)=1 for <i>every</i> j = 0…n — the exact condition C(n) is the density of. At n = 0 it changes nothing, because the block condition is then just coprimality.<br><br><b>lock to C(n)</b> is the bridge between the two halves: a prime is skipped once C(n)'s local factor 1−min(n+1,p)/p² has already bottomed out on it at 1−1/p, which happens exactly when p ≤ n+1. So sweeping n walks the spiral forward through the primes C(n) has not yet saturated.<br><br><b>pair lock</b> applies the same discipline to the partitions: the steppers and ▶ Play Goldbach pairs skip any partition the filter has removed. <b>vs D(n)</b> is the reading worth starting with — survival on a sum strip is only ~40% at n=1 and ~24% at n=2, so an absolute bar empties the list immediately, while survival measured in units of D(n) sits near 1.00 and actually separates the partitions.</div>
-      <div class="note">These three read the rest of the site's own math into this page rather than adding new machinery of their own.<br><br><b>Block n</b> extends every strip point's test from the plain gcd(r,g)=1 this page has always used to <b>gcd(r,g+j)=1 for every j=0…n at once</b> — literally the C(n) condition from the index page, walked along a sum/difference strip instead of averaged over the whole (r,M) lattice. At n=0 nothing changes; raise it and the partition table grows a <b>block n</b> column showing how much of each strip survives the stronger test, and the verdict line reports whether both strips are <b>block-full</b>.<br><br><b>Lift · saturation</b> names the primes p ≤ n+1 that C(n)'s local factor 1−min(n+1,p)/p² has already pinned at its floor 1−1/p (every residue mod p is forbidden by some j, not just some) — the same "saturated primes" the index opener tracks — and shows them in the readout for whatever n is set here.<br><br><b>Sector S_s</b> is Page 11's partition of the coprime pairs, applied to this plate. Page 11's object is the set of coprime (r,m) with 1 ≤ r ≤ m ≤ N bucketed by which Farey interval S_s = (1/(s+1), 1/s] the fraction r/m falls in — that bucket is s = ⌊m/r⌋ — and its count obeys F(s,N) ~ (3/π²)N²/(s(s+1)), with sector width 1/(s(s+1)). Every lattice point here <i>is</i> such a pair, so the sectors apply to the plate directly: each sector is drawn as a translucent band underneath the points — a region, not a line, so its width 1/(s(s+1)) is what you see — and the census table compares the exact count per sector against F(s,N) at N = G. Use <b>isolate</b> to show one sector at a time; past the first few the wedges are too narrow to separate all at once. The <b>g-strip</b> column is this page's own addition — of the points actually lying on the two sum strips of the partition on screen, how many fall in each sector. n*(N) is marked because past it the residual exact − F(s,N) is pinned positive and cannot change sign again.</div>
+      <div class="note">These three read the rest of the site's own math into this page rather than adding new machinery of their own.<br><br><b>Block n</b> extends every strip point's test from the plain gcd(r,g)=1 this page has always used to <b>gcd(r,g+j)=1 for every j=0…n at once</b> — literally the C(n) condition from the index page, walked along a sum/difference strip instead of averaged over the whole (r,M) lattice. At n=0 nothing changes; raise it and the partition table grows a <b>block n</b> column showing how much of each strip survives the stronger test, and the verdict line reports whether both strips are <b>block-full</b>.<br><br><b>Lift · saturation</b> names the primes p ≤ n+1 that C(n)'s local factor 1−min(n+1,p)/p² has already pinned at its floor 1−1/p (every residue mod p is forbidden by some j, not just some) — the same "saturated primes" the index opener tracks — and shows them in the readout for whatever n is set here.<br><br><b>Gap-2n · blk</b> is the same block-n lens turned on the de Polignac flag instead of the Goldbach one: a gap partner (g or s having a prime exactly 2n away) is marked gold when the strip that actually produced it — c for g, d for s — also clears gcd(r,M+j)=1 for every j=0…n, not just gcd(r,M)=1. It reuses the row's own cFullBlk/dFullBlk rather than testing the partner's strip separately, so it answers "does the evidence behind this gap pair hold up under the stronger condition," the same question block-n already asks of Goldbach pairs.<br><br><b>Sector S_s</b> is Page 11's partition of the coprime pairs, applied to this plate. Page 11's object is the set of coprime (r,m) with 1 ≤ r ≤ m ≤ N bucketed by which Farey interval S_s = (1/(s+1), 1/s] the fraction r/m falls in — that bucket is s = ⌊m/r⌋ — and its count obeys F(s,N) ~ (3/π²)N²/(s(s+1)), with sector width 1/(s(s+1)). Every lattice point here <i>is</i> such a pair, so the sectors apply to the plate directly: each sector is drawn as a translucent band underneath the points — a region, not a line, so its width 1/(s(s+1)) is what you see — and the census table compares the exact count per sector against F(s,N) at N = G. Use <b>isolate</b> to show one sector at a time; past the first few the wedges are too narrow to separate all at once. The <b>g-strip</b> column is this page's own addition — of the points actually lying on the two sum strips of the partition on screen, how many fall in each sector. n*(N) is marked because past it the residual exact − F(s,N) is pinned positive and cannot change sign again.</div>
       </div>
       </div>
     </div>
@@ -1674,6 +1564,160 @@ body.is-fs .figcap{display:none}
   </div>
 </div>
 
+
+<!-- ══════════ DEEP SEARCH — arbitrary E via the a/b/c/d identity ══════════ -->
+<div class="sect" id="deepsearch">
+  <div class="sect-hdr" id="deepsearch-hdr" onclick="toggleGrp('deepsearch')"><span class="rarrow">▸</span>Deep search — arbitrary E</div>
+  <div id="deepsearch-body">
+    <div class="grp" style="border:none;padding:0 0 4px">
+      <div class="row">
+        <span class="lab">E</span>
+        <input type="number" id="ds-E" class="ds-num" min="6" step="2" value="390" style="flex:1">
+        <button class="chip" id="ds-go" onclick="runDeepSearch()" style="flex:0 0 auto">Search</button>
+      </div>
+      <div class="ds-note">
+        A gap g is a Goldbach pair of E iff g and E−g are both prime — the a/b/c/d lines encode that, but never require it. This sieves once up to E and reads primality straight off, independent of the grid's 4096 render cap. E over ~8194 can be searched here but can't be opened on the Grid/Ring/Cayley plate.
+      </div>
+      <div id="ds-status" class="ds-status"></div>
+      <div id="ds-results" style="display:none">
+        <div id="ds-summary" class="ds-summary"></div>
+        <div id="ds-table"></div>
+        <div class="ds-pager">
+          <button class="chip" id="ds-prev" onclick="dsPage(-1)">◂ Prev</button>
+          <span id="ds-pageinfo" class="ds-pageinfo"></span>
+          <button class="chip" id="ds-next" onclick="dsPage(1)">Next ▸</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ GAP LADDER — forward diagonals ══════════ -->
+<div class="sect" id="ladder">
+  <div class="sect-hdr" id="ladder-hdr" onclick="toggleGrp('ladder')"><span class="rarrow">&#9656;</span>Gap ladder &mdash; forward diagonals</div>
+  <div id="ladder-body">
+    <div class="grp" style="border:none;padding:0 0 4px">
+      <div class="row">
+        <span class="lab">Ladder</span>
+        <button class="chip" id="ld-on" onclick="toggleLadder()" style="flex:1">Off</button>
+      </div>
+      <div class="row" id="ld-opt-row" style="display:none;flex-wrap:wrap">
+        <span class="lab">Draw</span>
+        <button class="chip on" id="ld-bands" onclick="ldToggle('bands')" style="flex:1" title="Wash the dark band between consecutive lit strips. Its width IS the gap.">bands</button>
+        <button class="chip on" id="ld-rail" onclick="ldToggle('rail')" style="flex:1" title="The forward connection: a rail down r=M with a rung at every lit strip.">rail</button>
+        <button class="chip on" id="ld-labels" onclick="ldToggle('labels')" style="flex:1" title="Print the gap in each band wide enough to hold it.">gap</button>
+        <button class="chip" id="ld-phi" onclick="ldToggle('phi')" style="flex:1" title="Shade every composite strip by &phi;(g)/(g&minus;1) — how nearly it lit. The strips stop being on/off and become a totient meter.">&phi; shading</button>
+      </div>
+      <div class="row" id="ld-only-row" style="display:none">
+        <span class="lab">Plate</span>
+        <button class="chip" id="ld-solo" onclick="ldToggle('solo')" style="flex:1" title="Hide the a/b/c/d strips and the pair overlay so the ladder stands alone on the bare coprimality field.">ladder only</button>
+      </div>
+      <div class="row" id="ld-gap-row" style="display:none">
+        <span class="lab">Gap = 2n</span>
+        <select id="ld-gap-sel" onchange="setLadderGapFilter(this.value)" style="flex:1;background:var(--bg1);color:var(--cream);border:1px solid var(--edge);font-family:var(--mono);font-size:11px;padding:5px 6px">
+          <option value="">All gaps</option>
+        </select>
+      </div>
+      <div id="ld-out" style="display:none"></div>
+      <div class="note" id="ld-note" style="display:none">
+        A sum strip <b>r + M = g</b> is fully coprime exactly when <b>g is prime</b>: on that line gcd(r,M) divides g and is smaller than g, so a prime leaves nothing but 1s, while a composite g = a&middot;b always puts gcd &ge; a at the point (a, g&minus;a). Every lit diagonal below is therefore a prime, found by looking rather than by dividing.<br><br>
+        Connect each lit strip <b>forward</b> to the next and the dark band between them is the prime gap &mdash; not a number computed and printed, but the literal width of the band, <b>gap = (dark strips between) + 1</b>. Perpendicular spacing is gap/&radic;2 cells, so a long gap is a wide band.<br><br>
+        <b>The one limit.</b> The test only reads true for <b>g &le; G+1</b>. Past that the strip is clipped by the edge of the plate and the visible window can miss every witness &mdash; on a 5&times;5 grid, g = 9 shows only r = 4, 5, both coprime to 9, so 3&sup2; would read as prime. The ladder therefore stops at G+1 and nothing beyond it is drawn or claimed. To go further, raise G.<br><br>
+        <b>&phi; shading</b> turns the remaining strips from off to dim: the lit cells on strip g number exactly &phi;(g), because gcd(r, g&minus;r) = gcd(r, g), so the strip is scanning r = 1&hellip;g&minus;1 against g. A prime is the case &phi;(g) = g&minus;1. g = 9 sits at 0.75, g = 18 at 0.35 &mdash; you can see how composite a number is before being told.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ CONSTANTS & F(u) ══════════ -->
+<div class="sect" id="fupanel">
+  <div class="sect-hdr" id="fupanel-hdr" onclick="toggleGrp('fupanel');renderFuPanel()"><span class="rarrow">&#9656;</span>Constants &amp; the lift function F(u)</div>
+  <div id="fupanel-body">
+    <div class="grp" style="border:none;padding:0 0 4px">
+      <div class="note" style="margin-top:0">
+        Every value below is computed in the page from the <b>prime zeta function</b> P(s), not read off a stored digit string and not truncated at a prime bound. A partial product or partial sum cut at p &lt; 50,000 and printed to twelve places is wrong from the sixth &mdash; the tail of &sum;1/p&sup2; is far too fat for that &mdash; so these are assembled from P(s) = &sum;<sub>n</sub> &mu;(n)/n &middot; log &zeta;(ns) instead, which carries no truncation at all.
+      </div>
+      <div class="row" style="margin-top:8px">
+        <span class="lab">Settle</span>
+        <input type="range" id="settle-sl" min="0" max="1000" value="380" step="1" oninput="setSettlePos(+this.value)" style="flex:1">
+      </div>
+      <div class="note" id="settle-read" style="margin-top:2px;margin-bottom:6px"></div>
+      <div class="cgrid" id="cgrid"></div>
+
+      <div class="row" style="margin-top:8px">
+        <span class="lab">u</span>
+        <input type="range" id="fu-sl" min="0" max="3.99" step="0.01" value="2" oninput="setFuU(+this.value)" style="flex:1">
+        <input type="number" id="fu-in" min="-20" max="3.99" step="0.01" value="2" style="width:64px" oninput="setFuU(+this.value)">
+      </div>
+      <div class="row" style="margin-top:4px;flex-wrap:wrap">
+        <span class="lab">Jump to</span>
+        <button class="chip" onclick="setFuU(0)" style="flex:1" title="F(0) = ζ(2)">u = 0</button>
+        <button class="chip" onclick="setFuU(1)" style="flex:1" title="F(1) = 1 — the normalisation point">u = 1</button>
+        <button class="chip on" onclick="setFuU(2)" style="flex:1" title="F(2) = C, the lift survival constant">u = 2</button>
+        <button class="chip" onclick="setFuU(3.99)" style="flex:1" title="approaching the first zero at u = 4 = 2²">u → 4</button>
+      </div>
+      <div id="fu-read" class="note" style="margin-top:6px"></div>
+      <canvas id="fu-cv" class="fu-cv" height="150"></canvas>
+      <div class="note" style="margin-top:0">
+        <b>Figure A.</b> F(u) = &prod;<sub>p</sub>(p&sup2;&minus;u)/(p&sup2;&minus;1) on [0, 4]. Strictly decreasing, because d/du log F = &minus;&sum;<sub>p</sub> 1/(p&sup2;&minus;u) is negative wherever every p&sup2; &gt; u. Four landmarks: F(0) = &zeta;(2), F(1) = 1, F(2) = C, F(4) = 0 &mdash; the first zero, contributed by p = 2.
+      </div>
+
+      <canvas id="fz-cv" class="fu-cv" height="112"></canvas>
+      <div class="note" style="margin-top:0">
+        <b>Figure B.</b> The zero set of F, laid on the ladder's own axis. F(u) = 0 exactly at u = p&sup2;, each zero simple, so plotting in <b>&radic;u</b> puts the zeros on the primes &mdash; the same sequence the lit strips pick out on the plate, arrived at analytically instead of geometrically. Ticks are the zeros, bands are the gaps between them in the ladder's colours, and the strip along the bottom is sign F(u) = (&minus;1)<sup>#{q&nbsp;:&nbsp;q&sup2;&nbsp;&lt;&nbsp;u}</sup>, which flips at every zero. So the sign of F alternates once per rung: <b>the ladder is the zero spectrum of F</b>.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ CONTROLS ══════════ -->
+<!-- ══════════ MULTI-PAIR (below the canvas, above Instrument — multi is the default view) ══════════ -->
+<div class="sect" id="multitop">
+  <div class="sect-hdr" id="multitop-hdr" onclick="toggleGrp('multitop')"><span class="rarrow">▸</span>Multi-pair</div>
+  <div id="multitop-body">
+    <div class="grp" style="border:none;padding:0 0 4px">
+      <div class="row">
+        <span class="lab">Overlay</span>
+        <button class="chip" id="ch-multi" onclick="toggleMulti()" style="flex:1">Off — single gap g</button>
+      </div>
+      <div class="row" id="mp-mode-row" style="display:none">
+        <span class="lab">Show</span>
+        <button class="chip on" id="mm-pairs" onclick="setMultiMode('pairs')" style="flex:1">Goldbach pairs</button>
+        <button class="chip" id="mm-all" onclick="setMultiMode('all')" style="flex:1">all partitions</button>
+        <button class="chip" id="mm-run" onclick="setMultiMode('run')" style="flex:1" title="One run at a time: every partition from one Goldbach pair up to the next one, inclusive. The two ends are the only fully coprime strips in the band.">pair → pair</button>
+        <button class="chip" id="mm-picked" onclick="setMultiMode('picked')" style="flex:1" title="Only the rows ticked in the partition table.">selected rows</button>
+      </div>
+      <div class="row" id="mp-run-row" style="display:none">
+        <button class="chip" style="flex:0 0 auto" onclick="runStep(-1)" title="Previous run">◀ run</button>
+        <span class="val" id="mp-run" style="flex:1;text-align:center">— → —</span>
+        <button class="chip" style="flex:0 0 auto" onclick="runStep(1)" title="Next run">run ▶</button>
+      </div>
+      <div class="note" id="mp-run-note" style="display:none"></div>
+      <div class="row" id="mp-blend-row" style="display:none">
+        <span class="lab">Overlap</span>
+        <button class="chip on" id="bl-add" onclick="setBlend('add')" style="flex:1" title="Additive: overlapping strips sum and brighten. Four or more saturate to white.">add · glow</button>
+        <button class="chip" id="bl-over" onclick="setBlend('over')" style="flex:1" title="Topmost item wins, so a stack keeps one pair's colour instead of washing out.">over · opaque</button>
+      </div>
+      <div class="row" id="mp-batch-row" style="display:none;flex-wrap:wrap">
+        <span class="lab">Batch</span>
+        <button class="chip on" data-bs="1" onclick="setBatchSize(1)">1</button>
+        <button class="chip" data-bs="5" onclick="setBatchSize(5)">5</button>
+        <button class="chip" data-bs="10" onclick="setBatchSize(10)">10</button>
+        <button class="chip" data-bs="25" onclick="setBatchSize(25)">25</button>
+        <button class="chip" data-bs="0" id="bs-all" onclick="setBatchSize(0)">all</button>
+      </div>
+      <div class="row" id="mp-pager-row" style="display:none">
+        <button class="chip" style="flex:0 0 auto" onclick="pageStep(-1)">◀</button>
+        <span class="val" id="mp-pg" style="flex:1;text-align:center">— of —</span>
+        <button class="chip" style="flex:0 0 auto" onclick="pageStep(1)">▶</button>
+      </div>
+      <div class="note" id="mp-note" style="display:none">
+        Each pair draws its own <b>a b c d</b> in one colour — bright where coprime, and at <b>Off-gcd</b> (Strips panel) where not. <b>all partitions</b> adds every g=1…E/2: full pairs keep colour, g‑only‑prime is amber, s‑only‑prime is teal, neither is dim grey.<br><br><b>pair → pair</b> narrows that to a single run: every partition from one Goldbach pair up to the next, endpoints included, drawn as one band with <b>◀ run</b> / <b>run ▶</b> to step to the next. It exists because of what the band looks like — the two ends are the only fully coprime strips in it, since c is complete exactly when g is prime and d exactly when E−g is prime, so the edges are unbroken lines and the interior is punctured. <b>▶ Play Goldbach pairs</b> walks the runs in order while this mode is live.<br><br><b>selected rows</b> draws exactly the partitions you tick in the table below: the <b>Pick</b> chip in the partition-table header reads its own state — <i>Pick on — row click selects</i> or <i>Pick off — row click jumps</i> — and is on by default; and each row click adds or removes that g instead of jumping the gap, with the row carrying the same hue its strips get on the plate. With pick on, <b>clicking a lattice cell (or releasing the magnifier on one) does the same thing for every strip through that point at once</b>: a cell sits on the sum strip r+M = g, on the sum strip r+M = E−g, and — off the main diagonal — on a difference strip |M−r| = g, so a click off the main diagonal brings in <b>two</b> gaps — one sum strip and one difference strip — and the crossing becomes legible as a crossing rather than as one arbitrary line. The two gestures differ in one way worth knowing: a <b>plain click accumulates</b>, which is how you build a comparison out of four separate crossings, while a <b>magnifier release replaces</b> — it clears the selection and leaves only the strips through the point you landed on. That asymmetry is deliberate: you reach for the lens at 20× precisely because the other thirty strips are in the way, so keeping them after the release would defeat the gesture. The lens readout shows <i>only</i> before the gaps it is about to leave standing. There is no modifier key on a phone, so which gesture you used carries the distinction. Because a plain click accumulates two gaps at a time, <b>✕ clear</b> sits in the legend directly under the figure — it empties the selection outright, which is not what <b>⊘ hide all</b> does (that collapses the strips and keeps the list). The same action is on the <b>clear</b> chip in the partition-table header. It is two rather than three because the two sum families partition the lattice between them: r+M = g needs r+M ≤ G+1 and r+M = E−g needs r+M ≥ G+1, so exactly one applies, and on the anti-diagonal r+M = G+1 they coincide. On the main diagonal r = M the difference gap is 0 and drops out, leaving one. That is the way to compare four specific partitions rather than a computed class of them; the whole selection draws in one batch, and <b>clear</b> empties it.<br><br>Click any entry in the legend under the figure to <b>collapse</b> that pair out of the overlay, and click it again to bring it back — the way to isolate two or three strips out of a crowded batch without leaving overlay mode. <b>⊘ hide all</b> collapses the whole visible batch in one go and the list stays exactly where it is, greyed and struck through, so you can build the comparison back up by clicking the two or three you actually want instead of switching off the other thirty-eight by hand; the same button becomes <b>↺ show all</b> once everything is off. The <b>↗</b> on an entry does what clicking one used to: drop out of the overlay and open that g on its own in Grid. The legend box holds one height whatever the batch size, so paging or playing through batches never moves the buttons under it.
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════ PARTITION DRAWER ══════════ -->
 <div class="sect" id="drawer">
   <div class="sect-hdr">Partition drawer</div>
@@ -1697,7 +1741,7 @@ body.is-fs .figcap{display:none}
         <span style="color:var(--violet);flex:0 0 auto;white-space:nowrap">n (gap = 2n)</span>
         <input type="range" id="sl-gapn" min="1" max="200" step="1" value="1" oninput="setGapN(+this.value)" style="flex:1 1 100px;min-width:90px">
         <input type="number" id="in-gapn" min="1" max="200" value="1" style="width:50px;flex:0 0 50px">
-        <span class="sub" style="flex:1 1 100%;white-space:normal">flags g/s with a prime partner 2n away · n=1 twin, n=2 cousin, n=3 sexy</span>
+        <span class="sub" style="flex:1 1 100%;white-space:normal">flags g/s with a prime partner 2n away · n=1 twin, n=2 cousin, n=3 sexy · with block n on, a gold ±2n·blk badge marks a gap partner whose own strip (c for g, d for s) also clears the stronger gcd(r,M+j)=1 test</span>
       </div>
       <div class="scroll" id="tblwrap"></div>
     </div>
@@ -2297,6 +2341,7 @@ function liftPrimeLocked(p){
   return p<=(S.blockN+1);
 }
 function liftStepP(dir){
+  if(S.lift.spiralLock) return;
   const G=S.G, cur=liftSpiralP(G);
   let idx=CN_PRIME_IDX.has(cur)?CN_PRIME_IDX.get(cur):0, target=idx;
   for(let j=idx+dir;j>=0&&j<CN_PRIMES.length;j+=dir){
@@ -2309,6 +2354,7 @@ function liftStepP(dir){
   syncLiftUI(); render();
 }
 function liftSetP(v){
+  if(S.lift.spiralLock) return;
   const G=S.G, t=Math.max(2,Math.floor(+v||2));
   let best=2,bd=Infinity;
   for(let i=0;i<CN_PRIMES.length;i++){
@@ -2318,7 +2364,7 @@ function liftSetP(v){
   S.lift.spiralP=best; syncLiftUI(); render();
 }
 function liftReconcileP(){
-  if(!S.lift.syncCn) return;
+  if(!S.lift.syncCn||S.lift.spiralLock) return;
   const G=S.G;
   if(!liftPrimeLocked(liftSpiralP(G))) return;
   for(let i=0;i<CN_PRIMES.length;i++){
@@ -2905,7 +2951,12 @@ function sectorCensus(G){
 // FAILS to hit. 0 is the honest default: the strip is drawn only where it is
 // coprime, so a gap in the line is a real gap. Turn it up to see the full
 // geometric line again.
-const S={G:194,g:193,col:'modular_distance',lbl:'off',dim:0.4,stripDim:0.4,stripThick:1.1,view:'grid',
+const S={G:192,g:193,col:'modular_distance',lbl:'off',dim:0.4,stripDim:0.4,stripThick:1.1,view:'grid',
+         // split view: a second canvas beside the main one, painted with a
+         // different projection of the exact same (r,M) state — same g,
+         // same picks, same lift dynamics — so the two panes are two
+         // photographs of one live scene, not two independent plates.
+         splitOn:false,splitView:'ring',
          // rot90: global plate orientation, in clockwise quarter turns (0-3).
          rot90:0,
          // the forward-gap ladder: lit sum strips (= primes) and the bands between them
@@ -2928,7 +2979,7 @@ const S={G:194,g:193,col:'modular_distance',lbl:'off',dim:0.4,stripDim:0.4,strip
          filter:'gold',rows:[],sel:null,gapN:1,
          // which pair-to-pair run the 'run' overlay mode is showing
          runIdx:0,
-         multi:true,multiMode:'pairs',batch:0,page:0,items:[],pairIdx:new Map(),
+         multi:false,multiMode:'pairs',batch:0,page:0,items:[],pairIdx:new Map(),
          // g values the reader has collapsed out of the overlay from the legend
          hidden:new Set(),
          // pick: the partition table is in multi-select mode, so a row click
@@ -2956,7 +3007,7 @@ const S={G:194,g:193,col:'modular_distance',lbl:'off',dim:0.4,stripDim:0.4,strip
          // observed count per sector against Page 11's F(s,N) prediction.
          // sectorPick: 0 shows every sector as a faint band; s > 0 isolates
          // one, which is the only way the narrow high-s wedges are legible.
-         sectorOn:false, sectorRays:8, sectorLabels:true, sectorPick:0,
+         sectorOn:false, sectorRays:8, sectorLabels:false, sectorPick:0,
          // ── C(n) engine (ported from the index suite) ───────────────
          // cnFilter: 'all' = every coprime point (the picture this page always
          // drew); 'block' = only the points surviving gcd(r,M+j)=1 for j=0..n.
@@ -2975,12 +3026,12 @@ const S={G:194,g:193,col:'modular_distance',lbl:'off',dim:0.4,stripDim:0.4,strip
          // survival/D(n) sits at 1.00 ± 0.3 across the whole range.
          pairLock:'off', cnPairThr:0.10, cnPairRel:1.00,
          // ── lift dynamics (ported from index.html's _wDynLiftOverlay) ──
-         lift:{on:false, arcs:true, spiral:true, npath:false,
+         lift:{on:true, arcs:true, spiral:true, npath:true,
                mirror:true, dropout:true, allP:false, allN:false,
                label:true, surv:true, broken:true,
                spiralP:2, spiralDir:'up', pathN:1, npathDir:'both',
                thick:0.7, lineOp:0.30, dotScale:1.0, arcCap:512,
-               syncCn:true, speed:140}};
+               syncCn:true, speed:140, spiralLock:false, pathLock:false}};
 const BR={a:[61,200,184],b:[155,127,232],c:[200,168,74],d:[224,80,96]};
 const KIND_RGB={gOnly:[200,168,74],sOnly:[61,200,184],none:[58,58,70]};
 const KIND_ALPHA={gOnly:.55,sOnly:.55,none:.28};
@@ -3774,6 +3825,7 @@ function multiPoints(G){
 }
 
 const cv=document.getElementById('cv');
+const cv2=document.getElementById('cv2');
 let CSS_SIZE=600;
 function fitCanvas(){
   const plate=document.getElementById('plate');
@@ -3792,10 +3844,26 @@ function fitCanvas(){
   // one in expanded mode), so both dimensions are already correct — no need for
   // the old desktop/stacked branch that had to guess a height.
   const pad=4;
+  const dpr=Math.min(window.devicePixelRatio||1,3);
+  // Split view: #plate is a 2:1 box (see .split CSS) holding two square
+  // panes side by side with a gap between them. Each pane's side is
+  // whichever is smaller — half the available width, or the full
+  // available height — so both squares always fit without cropping.
+  if(S.splitOn&&cv2){
+    const gap=6;
+    const w=Math.max(160,plate.clientWidth-pad);
+    const h=Math.max(160,(plate.clientHeight||plate.clientWidth)-pad);
+    const s=Math.floor(Math.min((w-gap)/2,h));
+    CSS_SIZE=s;
+    [cv,cv2].forEach(c=>{
+      c.style.width=s+'px'; c.style.height=s+'px';
+      c.width=Math.floor(s*dpr); c.height=Math.floor(s*dpr);
+    });
+    return;
+  }
   const w=Math.max(160,plate.clientWidth-pad);
   const h=Math.max(160,(plate.clientHeight||plate.clientWidth)-pad);
   CSS_SIZE=Math.floor(Math.min(w,h));
-  const dpr=Math.min(window.devicePixelRatio||1,3);
   cv.style.width=CSS_SIZE+'px'; cv.style.height=CSS_SIZE+'px';
   cv.width=Math.floor(CSS_SIZE*dpr); cv.height=Math.floor(CSS_SIZE*dpr);
 }
@@ -5277,6 +5345,20 @@ function render(){
   const dpr=Math.min(window.devicePixelRatio||1,3);
   ctx.setTransform(1,0,0,1,0,0);
   paint(ctx,CSS_SIZE*dpr,S.G,S.g);
+  // Split view: paint the second pane with a different projection of the
+  // exact same (r,M) state. paintPlate/paintPolar read S.view (or take it
+  // as a parameter derived from S.view) to pick the projection, so the
+  // second paint is a temporary swap-render-restore rather than a second
+  // code path — the second canvas is never anything but a live mirror of
+  // whatever g, picks, lift dynamics, etc. are currently in force.
+  if(S.splitOn&&cv2&&S.view!=='corridor'&&S.view!=='circle'){
+    const ctx2=cv2.getContext('2d');
+    ctx2.setTransform(1,0,0,1,0,0);
+    const primaryView=S.view;
+    S.view=S.splitView;
+    paint(ctx2,CSS_SIZE*dpr,S.G,S.g);
+    S.view=primaryView;
+  }
   drawHUD();
   // CSTAT is filled by the backdrop pass this paint just ran, so the readout is
   // refreshed after it — but only the one line, and only when the measurement
@@ -5488,6 +5570,13 @@ function buildRows(){
     st.gGap=hasGapPartner(g,n);
     st.sGap=hasGapPartner(st.s,n);
     st.gapPartner=st.gGap||st.sGap;
+    // block-n lens on the de Polignac flag: a gap partner "survives" block n
+    // when the strip that actually produced it (c for g, d for s) clears the
+    // stronger gcd(r,M+j)=1 test across its whole length — reusing cFullBlk/
+    // dFullBlk rather than inventing separate strip math for the partner
+    // itself. At n=0 (block filter off) this is identical to gGap/sGap.
+    st.gGapBlk=st.gGap&&(S.blockN>0?!!st.cFullBlk:true);
+    st.sGapBlk=st.sGap&&(S.blockN>0?!!st.dFullBlk:true);
     st.sector=fareySector(g,st.s);
     // Block-n survival of the two sum strips, as a ratio — the quantity the
     // pair filter thresholds on. At n = 0 a Goldbach pair scores exactly 1.
@@ -5565,13 +5654,15 @@ function renderTable(){
   const nBoth=S.rows.filter(r=>r.both).length;
   const nFalse=S.rows.filter(r=>r.both&&!r.pair).length;
   const nGap=S.rows.filter(r=>r.gapPartner).length;
+  const nGapBlk=S.blockN?S.rows.filter(r=>r.gGapBlk||r.sGapBlk).length:0;
 
   document.getElementById('rd-gb').textContent=nPair;
   const hp=document.getElementById('hero-pairs'); if(hp) hp.textContent=nPair;
   document.getElementById('rd-thr').textContent='g > '+thr.toFixed(1);
   document.getElementById('tbl-sub').textContent=
     `${rows.length} shown · ${nPair} pairs · ${nBoth} both-full · ${nFalse} false + · ${nGap} gap-2n (n=${S.gapN})`+
-    (S.blockN?` · block n=${S.blockN}`:'')+(S.sectorOn?' · sector S_s shown':'');
+    (S.blockN?` · ${nGapBlk}/${nGap} gap-2n also block-n survive (n=${S.blockN})`:'')+
+    (S.sectorOn?' · sector S_s shown':'');
 
   if(!rows.length){
     document.getElementById('tblwrap').innerHTML='<div class="empty-msg">No rows match this filter at G = '+G+'.</div>';
@@ -5593,8 +5684,8 @@ function renderTable(){
     const cls=[r.g===S.g?'sel':'',isPicked?'picked':''].filter(Boolean).join(' ');
     h+=`<tr data-g="${r.g}"${cls?` class="${cls}"`:''}`+
        `${isPicked?` style="--pickc:${pickCol.get(r.g)}"`:''}>`+
-       `<td>${r.g}${isPrime(r.g)?' <span class="cfull">p</span>':''}${r.gGap?' <span class="gapn" title="part of a gap-'+(2*S.gapN)+' prime pair">±'+(2*S.gapN)+'</span>':''}</td>`+
-       `<td>${r.s}${isPrime(r.s)?' <span class="dfull">p</span>':''}${r.sGap?' <span class="gapn" title="part of a gap-'+(2*S.gapN)+' prime pair">±'+(2*S.gapN)+'</span>':''}</td>`+
+       `<td>${r.g}${isPrime(r.g)?' <span class="cfull">p</span>':''}${r.gGap?' <span class="'+(blk&&r.gGapBlk?'gapn-blk':'gapn')+'" title="part of a gap-'+(2*S.gapN)+' prime pair'+(blk?(r.gGapBlk?' — strip c also block-n survives':' — strip c does not block-n survive'):'')+'">±'+(2*S.gapN)+(blk&&r.gGapBlk?'·blk':'')+'</span>':''}</td>`+
+       `<td>${r.s}${isPrime(r.s)?' <span class="dfull">p</span>':''}${r.sGap?' <span class="'+(blk&&r.sGapBlk?'gapn-blk':'gapn')+'" title="part of a gap-'+(2*S.gapN)+' prime pair'+(blk?(r.sGapBlk?' — strip d also block-n survives':' — strip d does not block-n survive'):'')+'">±'+(2*S.gapN)+(blk&&r.sGapBlk?'·blk':'')+'</span>':''}</td>`+
        `<td class="${r.cFull?'cfull':''}">${r.cCop}/${r.cTot}</td>`+
        `<td class="${r.dFull?'dfull':''}">${r.dCop}/${r.dTot}</td>`+
        `<td class="vn">${r.above?'✓':'·'}</td>`+
@@ -6723,12 +6814,22 @@ function liftFlipNPathDir(){
   syncLiftUI(); render();
 }
 function liftStepPathN(d){
+  if(S.lift.pathLock) return;
   S.lift.pathN=Math.max(1,Math.min(999,S.lift.pathN+d));
+  syncLiftUI(); render();
+}
+function liftResetPathN(){
+  S.lift.pathN=1;
   syncLiftUI(); render();
 }
 function liftSetOp(v){ S.lift.lineOp=Math.max(0.04,Math.min(1,v)); syncLiftUI(); render(); }
 function liftSetDot(v){ S.lift.dotScale=Math.max(0.4,Math.min(4,v)); syncLiftUI(); render(); }
 let _liftPlayId=null;
+function liftResetP(){
+  if(S.lift.spiralLock) return;
+  S.lift.spiralP=2;
+  syncLiftUI(); render();
+}
 function liftPlayP(){
   const btn=document.getElementById('ld-play');
   if(_liftPlayId){
@@ -6736,7 +6837,12 @@ function liftPlayP(){
     if(btn){ btn.textContent='▶ p'; btn.classList.remove('on'); }
     return;
   }
+  if(S.lift.spiralLock) return;
   if(btn){ btn.textContent='■ p'; btn.classList.add('on'); }
+  // Play always starts outward from p = 2, regardless of wherever the
+  // spiral prime currently sits — a stepped-to or typed-in value isn't a
+  // starting point the play sweep should inherit.
+  S.lift.spiralP=2; S.lift.spiralDir='up'; syncLiftUI(); render();
   let dir=1;
   _liftPlayId=setInterval(()=>{
     const before=S.lift.spiralP;
@@ -6764,8 +6870,16 @@ function syncLiftUI(){
   }
   set('ld-sync',L.syncCn); set('ld-mirror',L.mirror); set('ld-dropout',L.dropout);
   set('ld-allp',L.allP); set('ld-alln',L.allN);
+  set('ld-lock',L.spiralLock); set('ld-nplock',L.pathLock);
+  const dis=(id,off)=>{ const e=document.getElementById(id); if(e){ e.disabled=off; e.style.opacity=off?.4:''; } };
+  dis('ld-pminus',L.spiralLock); dis('ld-pplus',L.spiralLock);
+  dis('ld-play',L.spiralLock); dis('ld-reset',L.spiralLock);
+  dis('ld-npminus',L.pathLock); dis('ld-npplus',L.pathLock); dis('ld-npreset',L.pathLock);
   const p=document.getElementById('ld-p');
-  if(p){ p.max=S.G; if(document.activeElement!==p) p.value=liftSpiralP(S.G); }
+  if(p){
+    p.max=S.G; if(document.activeElement!==p) p.value=liftSpiralP(S.G);
+    p.disabled=L.spiralLock; p.style.opacity=L.spiralLock?.4:'';
+  }
   const d=document.getElementById('ld-dir'); if(d) d.textContent=L.spiralDir==='up'?'▲':'▼';
   const nd=document.getElementById('ld-npdir');
   if(nd) nd.textContent=L.npathDir==='both'?'↕':L.npathDir==='up'?'▲':'▼';
@@ -6922,6 +7036,7 @@ function setView(v){
 
   const expBox=document.getElementById('exp-'+v);
   if(expBox) expBox.checked=true;
+  syncSplitUI();
   // Leaving Corridor re-measures the plate before painting. Any resize that
   // arrived while it was hidden was ignored (see fitCanvas), so this is the
   // first chance to pick up a size change — and the one place that guarantees
@@ -6933,6 +7048,52 @@ function setView(v){
     // other dimension's arithmetic — not on every grid↔ring↔cayley switch
     if(dimChanged){ renderTable(); renderDetail(); scrollToSelected(); }
   }
+}
+/* ── split view: a second canvas beside the main one ─────────────────
+   Grid/Ring/Cayley are the only three projections that make sense beside
+   each other — Circle and Corridor are different objects entirely (one an
+   analytic curve, the other a separate 3D scene), so the split toggle and
+   the second-pane picker only apply while the primary view is one of the
+   three, and #plate drops back to a single square the moment you leave
+   them (or enter Corridor/Circle) without losing S.splitOn itself — coming
+   back to Grid/Ring/Cayley restores the split exactly as it was left. */
+function toggleSplit(){
+  S.splitOn=!S.splitOn;
+  if(S.splitOn&&S.splitView===S.view){
+    // a pane can't sit beside itself — bump to whichever of the other two
+    // projections isn't the current primary view
+    S.splitView=['grid','ring','cayley'].find(v=>v!==S.view)||'ring';
+  }
+  syncSplitUI();
+  fitCanvas(); render();
+}
+function setSplitView(v){
+  if(v===S.view) return;  // a pane can't sit beside itself
+  S.splitView=v;
+  syncSplitUI();
+  fitCanvas(); render();
+}
+function syncSplitUI(){
+  const eligible=(S.view==='grid'||S.view==='ring'||S.view==='cayley');
+  const active=S.splitOn&&eligible;
+  const plate=document.getElementById('plate');
+  if(plate) plate.classList.toggle('split',active);
+  const btn=document.getElementById('vw-split');
+  if(btn){
+    btn.classList.toggle('active',S.splitOn);
+    btn.style.opacity=eligible?'':'.4';
+    btn.title=eligible
+      ? 'Show a second projection beside this one — Grid, Ring or Cayley, whichever two of the three you pick. Both panes paint from the exact same (r,M) state, so every click, drag, and playing sweep updates both at once.'
+      : 'Split only applies to Grid, Ring and Cayley — Circle and Corridor are different objects, not another projection of the same lattice.';
+  }
+  const row=document.getElementById('split-row');
+  if(row) row.style.display=active?'flex':'none';
+  ['grid','ring','cayley'].forEach(v=>{
+    const b=document.getElementById('sv-'+v);
+    if(!b) return;
+    b.classList.toggle('on',v===S.splitView);
+    b.style.display=v===S.view?'none':'';  // the primary view can't also be the second pane
+  });
 }
 // Ring and Cayley each keep their own zoom-in and θ, so switching views puts
 // the sliders back where that view left them rather than carrying one view's
@@ -8072,11 +8233,10 @@ function drawFooterWithUrl(ctx,leftText,px,M,y,lineH){
   return ly+lineH;
 }
 // True when the magenta prime-spiral overlay is switched on. The spiral
-// locus r ≡ ±p (mod M) is swept over every ring M ≤ G — it has nothing to
-// do with the single g,s pair the plate otherwise highlights, so an export
-// taken while it's on should describe the spiral itself rather than force
-// in the partition boxes below, which would look like they explain marks
-// they have no connection to.
+// locus r ≡ ±p (mod M) is swept over every ring M ≤ G, on top of whatever
+// g,s pair the plate is already showing — it's an addition to the a/b/c/d
+// strips, not a replacement for them, so exports draw both sets of boxes
+// when this is true (see doExport / doExportCombined).
 function liftSpiralActive(){ return !!(S.lift&&S.lift.on&&S.lift.spiral); }
 // Full, unabbreviated version of dynamicsParts() for an export's own detail
 // line — dynamicsSummary()'s one-liner in the a/b/c/d footer key is kept
@@ -8235,9 +8395,11 @@ function doExportCombined(px,views){
         const r=drawMultiHeader(ctx,px,top,M);
         top=r.top;
       } else if(liftSpiralActive()){
-        // The spiral locus is independent of g,s — describe it instead of
-        // forcing in a partition readout that has nothing to do with it.
+        // The spiral overlay sits on top of the plate's own a/b/c/d strips
+        // for the current g — it doesn't replace them. Both readouts stay
+        // true on export, so both get drawn.
         top=drawSpiralStatBoxes(ctx,px,top,M);
+        top=drawGapStatBoxes(ctx,px,top,M);
       } else {
         // Same partition readout the single-view export shows — otherwise a
         // combined Grid+Ring+Cayley plate only carries G/E/g and the viewer
@@ -8392,10 +8554,11 @@ function doExport(px,viewOverride){
         top=r.top;
         fname=`goldbach-multi-G${S.G}-${S.multiMode}-batch${S.page+1}of${r.pages}${vtag}-${px}.png`;
       } else if(liftSpiralActive()){
-        // ── the spiral overlay is what's actually on screen — the g,s pair
-        // it happens to be sitting on top of would be a misleading caption ──
+        // The spiral overlay sits on top of the plate's own a/b/c/d strips
+        // for the current g — both stay true on export, so both draw.
         top=drawSpiralStatBoxes(ctx,px,top,M);
-        fname=`goldbach-spiral-G${S.G}-p${liftSpiralP(S.G)}${vtag}-${px}.png`;
+        top=drawGapStatBoxes(ctx,px,top,M);
+        fname=`goldbach-spiral-G${S.G}-p${liftSpiralP(S.G)}-g${S.g}${vtag}-${px}.png`;
       } else {
         top=drawGapStatBoxes(ctx,px,top,M);
         fname=`goldbach-diagonal-G${S.G}-g${S.g}${vtag}-${px}.png`;
@@ -8754,6 +8917,7 @@ function doReportPDF(){
   });
   syncPolarControls();
   syncRotUI();
+  syncSplitUI();
   syncLadderUI();
   window.addEventListener('resize',()=>{
     const b=document.getElementById('fupanel-body');
@@ -8778,13 +8942,14 @@ function doReportPDF(){
   setNextSpan(nextSpan); // lights the matching +N chip and fills the window readout
   setLblScale(S.lblScale);
   setLblAdapt(Math.round(S.lblAdapt*100));
-  // The page now opens in overlay mode on E = 390, which carries 27 Goldbach
-  // pairs — the richest even number under G = 200, and divisible by 6, so it
-  // draws primes from both residue classes mod 3. The old default E = 244 had
-  // only 9 pairs and opened in single-gap mode, which showed one line rather
-  // than the structure the page is about. S.multi is already true, so the
-  // panel rows and the button label have to be brought into agreement here
-  // rather than waiting for a click on the toggle.
+  // The page now opens on E = 386 = 193 + 193 — G+1 = 193 is prime, so the
+  // default gap sits at the balanced centre of E, where the sum strip c (and
+  // its mirror d) collapse into one central strip: c is full exactly because
+  // g = 193 is prime. Multi-pair overlay starts off, so this single c/d
+  // strip is what's on screen at boot, not the all-pairs overlay. Lift
+  // dynamics starts on with the spiral at its own default p = 2, independent
+  // of the gap g — ▶ p always plays outward from 2 unless the spiral is
+  // locked.
   if(S.multi){
     const b=document.getElementById('ch-multi');
     b.textContent='On — overlay'; b.classList.add('on');
