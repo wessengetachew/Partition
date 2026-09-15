@@ -1294,6 +1294,7 @@ walk anyway.</p>
       <div id="export-preview-slot"></div>
     </div>
     <div class="ctrls" style="margin-top:14px;">
+      <span id="export-msg" class="hint" style="display:none;color:var(--coral);flex:1 1 100%;"></span>
       <button class="btn" id="export-go-btn" onclick="runExport()" title="Compose the selected views at the chosen resolution and download.">&#8681; Download PNG</button>
       <button class="btn" onclick="closeExportModal()">Cancel</button>
     </div>
@@ -3153,6 +3154,35 @@ function totalPartPages() {
 function currentPartBatch() {
   const bs = partBatch || partItems.length;
   return partItems.slice(partPage * bs, partPage * bs + bs);
+}
+/* What the partition band shows for a batch overlay (pairs / run / all /
+   picked): the same items currently on the plate, in the same order and the
+   same colours, with anything the reader collapsed left out. Single-mode
+   overlays already say everything they need to in the header line above, so
+   this only fires for the multi-partition modes. */
+function partBatchItems() {
+  if (partMode === 'single' || partMode === 'off') return [];
+  return currentPartBatch().filter(it => !partHidden.has(it.g));
+}
+/* Word-wraps the batch items into swatch+label chips across width w, without
+   needing a live canvas context — JetBrains Mono is a true monospace face,
+   so a character-count estimate at this font size tracks the real measured
+   width closely enough to lay the chips out before the export canvas (and
+   its ctx.measureText) exist yet. The same estimate is reused when actually
+   painting the chips, so the box drawn always matches the box sized. */
+function layoutPartChips(items, w, S) {
+  const px = 14.5 * S, padX = 18 * S, gapX = 14 * S, swW = 12 * S, swGap = 6 * S, chipH = 26 * S;
+  const maxX = w - padX;
+  let cx = padX, rows = [[]];
+  items.forEach(it => {
+    const label = it.g + ' + ' + it.s;
+    const tw = label.length * px * 0.62;
+    const chipW = swW + swGap + tw + gapX;
+    if (cx + chipW > maxX && rows[rows.length - 1].length) { rows.push([]); cx = padX; }
+    rows[rows.length - 1].push({ it, x: cx, w: chipW, label });
+    cx += chipW;
+  });
+  return { rows, rowCount: rows.length, chipH, swW, swGap, px };
 }
 
 /* ── what gets drawn ──────────────────────────────────────────────────────
@@ -5387,9 +5417,13 @@ function drawColourRamp(ctx, mode, x, y, w, S) {
 function drawPartBand(ctx, x, y, w, S, rows) {
   const E = partE(), g = Math.max(1, Math.min(COP_G + 1, partG)), sVal = E - g;
   const pair = isPrime(g) && isPrime(sVal);
+  const batchItems = rows.length ? [] : partBatchItems();
+  const chips = batchItems.length ? layoutPartChips(batchItems, w, S) : null;
   ctx.save();
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  const h = 44 * S + 30 * S * Math.max(1, rows.length);
+  const h = rows.length ? 44 * S + 30 * S * Math.max(1, rows.length)
+    : chips ? 54 * S + chips.rowCount * chips.chipH + 16 * S
+    : 82 * S;
   // Gold, not coral. Coral now means the block walk everywhere else on the
   // page, and a coral band over a partition overlay read as if the two were
   // the same thing. The per-strip rows keep their own plate colours, which
@@ -5408,11 +5442,28 @@ function drawPartBand(ctx, x, y, w, S, rows) {
     x + 18 * S, y + 24 * S);
 
   if (!rows.length) {
-    ctx.font = (15 * S) + 'px ' + MONO; ctx.fillStyle = PAL.cream3;
-    ctx.fillText(partMode === 'single'
-      ? 'both strip families are switched off \u2014 nothing drawn'
-      : 'batch mode \u2014 per-strip densities are listed for the single-partition overlay',
-      x + 18 * S, y + 58 * S);
+    if (!chips) {
+      ctx.font = (15 * S) + 'px ' + MONO; ctx.fillStyle = PAL.cream3;
+      ctx.fillText((partMode === 'single' || partMode === 'off')
+        ? 'both strip families are switched off \u2014 nothing drawn'
+        : 'nothing in this batch is currently drawn',
+        x + 18 * S, y + 58 * S);
+      ctx.restore(); return;
+    }
+    // Every partition actually on the plate, one swatch-and-label chip per
+    // pair, in the plate's own colour — the detail that used to be a plain
+    // grey placeholder here (and a separate, easily-clipped line in the
+    // footer) now lives together on the left, where there was empty room.
+    ctx.font = chips.px + 'px ' + MONO;
+    chips.rows.forEach((row, ri) => {
+      const ry = y + 54 * S + ri * chips.chipH + chips.chipH / 2;
+      row.forEach(cell => {
+        const rgb = itemRGB(cell.it);
+        ctx.fillStyle = 'rgb(' + rgb.join(',') + ')';
+        ctx.fillRect(x + cell.x, ry - chips.swW / 2, chips.swW, chips.swW);
+        ctx.fillText(cell.label, x + cell.x + chips.swW + chips.swGap, ry);
+      });
+    });
     ctx.restore(); return;
   }
   rows.forEach((rw, i) => {
@@ -5446,8 +5497,9 @@ function drawPartBand(ctx, x, y, w, S, rows) {
   });
   ctx.restore();
 }
-async function exportPNG(px, views) {
+async function exportPNG(pxReq, views) {
   if (!COP) return;
+  let px = pxReq;
   views = (views && views.length) ? views : [viewMode];
   if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
   const S = px / 1920;                       // every dimension below is at 1920
@@ -5491,14 +5543,49 @@ async function exportPNG(px, views) {
   // colour, equation and measured density per strip — and the header grows to
   // fit it rather than the band being squeezed into space meant for prose.
   const pRows = partStripRows();
-  const pBandH = (partMode === 'off') ? 0 : (52 + 30 * Math.max(1, pRows.length)) * S;
+  let pBandH = 0;
+  if (partMode !== 'off') {
+    if (pRows.length) {
+      pBandH = (52 + 30 * Math.max(1, pRows.length)) * S;
+    } else {
+      const batchItems = partBatchItems();
+      pBandH = batchItems.length
+        ? (54 + 16) * S + layoutPartChips(batchItems, px - 2 * m, S).rowCount * (26 * S)
+        : 82 * S;
+    }
+  }
   const baseHeaderH = 560 * S + pBandH;
   const headerH = baseHeaderH + compareBandH + tagGapH, footerH = 172 * S;
-  const H = Math.round(headerH + plateBlockH + legendRowH + footerH);
+  let H = Math.round(headerH + plateBlockH + legendRowH + footerH);
 
+  /* Phones cap total canvas AREA, not just side length — iOS around 16.7M
+     pixels, Android by available memory. Past the cap the allocation does
+     not throw: you get a canvas that silently refuses to paint, or a toBlob
+     that hands back null. Either way the download button appeared to do
+     nothing. Scale the plate to fit and say so, rather than composing
+     something the device cannot hold. */
+  const MAX_AREA = 16000000;
+  let scale = 1, cvW = px, cvH = H;
+  if (px * H > MAX_AREA) {
+    scale = Math.sqrt(MAX_AREA / (px * H));
+    cvW = Math.max(640, Math.round(px * scale));
+    cvH = Math.round(H * scale);
+  }
   const cv = document.createElement('canvas');
-  cv.width = px; cv.height = H;
+  cv.width = cvW; cv.height = cvH;
+  if (cv.width !== cvW || cv.height !== cvH) throw new Error('canvas ' + cvW + '\u00d7' + cvH + ' refused by this device');
   const ctx = cv.getContext('2d');
+  if (!ctx) throw new Error('no 2d context at ' + cvW + '\u00d7' + cvH);
+  // Every coordinate below was computed against the ORIGINAL requested px/H
+  // (that's what S, m, W and everything derived from them are in terms of).
+  // px and H themselves are deliberately left alone here — reassigning them
+  // to the shrunk physical size used to double-apply the shrink: the
+  // transform below already maps this logical px×H space onto the smaller
+  // cvW×cvH canvas, so anything drawn using a reassigned px (fillRect(0,0,
+  // px,H), the px/2 centreline, right-aligned px−m text…) would get scaled
+  // down a second time and land short of the actual canvas edge — which is
+  // exactly the blank strip down the right/bottom of a capped export.
+  if (scale !== 1) ctx.setTransform(scale, 0, 0, scale, 0, 0);
   ctx.fillStyle = PAL.bg; ctx.fillRect(0, 0, px, H);
   ctx.textBaseline = 'middle';
 
@@ -5729,32 +5816,80 @@ async function exportPNG(px, views) {
   ctx.fillText('lens ' + (LENS_ON ? 'on' : 'off') + '   ·   zoom ' + LENS_ZOOM + '×   ·   place ' +
     LENS_PIN + '   ·   size ' + lensSize + 'px   ·   G² = ' + cells.toLocaleString() + ' points',
     m, fy + 27 * S);
-  ctx.fillText('C(n) block-coprime density   ·   Strip Arithmetic II   ·   part II of the strip series',
+  ctx.fillText('C(n) block-coprime density   ·   Strip Arithmetic II   ·   part II of the strip series' +
+    (scale !== 1 ? '   ·   scaled to ' + cvW + '×' + cvH + ' to fit this device' : ''),
     m, fy + 54 * S);
-  if (partMode !== 'off') {
-    const shown = partMode === 'single' ? [partG] : currentPartBatch().filter(it => !partHidden.has(it.g)).map(it => it.g);
-    ctx.fillStyle = PAL.coral;
-    ctx.fillText('partitions ' + partMode + '   ·   E = ' + partE() +
-      '   ·   ' + goldbachGaps().length + ' Goldbach pairs   ·   drawn ' + shown.length +
-      ' {' + shown.slice(0, 24).join(',') + (shown.length > 24 ? ',…' : '') + '}',
-      m, fy + 81 * S);
-    ctx.fillStyle = PAL.cream3;
-  }
+  // The partition detail — which pairs are drawn, in which colours — now
+  // lives in the band above the plate instead of a fourth footer line, and
+  // the companion-page link no longer shares a row with anything, so this
+  // corner never collides with the parameter line opposite it.
   ctx.textAlign = 'right'; ctx.fillStyle = PAL.cream3;
-  ctx.fillText('wessengetachew.github.io', px - m, fy);
-  ctx.fillStyle = PAL.coral;
-  ctx.fillText('Strip I · wessengetachew.github.io/Partition', px - m, fy + 54 * S);
+  ctx.fillText('wessengetachew.github.io', px - m, fy + 81 * S);
 
   dl(cv, 'strips2-' + (walkMode === 'band' ? 'band-w' + widthW : 'strip-' +
       slopeA + '_' + slopeB + '-s' + offS + '-w' + widthW) + '-G' + COP_G +
-      '-' + views.join('+') + '-' + px + '.png');
+      '-' + views.join('+') + '-' + cvW + '.png');
 }
 function dl(cv, name) {
-  cv.toBlob(b => {
+  // toBlob hands back null when the canvas is larger than the device will
+  // encode, and that failure used to vanish inside this callback — the
+  // click simply did nothing. Fall back to a data URL, and if that fails
+  // too, say so rather than leaving the reader pressing a dead button.
+  /* The real reason the button did nothing on a phone: exportPNG is async.
+     It awaits document.fonts.ready and then toBlob's callback, by which time
+     the user-gesture context that authorised the click is gone — and mobile
+     Chrome silently refuses a programmatic download outside a gesture. No
+     error, no download, nothing to catch.
+
+     So the automatic click stays as the desktop path, and the image is ALSO
+     offered as a real link in the dialog. Tapping that link is itself a
+     gesture, which no browser blocks. */
+  const save = (href) => {
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(b); a.download = name; a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  });
+    a.href = href; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    offerManualSave(href, name);
+    if (href.indexOf('blob:') === 0) setTimeout(() => URL.revokeObjectURL(href), 120000);
+  };
+  try {
+    cv.toBlob(b => {
+      if (b) { save(URL.createObjectURL(b)); return; }
+      try { save(cv.toDataURL('image/png')); }
+      catch (e) {
+        exportFail('This device could not encode a ' + cv.width + '\u00d7' + cv.height +
+                   ' PNG. Try a smaller resolution.');
+      }
+    });
+  } catch (e) {
+    try { save(cv.toDataURL('image/png')); }
+    catch (e2) { exportFail('Export failed: ' + (e2.message || e2)); }
+  }
+}
+/* Errors in the export path were swallowed by runExport's finally, which
+   reset the button and said nothing at all. */
+function exportFail(msg) {
+  const el = $('export-msg');
+  if (el) { el.innerHTML = ''; el.textContent = msg; el.style.display = ''; }
+  else alert(msg);
+}
+/* A tappable link to the composed image. Present always, not only on
+   failure: on mobile it is usually the path that actually works, and a
+   reader should not have to guess that the silent button failed. */
+function offerManualSave(href, name) {
+  const el = $('export-msg');
+  if (!el) return;
+  el.innerHTML = '';
+  el.style.display = '';
+  el.style.color = 'var(--teal)';
+  const a = document.createElement('a');
+  a.href = href; a.download = name;
+  a.textContent = '\u2b07 Save ' + name;
+  a.style.color = 'var(--teal)';
+  a.style.textDecoration = 'underline';
+  const tip = document.createElement('span');
+  tip.textContent = '  \u2014 if the download did not start, tap this (long-press to open in a viewer)';
+  tip.style.color = 'var(--cream3)';
+  el.appendChild(a); el.appendChild(tip);
 }
 
 /* Export modal — pick any of Grid/Ring/Cayley (one, two, or all three),
@@ -5825,9 +5960,14 @@ function updateExportPreview() {
 async function runExport() {
   const btn = $('export-go-btn');
   const wasText = btn.textContent;
+  const msg = $('export-msg');
+  if (msg) { msg.style.display = 'none'; msg.innerHTML = ''; msg.style.color = 'var(--coral)'; }
   btn.textContent = 'Composing\u2026'; btn.disabled = true;
+  guardFSForExport();
   try {
     await exportPNG(exportRes, orderedExportViews());
+  } catch (e) {
+    exportFail('Export failed: ' + (e && e.message ? e.message : e));
   } finally {
     btn.textContent = wasText; btn.disabled = false;
   }
@@ -6231,6 +6371,7 @@ function nbrCSV() {
 }
 async function exportComet(px) {
   if (!RN) return;
+  guardFSForExport();
   if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
   const S = px / 1920, m = 84 * S;
   const plotW = px - 2 * m, plotH = plotW * 0.42;
@@ -8306,13 +8447,27 @@ function exitBrowserFS() {
   if (!ex) return;
   try { const p = ex.call(document); if (p && p.catch) p.catch(() => {}); } catch (e) {}
 }
+// Several browsers drop real Fullscreen API fullscreen the instant a
+// download fires — a native save prompt isn't allowed while fullscreen, so
+// they silently exit it themselves before the file even lands. That is not
+// the reader asking to leave; it's a side effect of the Export button they
+// just pressed. runExport() sets this guard for the few seconds an export
+// can take, so the fullscreenchange handler below can tell the difference.
+let exportFSGuardUntil = 0;
+function guardFSForExport() {
+  if (document.body.classList.contains('fs-open')) exportFSGuardUntil = Date.now() + 15000;
+}
 // If the OS/browser exits fullscreen on its own (back gesture, swipe, etc.)
 // without going through our exit button, fold our overlay state back too so
-// the two never get out of sync.
+// the two never get out of sync. An export-triggered exit is the one
+// exception: the pinned plate and collapsed toolbar stay exactly as they
+// were, and we quietly ask the browser for real fullscreen back so the
+// address bar disappears again without the reader having to tap anything.
 function onBrowserFSChange() {
   const inFS = document.fullscreenElement || document.webkitFullscreenElement ||
                document.mozFullScreenElement || document.msFullscreenElement;
   if (inFS || !document.body.classList.contains('fs-open')) return;
+  if (Date.now() < exportFSGuardUntil) { requestBrowserFS(); return; }
   ['cv', 'cv2'].forEach(id => {
     const w = $(id).parentElement;
     if (w.classList.contains('fs-pin')) { w.classList.remove('fs-pin'); setFSButtonState(id, false); }
