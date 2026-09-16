@@ -422,12 +422,28 @@ canvas.main{display:block;width:100%;height:auto;cursor:crosshair;touch-action:n
 .fs-btn:hover{border-color:var(--teal);color:var(--teal);}
 body.fs-open .quickbar{display:none;}
 .fs-lockbar{display:none;}
-body.fs-open .fs-lockbar{display:flex;position:fixed;left:0;right:0;top:var(--canvbot,0px);
-  height:26px;box-sizing:border-box;z-index:790;background:var(--bg1);
+/* Two rows, always — one per readout half — rather than one row that either
+   scrolls sideways or silently clips once G or the slope label gets long.
+   Same fix already used for .cvbar below a certain width; applied here
+   unconditionally, since a locked bar with a hidden scrollbar is easy to
+   miss entirely. */
+body.fs-open .fs-lockbar{display:flex;flex-wrap:wrap;position:fixed;left:0;right:0;top:var(--canvbot,0px);
+  box-sizing:border-box;z-index:790;background:var(--bg1);
   border-bottom:1px solid var(--edge2);font-family:var(--mono);font-size:10.5px;
-  color:var(--cream2);padding:5px 12px;gap:14px;align-items:center;
-  white-space:nowrap;overflow-x:auto;}
+  line-height:1.6;color:var(--cream2);padding:5px 12px;gap:2px 14px;align-items:center;}
+.fs-lockbar>#bar-l,.fs-lockbar>#bar-r{flex:1 1 100%;white-space:normal;}
 .fs-lockbar b{color:var(--gold);}
+/* Third locked row: only present while the partition overlay is on, so it
+   sits right under the readout with no gap when the overlay is off. */
+.fs-partbar{display:none;}
+body.fs-open.part-on .fs-partbar{display:flex;position:fixed;left:0;right:0;top:var(--lockbot,0px);
+  height:26px;box-sizing:border-box;z-index:789;background:var(--bg1);
+  border-bottom:1px solid var(--edge2);font-family:var(--mono);font-size:10.5px;
+  color:var(--cream2);padding:5px 12px;gap:10px;align-items:center;}
+.fs-partbar .lbl{color:var(--cream3);flex:none;}
+.fs-partbar select{flex:1 1 auto;min-width:0;background:var(--bg2,#0a0a16);color:var(--cream2);
+  border:1px solid var(--edge2);border-radius:3px;font-family:var(--mono);font-size:10.5px;
+  padding:2px 6px;}
 body.fs-open #content{padding-top:var(--fsh,50vh);}
 .cvwrap.fs-pin{position:fixed;top:var(--navh,0px);left:0;right:0;width:100%;z-index:800;
   display:flex;align-items:center;justify-content:center;border-left:none;border-right:none;
@@ -804,18 +820,17 @@ walk anyway.</p>
     <span class="plabel">Presets</span>
     <button class="chip"    id="ps-f12"   onclick="preset('f12')" title="Slope 1/2. The general a/b case — a Farey ray, where the mediant structure lives.">Farey ray · 1/2</button>
     <button class="chip"    id="ps-f23"   onclick="preset('f23')" title="Slope 2/3. Between 1/2 and 1/1 in the Stern–Brocot tree.">Farey ray · 2/3</button>
+    <button class="chip on" id="ps-slopelock" onclick="togglePartSlopeLock()" title="Same switch as &quot;Lock strip to pairs&quot; in the Goldbach overlay panel. With an overlay up (any slope): offset = −p, width = 2p, p between the first prime of the first pair and of the last pair (lands on the last). Turn it off to keep a Farey ray alongside the pairs.">Lock strip to pairs</button>
   </div>
 
-  <!-- The readout and the view switch live with the controls, directly above
-       G, rather than under the plate. They are what you watch while turning a
-       knob, and under the plate they sat below the lens rows where every
-       adjustment meant scrolling away from the numbers it changed. -->
-  <!-- Locked readout: fixed just below the pinned canvas in fullscreen so it
-       stays on screen while the rest of the drawer scrolls underneath it. -->
-  <div class="fs-lockbar" id="fs-lockbar">
-    <span id="bar-l">—</span>
-    <span id="bar-r">—</span>
-  </div>
+  <!-- The view switch lives with the controls, directly above G, rather than
+       under the plate. It is what you watch while turning a knob, and under
+       the plate it sat below the lens rows where every adjustment meant
+       scrolling away from the numbers it changed. The locked readout used to
+       sit here too, but that made it a descendant of the "Controls" fold —
+       collapse Controls and the readout vanished with it, fullscreen or not.
+       It now lives outside the fold, right after the canvas, where nothing
+       can hide it out from under the reader. -->
   <div class="viewnote" id="view-note"></div>
 
   <div class="prow">
@@ -1050,6 +1065,24 @@ walk anyway.</p>
     <div id="lensinfo"></div>
   </div>
 
+  <!-- Locked readout: fixed just below the pinned canvas in fullscreen so it
+       stays on screen while the rest of the drawer scrolls underneath it.
+       Deliberately outside the "Controls" fold above — a sibling of it, not
+       a descendant — so collapsing Controls can no longer take this with
+       it. -->
+  <div class="fs-lockbar" id="fs-lockbar">
+    <span id="bar-l">—</span>
+    <span id="bar-r">—</span>
+  </div>
+  <!-- Second locked row, directly under the readout, for jumping straight to
+       any Goldbach pair of the current E without hunting through the
+       drawer. Only relevant — and only shown — while the partition overlay
+       is actually on. -->
+  <div class="fs-partbar" id="fs-partbar">
+    <span class="lbl">Goldbach pairs</span>
+    <select id="fs-part-select" onchange="fsPartJumpSelect(this.value)"></select>
+  </div>
+
   <div class="panel collapsed" id="view-panel" style="margin:10px 0 22px;">
     <div class="ptitle" onclick="togglePanel(this)"><span>View &mdash; Grid, Ring, Cayley</span><span class="car">&#9662;</span></div>
     <div class="pbody">
@@ -1224,6 +1257,9 @@ walk anyway.</p>
       <span class="lbl">strips</span>
       <button class="chip on" id="part-sum" onclick="togglePartShow('sum')" title="c (r+M=g) and d (r+M=s) — the sum pair the Goldbach verdict reads.">sum c d</button>
       <button class="chip on" id="part-diff" onclick="togglePartShow('diff')" title="a (M&minus;r=g) and b (r&minus;M=g) — the difference pair, transposes of one another.">diff a b</button>
+      <div class="sep"></div>
+      <button class="chip on" id="part-slopelock" onclick="togglePartSlopeLock()"
+              title="Sets the main strip to a symmetric band −p ≤ b·r − a·M < p at whatever slope is dialed (offset = −p, width = 2p). p runs from the first prime of the first Goldbach pair drawn up to the first prime of the last one; the lock lands on that max. While on, the offset and width controls only travel inside that range and move together.">Lock strip to pairs</button>
       <div class="sep"></div>
       <span class="lbl">off-gcd</span>
       <input type="range" id="part-offgcd" min="0" max="100" value="22" oninput="setPartOff(+this.value)" style="width:100px">
@@ -3004,7 +3040,7 @@ function paintViewInner(ctx, S, cap) {
     drawRingBase(ctx, S, cap);
     dimPlateIfPartition(ctx, S);
     if (walkMode === 'band') drawRingBand(ctx, S);
-    else if (showStrip) drawRingStrip(ctx, S);
+    if (showStrip) drawRingStrip(ctx, S);
     if (ringGuides) drawRingGuides(ctx, S);
     drawUnitVoid(ctx, S);
     drawPartitionsOverlay(ctx, S);
@@ -3016,7 +3052,7 @@ function paintViewInner(ctx, S, cap) {
   ctx.imageSmoothingEnabled = true;
   dimPlateIfPartition(ctx, S);
   if (walkMode === 'band') drawBandOverlay(ctx, S);
-  else if (showStrip) drawStripOverlay(ctx, S);
+  if (showStrip) drawStripOverlay(ctx, S);
   drawPartitionsOverlay(ctx, S);
   // Labels go LAST. They used to be drawn before the partition overlay, which
   // then painted over them — switching partitions on silently removed every
@@ -3371,23 +3407,14 @@ function jumpToGoldbachStrip(g) {
 }
 
 /* ── mode, focus and the steppers ─────────────────────────────────────── */
-/* Turning the overlay on stands the main slope/offset strip down. The two are
-   drawing different things in the same coral-ish register — the main strip is
-   one band at (slope, s, w), the overlay is four lines per partition — and on
-   top of each other they read as one confused picture. The state is
-   remembered, not discarded: switching the overlay back off puts the strip
-   back exactly if the overlay is what hid it, and leaves it alone if you had
-   already switched it off yourself. */
-let stripHiddenByParts = false;
-function syncStripVisibility() {
-  const wantHidden = partMode !== 'off';
-  if (wantHidden && showStrip) { stripHiddenByParts = true; toggleStrip(); }
-  else if (!wantHidden && stripHiddenByParts) { stripHiddenByParts = false; if (!showStrip) toggleStrip(); }
-  else if (!wantHidden) stripHiddenByParts = false;
-}
 function setPartMode(m) {
   partMode = m; partPage = 0;
-  syncStripVisibility();
+  // Turning the overlay on used to stand the main slope/offset strip down
+  // automatically, on the theory that a band and four lines per partition in
+  // the same coral-ish register read as one confused picture. Now that the
+  // strip can be locked to frame the partitions themselves (see "Lock strip
+  // to pairs"), the two are meant to be looked at together by default —
+  // nothing here touches showStrip any more.
   // A hand-picked set, a run, and "all partitions" are all meant to be seen
   // whole: batching any of them would hide most of what the reader just
   // asked for. computePartItems() below still falls back to a batch of 40
@@ -3408,6 +3435,85 @@ function togglePartShow(k) {
   partShow[k] = !partShow[k];
   $('part-' + k).classList.toggle('on', partShow[k]);
   redraw(false);
+}
+/* Lock the main strip's offset and width to the Goldbach pairs on the plate.
+   The strip is symmetric about v = 0 (v = b·r − a·M, any slope):
+   offset = −p, width = 2p, i.e. −p ≤ v < p. p is bounded by the pairs themselves:
+     min p = the first prime of the FIRST Goldbach pair drawn,
+     max p = the first prime of the LAST  Goldbach pair drawn.
+   The lock lands on the max (the band that frames the whole run). While it
+   is on, the offset and width controls are still live but can only travel
+   between those two bounds, and moving one moves the other to match.
+   If nothing drawn is an actual pair (a run of near-misses, or a single
+   non-prime gap), the smallest and largest g drawn stand in. */
+let partSlopeLock = true;
+function togglePartSlopeLock() {
+  partSlopeLock = !partSlopeLock;
+  // Two buttons drive this one switch (overlay panel and the Presets row);
+  // keep both lit the same.
+  for (const id of ['part-slopelock', 'ps-slopelock']) {
+    const el = $(id); if (el) el.classList.toggle('on', partSlopeLock);
+  }
+  if (partSlopeLock) applyPartSlopeLock(true);
+  else partLockSliders(null);
+}
+function partLockRange() {
+  if (!partSlopeLock || partMode === 'off') return null;
+  const items = partMode === 'single'
+    ? [{ g: partG, kind: isPrime(partG) && isPrime(partE() - partG) ? 'pair' : 'none' }]
+    : currentPartBatch().filter(it => !partHidden.has(it.g));
+  if (!items.length) return null;
+  const pairs = items.filter(it => it.kind === 'pair');
+  const src = (pairs.length ? pairs : items).map(it => it.g);
+  // "first pair" / "last pair" in the order the plate lists them, which is
+  // ascending g in every mode — min/max says the same thing robustly.
+  return { lo: Math.max(1, Math.min(...src)), hi: Math.max(1, Math.max(...src)) };
+}
+/* Narrow (or restore) the offset and width sliders to the lock's range, so
+   the thumbs travel exactly min p .. max p on a phone. */
+function partLockSliders(R) {
+  const os = $('off-sl'), ws = $('w-sl');
+  if (!os || !ws) return;
+  if (R) {
+    os.min = -R.hi; os.max = -R.lo;
+    ws.min = 2 * R.lo; ws.max = 2 * R.hi;
+  } else {
+    os.min = -G; os.max = G;
+    ws.min = 1; ws.max = Math.max(1, Math.min(8192, 2 * G));
+  }
+  os.value = offS; ws.value = widthW;
+}
+let _partLocking = false;
+function setPartLockP(p) {
+  _partLocking = true;
+  try {
+    if (offS !== -p) onOff(-p);
+    if (widthW !== 2 * p) onW(2 * p);
+  } finally { _partLocking = false; }
+}
+function applyPartSlopeLock(toMax) {
+  const R = partLockRange();
+  if (!R) { partLockSliders(null); return; }
+  // Slope is left alone: the lock only governs offset and width, so the
+  // band −p ≤ b·r − a·M < p follows whatever slope the reader has dialed.
+  // Keep a p the reader chose if it still fits the new range and the band is
+  // still in locked shape; otherwise snap to the max.
+  const p = -offS;
+  const keep = !toMax && widthW === 2 * p && p >= R.lo && p <= R.hi;
+  setPartLockP(keep ? p : R.hi);
+  partLockSliders(R);
+}
+/* Called from onOff / onW on a manual edit. Returns true if the lock took
+   the edit over (clamped it and set the partner control). */
+function partLockEdit(kind, v) {
+  if (_partLocking) return false;
+  const R = partLockRange();
+  if (!R) return false;
+  let p = kind === 'off' ? Math.abs(Math.round(v) || 0) : Math.round((Math.round(v) || 0) / 2);
+  p = Math.max(R.lo, Math.min(R.hi, p));
+  setPartLockP(p);
+  partLockSliders(R);
+  return true;
 }
 function setPartOff(v) {
   partOff = Math.max(0, Math.min(1, v / 100));
@@ -3601,8 +3707,29 @@ function syncPartUI() {
   if (gbox && document.activeElement !== gbox) gbox.value = partG;
   const geq = $('part-g-eq');
   if (geq) geq.textContent = partE() + ' = ' + partG + ' + ' + (partE() - partG);
+  document.body.classList.toggle('part-on', partMode !== 'off');
   renderPartLegend();
+  renderFSPartSelect();
   renderPartHud();
+  applyPartSlopeLock();
+}
+/* The fullscreen pairs dropdown — every actual Goldbach pair of the current
+   E (not the batch, which can include the non-prime near-misses too; this
+   row is specifically for jumping straight to a pair). Selecting one drops
+   into 'single' mode on that pair, the same move the legend's own jump
+   arrow makes. */
+function renderFSPartSelect() {
+  const sel = $('fs-part-select'); if (!sel) return;
+  if (partMode === 'off') { sel.innerHTML = ''; return; }
+  const E = partE(), pairs = goldbachGaps(), cur = String(partG);
+  sel.innerHTML = pairs.length
+    ? pairs.map(g => '<option value="' + g + '"' + (String(g) === cur ? ' selected' : '') +
+        '>' + g + ' + ' + (E - g) + '</option>').join('')
+    : '<option value="">no Goldbach pairs at this E</option>';
+}
+function fsPartJumpSelect(v) {
+  if (v === '') return;
+  jumpPartItem(+v);
 }
 function renderPartHud() {
   const el = $('part-hud'); if (!el) return;
@@ -4591,7 +4718,7 @@ function drawCayley(ctx, S) {
   dimPlateIfPartition(ctx, S);
   if (cayGuides) drawCayleyGuides(ctx, S);
   if (walkMode === 'band') drawCayleyBand(ctx, S);
-  else if (showStrip) drawCayleyStripAt(ctx, S, offS, 'rgba(61,200,184,.95)');
+  if (showStrip) drawCayleyStripAt(ctx, S, offS, 'rgba(61,200,184,.95)');
   drawPartitionsOverlay(ctx, S);
 }
 
@@ -4849,6 +4976,7 @@ function reslope() {
   redraw(false);
 }
 function onOff(v) {
+  if (partLockEdit('off', v)) return;
   offS = Math.round(v) || 0;
   $('off-v').textContent = offS;
   $('off-num').value = offS;
@@ -4872,6 +5000,7 @@ function fullWidth() {
   return Math.max(1, Math.max(...corners) - Math.min(...corners) + 1);
 }
 function onW(v) {
+  if (partLockEdit('w', v)) return;
   widthW = Math.max(1, Math.round(v) || 1);
   $('w-v').textContent = widthW;
   $('w-num').value = widthW;
@@ -5134,9 +5263,6 @@ function updateViewNote() {
 
 function toggleStrip() {
   showStrip = !showStrip;
-  // switched on by hand while the overlay is up — the overlay no longer owns
-  // this state, so it must not switch it back off later
-  if (showStrip) stripHiddenByParts = false;
   // There are two of these now — one in the render row, one beside the
   // partition modes, since that is where the reader is standing when the
   // overlay switches it off. Both must read the same state.
@@ -5181,6 +5307,9 @@ function applyStrip(P) {
     $('w-sl').value = Math.min(P.w, +$('w-sl').max);
     $('w-blk').textContent = 'block n = ' + (P.w - 1);
     markPrime('off-pt', P.s); markPrime('w-pt', P.w);
+    // With the pair lock on and an overlay up, a preset brings its slope
+    // and walk but the lock sets offset and width straight away.
+    applyPartSlopeLock(true);
     syncPresetChips();
     redraw(false);
   };
@@ -6857,15 +6986,15 @@ function drawLens(px, py) {
       }
       lctx.fillStyle = 'rgba(' + col[0] + ',' + col[1] + ',' + col[2] + ',' + (col[3] / 255) + ')';
       lctx.fillRect(lx, ly, w + .5, w + .5);
-      // Band and strip are the two walks, mutually exclusive on the plate
-      // itself (drawBandOverlay / drawStripOverlay) — the lens was only ever
-      // re-drawing the strip case and silently had nothing for band mode.
-      if (walkMode === 'band') {
-        if (inBand(r, M, widthW, g)) {
-          lctx.fillStyle = 'rgba(224,80,96,.85)';
-          lctx.fillRect(lx, ly, w + .5, w + .5);
-        }
-      } else if (showStrip && inStrip(r, M)) {
+      // Band and strip are independent walks that can both be live on the
+      // plate now (drawBandOverlay/drawStripOverlay no longer gate on each
+      // other), so the lens paints both tints here too instead of only ever
+      // one.
+      if (walkMode === 'band' && inBand(r, M, widthW, g)) {
+        lctx.fillStyle = 'rgba(224,80,96,.85)';
+        lctx.fillRect(lx, ly, w + .5, w + .5);
+      }
+      if (showStrip && inStrip(r, M)) {
         lctx.fillStyle = 'rgba(61,200,184,.16)';
         lctx.fillRect(lx, ly, w + .5, w + .5);
       }
@@ -6890,7 +7019,7 @@ function drawLens(px, py) {
   // The strip's crisp double-stroked boundary — the plate draws this as one
   // polygon (drawStripOverlay), not per-cell, so the lens was showing a flat
   // tint with no edge where the real strip has a sharp bordered line.
-  if (walkMode !== 'band' && showStrip && slopeB) {
+  if (showStrip && slopeB) {
     const edgeAt = (off) => {
       const p = [];
       for (let M = Math.max(0, m0 - 1); M <= Math.min(g, m1 + 1); M++) {
@@ -8368,7 +8497,17 @@ function syncFSChrome(wrapEl, sizePx) {
   wrapEl.style.height = sizePx + 'px';
   const canvBot = navh + sizePx;
   document.documentElement.style.setProperty('--canvbot', canvBot + 'px');
-  document.documentElement.style.setProperty('--fsh', (canvBot + 27) + 'px');
+  // Measured, not assumed: the readout now wraps onto exactly two lines of
+  // whatever its own content needs (a touch taller at some sizes than
+  // others), and the Goldbach-pairs row only exists at all while the
+  // partition overlay is on. Hard-coding a height here is exactly what
+  // silently breaks the moment either one's content changes.
+  const lockbar = document.getElementById('fs-lockbar');
+  const lockH = (lockbar && getComputedStyle(lockbar).display !== 'none') ? lockbar.getBoundingClientRect().height : 0;
+  document.documentElement.style.setProperty('--lockbot', (canvBot + lockH) + 'px');
+  const partbar = document.getElementById('fs-partbar');
+  const partH = (partbar && getComputedStyle(partbar).display !== 'none') ? partbar.getBoundingClientRect().height : 0;
+  document.documentElement.style.setProperty('--fsh', (canvBot + lockH + partH + 1) + 'px');
 }
 /* Entering fullscreen, the first thing below the pinned canvas should be the
    controls, not the prose — so §1 folds up and the control drawer opens. Both
