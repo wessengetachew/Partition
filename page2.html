@@ -820,7 +820,7 @@ walk anyway.</p>
     <span class="plabel">Presets</span>
     <button class="chip"    id="ps-f12"   onclick="preset('f12')" title="Slope 1/2. The general a/b case — a Farey ray, where the mediant structure lives.">Farey ray · 1/2</button>
     <button class="chip"    id="ps-f23"   onclick="preset('f23')" title="Slope 2/3. Between 1/2 and 1/1 in the Stern–Brocot tree.">Farey ray · 2/3</button>
-    <button class="chip on" id="ps-slopelock" onclick="togglePartSlopeLock()" title="Same switch as &quot;Lock strip to pairs&quot; in the Goldbach overlay panel. With an overlay up (any slope): offset = −p, width = 2p, p between the first prime of the first pair and of the last pair (lands on the last). Turn it off to keep a Farey ray alongside the pairs.">Lock strip to pairs</button>
+    <button class="chip" id="ps-slopelock" onclick="togglePartSlopeLock()" title="Same switch as &quot;Lock strip to pairs&quot; in the Goldbach overlay panel. With an overlay up (any slope): offset = −p, width = 2p, p between the first prime of the first pair and of the last pair (lands on the last). Turn it off to keep a Farey ray alongside the pairs.">Lock strip to pairs</button>
   </div>
 
   <!-- The view switch lives with the controls, directly above G, rather than
@@ -1258,7 +1258,7 @@ walk anyway.</p>
       <button class="chip on" id="part-sum" onclick="togglePartShow('sum')" title="c (r+M=g) and d (r+M=s) — the sum pair the Goldbach verdict reads.">sum c d</button>
       <button class="chip on" id="part-diff" onclick="togglePartShow('diff')" title="a (M&minus;r=g) and b (r&minus;M=g) — the difference pair, transposes of one another.">diff a b</button>
       <div class="sep"></div>
-      <button class="chip on" id="part-slopelock" onclick="togglePartSlopeLock()"
+      <button class="chip" id="part-slopelock" onclick="togglePartSlopeLock()"
               title="Sets the main strip to a symmetric band −p ≤ b·r − a·M < p at whatever slope is dialed (offset = −p, width = 2p). p runs from the first prime of the first Goldbach pair drawn up to the first prime of the last one; the lock lands on that max. While on, the offset and width controls only travel inside that range and move together.">Lock strip to pairs</button>
       <div class="sep"></div>
       <span class="lbl">off-gcd</span>
@@ -3446,7 +3446,7 @@ function togglePartShow(k) {
    between those two bounds, and moving one moves the other to match.
    If nothing drawn is an actual pair (a run of near-misses, or a single
    non-prime gap), the smallest and largest g drawn stand in. */
-let partSlopeLock = true;
+let partSlopeLock = false;
 function togglePartSlopeLock() {
   partSlopeLock = !partSlopeLock;
   // Two buttons drive this one switch (overlay panel and the Presets row);
@@ -3454,7 +3454,16 @@ function togglePartSlopeLock() {
   for (const id of ['part-slopelock', 'ps-slopelock']) {
     const el = $(id); if (el) el.classList.toggle('on', partSlopeLock);
   }
-  if (partSlopeLock) applyPartSlopeLock(true);
+  if (partSlopeLock) {
+    // Turning the lock ON snaps back to the plain gap diagonal — that's the
+    // slope the lock's own name assumes. It's still just a starting point:
+    // switching slope afterward, or landing a Farey-ray preset while the
+    // lock stays on, is untouched by this and works as before.
+    if (slopeA !== 1 || slopeB !== 1) {
+      $('sl-a').value = 1; $('sl-b').value = 1; reslope();
+    }
+    applyPartSlopeLock(true);
+  }
   else partLockSliders(null);
 }
 function partLockRange() {
@@ -4317,6 +4326,15 @@ function drawRingStripAt(ctx, S, s, color) {
   ctx.save();
   ctx.strokeStyle = color;
   ctx.lineWidth = Math.max(1.8 * (S / 700), ringT * step);   // floor, or it thins to nothing at large G
+  // Grid tints its strip at .16 alpha over an opaque cell backdrop, so the
+  // gcd colouring reads straight through it. This used to paint at .9 —
+  // fine for a hairline (w=1), but a wide strip sweeps a large arc at every
+  // radius, and .9 across the whole disc buried the backdrop cloud and the
+  // partition markers under it entirely. Same idea here: translucent body,
+  // and a crisp two-point boundary (dark underlay, bright edge — the same
+  // trick drawStripOverlay uses on Grid) so the strip stays legible without
+  // hiding what is under it.
+  const edgeLo = [], edgeHi = [];
   for (let M = 1; M <= g; M += step) {
     const Mm = M + (step - 1) / 2;
     const lo = Math.max(1, Math.ceil((s + a * Mm) / b));
@@ -4333,10 +4351,21 @@ function drawRingStripAt(ctx, S, s, color) {
     ctx.beginPath();
     ctx.arc(C, C, rad, RING_H * a0, RING_H * a1, RING_H < 0);
     ctx.stroke();
+    edgeLo.push(ringPt(rad, a0, S));
+    edgeHi.push(ringPt(rad, a1, S));
   }
+  const strokeEdge = (pts) => {
+    if (pts.length < 2) return;
+    ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (const p of pts) ctx.lineTo(p[0], p[1]);
+    ctx.strokeStyle = 'rgba(4,4,13,.72)'; ctx.lineWidth = Math.max(2.6, 1.6 * (S / 700)); ctx.stroke();
+    ctx.strokeStyle = 'rgba(61,200,184,1)'; ctx.lineWidth = Math.max(1, 0.9 * (S / 700)); ctx.stroke();
+  };
+  strokeEdge(edgeLo); strokeEdge(edgeHi);
   ctx.restore();
 }
-function drawRingStrip(ctx, S) { drawRingStripAt(ctx, S, offS, 'rgba(61,200,184,.9)'); }
+function drawRingStrip(ctx, S) { drawRingStripAt(ctx, S, offS, 'rgba(61,200,184,.22)'); }
 function drawRingBand(ctx, S) {
   const g = COP_G, w = widthW, C = S / 2;
   const step = Math.max(1, Math.ceil(g / 600));
@@ -4973,6 +5002,7 @@ function reslope() {
   slopeB = Math.max(1, Number.isFinite(bv) ? bv : 1);
   $('sl-a').value = slopeA; $('sl-b').value = slopeB;
   syncPresetChips();
+  if (typeof LENS_REDRAW === 'function') LENS_REDRAW();
   redraw(false);
 }
 function onOff(v) {
@@ -4983,6 +5013,7 @@ function onOff(v) {
   if (Math.abs(offS) <= COP_G) $('off-sl').value = offS;
   markPrime('off-pt', offS);
   syncPresetChips();
+  if (typeof LENS_REDRAW === 'function') LENS_REDRAW();
   redraw(false);
 }
 /* The width that covers every cell, at the current slope. In strip mode the
@@ -5009,6 +5040,7 @@ function onW(v) {
   // width w is a block of w consecutive integers, i.e. C(n) with n = w-1
   $('w-blk').textContent = 'block n = ' + (widthW - 1);
   syncPresetChips();
+  if (typeof LENS_REDRAW === 'function') LENS_REDRAW();
   // the block modes paint from the width, so they need the raster rebuilt
   if (isBlockMode($('cmode').value)) redraw(true);
   redraw(false);
@@ -5270,6 +5302,7 @@ function toggleStrip() {
     b.textContent = 'Strip: ' + (showStrip ? 'on' : 'off');
     b.classList.toggle('on', showStrip);
   });
+  if (typeof LENS_REDRAW === 'function') LENS_REDRAW();
   redraw(false);
 }
 
@@ -5311,6 +5344,7 @@ function applyStrip(P) {
     // and walk but the lock sets offset and width straight away.
     applyPartSlopeLock(true);
     syncPresetChips();
+    if (typeof LENS_REDRAW === 'function') LENS_REDRAW();
     redraw(false);
   };
   if (P.minG && G < P.minG) onG(P.minG);      // needs a big enough lattice
