@@ -495,6 +495,16 @@ tr.nbr-mid td{background:rgba(200,168,74,.10);
 tr.nbr-mid td:first-child{font-weight:500;color:var(--gold);}
 tr.bad td{color:var(--coral);}
 .scroll{overflow-x:auto;}
+.lg{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;
+  color:var(--cream3);margin:0 10px 4px 0;}
+.lg i{display:inline-block;width:9px;height:9px;border-radius:2px;flex:none;}
+#sector-legend{display:none;flex-wrap:wrap;margin-top:8px;}
+#sector-census.scroll{max-height:360px;overflow-y:auto;overflow-x:auto;}
+#sector-census tr.sec-row{cursor:pointer;}
+#sector-census tr.sec-row:hover{background:rgba(255,255,255,.04);}
+#sector-census tr.sec-picked{background:rgba(200,168,74,.12);}
+#sector-census td.pos{color:var(--lime);}
+#sector-census td.neg{color:var(--coral);}
 
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 @media(max-width:760px){.grid2{grid-template-columns:1fr;}
@@ -801,13 +811,17 @@ walk anyway.</p>
   <div class="prow vrow" id="row-pts">
     <span class="plabel">Points</span>
     <span class="lbl">size</span>
-    <input type="range" id="pt-sz" min="0.5" max="8" step="0.1" value="2"
+    <input type="range" id="pt-sz" min="0.5" max="8" step="0.1" value="8"
            oninput="setPtScale(+this.value)"
-           title="Dot size for the forward-plotted views. Ring and Cayley stamp one dot per sampled cell; the right size depends on G and on how far the map spreads them.">
-    <span class="val" id="pt-sz-v">2.0&times;</span>
+           title="Largest dot size for the forward-plotted views (default 8×). As G grows, dots shrink automatically so neighbouring circles never overlap; this slider sets the ceiling.">
+    <span class="val" id="pt-sz-v">8.0&times;</span>
     <button class="chip" onclick="setPtScale(1)" title="The old fixed size. Correct on a large screen, dust on a phone.">1&times;</button>
-    <button class="chip" onclick="setPtScale(2)" title="Default.">2&times;</button>
-    <button class="chip" onclick="setPtScale(4)" title="Large dots: readable at small G, overlapping above a few hundred.">4&times;</button>
+    <button class="chip" onclick="setPtScale(2)" title="Medium dots.">2&times;</button>
+    <button class="chip" onclick="setPtScale(4)" title="Large dots.">4&times;</button>
+    <span class="lbl">shape</span>
+    <button class="chip ptshape" data-shape="square" onclick="setPointShape('square')" title="The original dot — an integer-snapped square, crisp at any size.">&#9632; Square</button>
+    <button class="chip ptshape on" data-shape="circle" onclick="setPointShape('circle')" title="Same nominal size as Square, drawn as a filled circle.">&#9679; Circle</button>
+    <button class="chip ptshape" data-shape="triangle" onclick="setPointShape('triangle')" title="Same nominal size as Square, drawn as a filled triangle.">&#9650; Triangle</button>
     <span class="lbl">guides</span>
     <button class="chip on" id="cay-gd" onclick="toggleCayGuides()"
             title="The four constant-M curves. At small G they render as polygons, because that is genuinely how few lattice points sit on those rings.">Cayley: on</button>
@@ -959,10 +973,13 @@ walk anyway.</p>
         <option value="omega">gcd &mdash; &omega;(g), distinct primes</option>
         <option value="bomega">gcd &mdash; &Omega;(g), with multiplicity</option>
         <option value="gcdband">gcd &mdash; banded (1 / 2 / 3 / 4-6 / 7+)</option>
-        <option value="depth" selected>block survival depth (C(n))</option>
+        <option value="depth">block survival depth (C(n))</option>
         <option value="resmod">residue mod m (r mod M)</option>
         <option value="moddist">modular distance (min(r,M&minus;r))</option>
         <option value="phipos">&phi;(M) progression</option>
+        <option value="ethiopia">Ethiopian &mdash; green / yellow / red by slope r/M</option>
+        <option value="ethiodepth" selected>Ethiopian + depth &mdash; flag at/below diagonal, C(n) depth above</option>
+        <option value="ethioinv">Ethiopian + inverse &mdash; flag at/below diagonal, complementary colors above</option>
       </optgroup>
       <optgroup label="The block &mdash; reads the width slider as n = w&minus;1">
         <option value="sat">saturation &mdash; smallest prime p &le; n+1 dividing r</option>
@@ -974,6 +991,7 @@ walk anyway.</p>
         <option value="gsplit">splitting of N(z) &mdash; ramified / split / inert</option>
         <option value="gomega">&Omega;(z) in Z[i] &mdash; Gaussian factor count</option>
         <option value="qres">quadratic residues mod M</option>
+        <option value="sector">Sector S_s &mdash; Farey bucket colour</option>
       </optgroup>
     </select>
     <button class="chip" id="depth-dir-btn" onclick="toggleDepthDir()"
@@ -1052,7 +1070,11 @@ walk anyway.</p>
            oninput="setLabelScale(+this.value)"
            title="How large labels want to be. The cell is a hard ceiling — past the point where a label fills its cell this stops growing it, so nothing ever crosses a block edge.">
     <span class="val" id="lbl-sc-v">1.00&times;</span>
-    <button class="chip" onclick="setLabelScale(1);$('lbl-sc').value=1;" title="Back to the default label size.">reset</button>
+    <button class="chip" onclick="setLabelScale(LABEL_DEFAULT[viewMode]);" title="Back to this view's default label size (Grid 1, Ring and Cayley 0.6).">reset</button>
+    <span class="lbl" title="Ring/Cayley in clamp mode pin every cell with r &ge; M onto one point per ring (the &theta;=0 spot). Choose how that stack is labelled.">stack</span>
+    <button class="chip pinchip" data-pin="all" onclick="setPinLabels('all')" title="Every cell in the stack prints its own label, overprinted. Busy, but nothing is hidden.">all</button>
+    <button class="chip pinchip" data-pin="zero" onclick="setPinLabels('zero')" title="One label per stack: the r = M cell only.">r=M</button>
+    <button class="chip pinchip on" data-pin="count" onclick="setPinLabels('count')" title="The r = M label plus a small &times;k showing how many cells share that spot.">r=M &times;k</button>
   </div>
 
   </div>
@@ -1096,8 +1118,8 @@ walk anyway.</p>
 
   <div class="prow">
     <span class="plabel">Turn</span>
-    <button class="chip rotchip on" data-q="0" onclick="setViewQuarter(0)" title="No turn. Ring &theta;=0 sits on the right and the grid origin in the top-left corner — the raster's own frame.">0</button>
-    <button class="chip rotchip" data-q="-1" onclick="setViewQuarter(-1)" title="&minus;i &mdash; a quarter turn counter-clockwise on screen. Ring &theta;=0 goes to the top, the way a clock face carries 0, and the grid's (r=1, M=1) corner goes to the bottom-left. Multiplication by +i in the complex plane; the sign differs because canvas y runs downward.">&minus;i</button>
+    <button class="chip rotchip" data-q="0" onclick="setViewQuarter(0)" title="No turn. Ring &theta;=0 sits on the right and the grid origin in the top-left corner — the raster's own frame.">0</button>
+    <button class="chip rotchip on" data-q="-1" onclick="setViewQuarter(-1)" title="&minus;i &mdash; a quarter turn counter-clockwise on screen. Ring &theta;=0 goes to the top, the way a clock face carries 0, and the grid's (r=1, M=1) corner goes to the bottom-left. Multiplication by +i in the complex plane; the sign differs because canvas y runs downward.">&minus;i</button>
     <button class="chip rotchip" data-q="1" onclick="setViewQuarter(1)" title="+i &mdash; a quarter turn clockwise on screen.">+i</button>
     <button class="chip rotchip" data-q="2" onclick="setViewQuarter(2)" title="&minus;1 &mdash; a half turn.">&minus;1</button>
     <span class="hint">per view &mdash; all three open at 0, and each remembers its own</span>
@@ -1114,8 +1136,8 @@ walk anyway.</p>
     <input type="range" id="ring-rot" min="0" max="360" step="1" value="0" oninput="setRingRot(+this.value)">
     <span class="val" id="ring-rot-v">0&deg;</span>
     <span class="lbl">hole</span>
-    <input type="range" id="ring-hole" min="0" max="100" step="1" value="18" oninput="setRingHole(+this.value)" title="Inner radius as a fraction of the plate. At 1 every ring collapses onto one circle and the picture becomes the roots of unity: ring M contributes the Mth roots, all G of them superimposed.">
-    <span class="val" id="ring-hole-v">0.18</span>
+    <input type="range" id="ring-hole" min="0" max="100" step="1" value="0" oninput="setRingHole(+this.value)" title="Inner radius as a fraction of the plate. At 1 every ring collapses onto one circle and the picture becomes the roots of unity: ring M contributes the Mth roots, all G of them superimposed.">
+    <span class="val" id="ring-hole-v">0.00</span>
     <button class="chip on" id="ring-gd" onclick="toggleRingGuides()" title="The four constant-M circles. At small G they draw as polygons, because that is genuinely how few lattice points sit on each ring.">Guides: on</button>
     <span class="lbl">order M</span>
     <div class="stepper">
@@ -1126,7 +1148,10 @@ walk anyway.</p>
       <button class="sbtn" onclick="setVoidM(voidM+1)" title="Next order">+</button>
       <span class="pt" id="void-m-pt"></span>
     </div>
-    <button class="chip" onclick="setRingRot(0);setRingHole(18)" title="Back to no rotation and an 18% inner hole.">Reset ring</button>
+    <span class="lbl" title="Which way increasing r winds around each ring on screen.">winding</span>
+    <button class="chip windchip on" data-h="1" onclick="setRingWinding(1)" title="Clockwise on screen: screen angle = &minus;2&pi;r/M (default).">&#8635; clockwise</button>
+    <button class="chip windchip" data-h="-1" onclick="setRingWinding(-1)" title="Counter-clockwise on screen: angle = +2&pi;r/M, the way e^{2&pi;ir/M} and the Cayley view wind.">&#8634; counter</button>
+    <button class="chip" onclick="setRingRot(0);setRingHole(0)" title="Back to no rotation and no inner hole.">Reset ring</button>
   </div>
 
   <div class="prow vrow" id="row-cay">
@@ -1157,14 +1182,27 @@ walk anyway.</p>
     <span class="val" id="v-baang">0&deg;</span>
     <button class="chip" onclick="setBA(0)" title="Identity &mdash; reproduces the ring exactly">a = 0</button>
   </div>
-  <div class="prow vrow" id="row-cay-c">
-    <span class="lbl">rotate</span>
-    <input type="range" id="cay-rot" min="0" max="360" step="1" value="0" oninput="setCayleyRot(+this.value)">
-    <span class="val" id="cay-rot-v">0&deg;</span>
-    <button class="chip crchip" id="cr-0"   onclick="setCayleyRot(0)" title="Γ's zero (z=1) and pole (z=−1) both sit on the real axis, so the two singular points fall left and right of the plate.">0&deg;</button>
-    <button class="chip crchip" id="cr-90"  onclick="setCayleyRot(90)" title="Quarter turn of the Cayley field only — the singular points move to top and bottom. Does not touch the global view turn.">90&deg;</button>
-    <button class="chip crchip" id="cr-180" onclick="setCayleyRot(180)" title="Half turn: the singular points stay left and right but swap sides.">180&deg;</button>
-    <button class="chip crchip" id="cr-270" onclick="setCayleyRot(270)" title="Three quarter turns of the Cayley field only.">270&deg;</button>
+  <div class="prow vrow" id="row-cay-rx">
+    <span class="lbl">rotate x</span>
+    <button class="chip" onclick="stepCayleyRotX(-90)" title="Nudge the sphere's tilt about x DOWN by 90°, wrapping past 0.">&minus;90&deg;</button>
+    <input type="range" id="cay-rot-x" min="0" max="360" step="1" value="0" oninput="setCayleyRotX(+this.value)">
+    <button class="chip" onclick="stepCayleyRotX(90)" title="Nudge the sphere's tilt about x UP by 90°, wrapping past 360.">+90&deg;</button>
+    <span class="val" id="cay-rot-x-v">0&deg;</span>
+    <button class="chip crchip" id="crx-0"   onclick="setCayleyRotX(0)">0&deg;</button>
+    <button class="chip crchip" id="crx-90"  onclick="setCayleyRotX(90)">90&deg;</button>
+    <button class="chip crchip" id="crx-180" onclick="setCayleyRotX(180)">180&deg;</button>
+    <button class="chip crchip" id="crx-270" onclick="setCayleyRotX(270)">270&deg;</button>
+  </div>
+  <div class="prow vrow" id="row-cay-ry">
+    <span class="lbl">rotate y</span>
+    <button class="chip" onclick="stepCayleyRotY(-90)" title="Nudge the sphere's tilt about y DOWN by 90°, wrapping past 0.">&minus;90&deg;</button>
+    <input type="range" id="cay-rot-y" min="0" max="360" step="1" value="0" oninput="setCayleyRotY(+this.value)">
+    <button class="chip" onclick="stepCayleyRotY(90)" title="Nudge the sphere's tilt about y UP by 90°, wrapping past 360.">+90&deg;</button>
+    <span class="val" id="cay-rot-y-v">0&deg;</span>
+    <button class="chip crchip" id="cry-0"   onclick="setCayleyRotY(0)">0&deg;</button>
+    <button class="chip crchip" id="cry-90"  onclick="setCayleyRotY(90)">90&deg;</button>
+    <button class="chip crchip" id="cry-180" onclick="setCayleyRotY(180)">180&deg;</button>
+    <button class="chip crchip" id="cry-270" onclick="setCayleyRotY(270)">270&deg;</button>
   </div>
   <div class="prow vrow" id="row-cay-zoom">
     <span class="plabel">Zoom out</span>
@@ -1177,6 +1215,59 @@ walk anyway.</p>
     <span class="val" id="cay-zin-v">1.0&times;</span>
     <button class="chip" onclick="setCayleyZoomIn(1)" title="Back to 1&times;">&#8634;</button>
   </div>
+    </div>
+  </div>
+
+  <div class="panel collapsed" style="margin:14px 0 0;" id="sector-panel">
+    <div class="ptitle" onclick="togglePanel(this)"><span>Sector S_s &mdash; Farey buckets of the coprime lattice, ported from Strip I / Page 11</span><span class="car">&#9662;</span></div>
+    <div class="pbody">
+      <div class="prow">
+        <span class="plabel">Sector S_s</span>
+        <button class="chip" id="ch-sector" onclick="toggleSector()"
+                title="Bucket every coprime point (r,M), r≤M, by s=⌊M/r⌋ — Page 11's Farey-interval partition of the coprime pairs, applied to this plate. Draws each sector as a translucent band underneath the points and checks the exact count against F(s,N)=(3/π²)N²/(s(s+1)).">Sector S_s: off</button>
+        <span class="hint">s = &lfloor;M/r&rfloor; for r &le; M, mirrored across the diagonal for r &gt; M — the interval S_s = (1/(s+1), 1/s] narrows like 1/(s(s+1)) as s grows.</span>
+      </div>
+      <div class="prow" id="sector-row" style="display:none">
+        <span class="plabel">Rays</span>
+        <div class="stepper">
+          <button class="sbtn" onclick="stepSectorRays(-1)">&minus;</button>
+          <input class="sval" id="sec-rays-num" type="number" min="1" max="4096" value="8" onchange="setSectorRays(+this.value)">
+          <button class="sbtn" onclick="stepSectorRays(1)">+</button>
+        </div>
+        <input type="range" id="sec-rays-sl" min="1" max="4096" step="1" value="8" oninput="setSectorRays(+this.value)">
+        <span class="hint">how many sectors S&#8321;&hellip;S_rays draw as bands when nothing below is isolated &mdash; goes up to the last sector this G has, S_G</span>
+      </div>
+      <div class="prow" id="sector-pick-row" style="display:none">
+        <span class="plabel">Isolate</span>
+        <div class="stepper">
+          <button class="sbtn" onclick="stepSectorPick(-1)">&minus;</button>
+          <input class="sval" id="sec-pick-num" type="number" min="0" value="0" onchange="setSectorPick(+this.value)">
+          <button class="sbtn" onclick="stepSectorPick(1)">+</button>
+        </div>
+        <button class="chip" onclick="setSectorPick(0)" title="Back to showing every ray as a faint band.">show all</button>
+        <button class="chip" id="ch-sector-lbl" onclick="toggleSectorLabels()"
+                title="A colour-keyed legend strip under the plate, naming every sector currently drawn.">Labels</button>
+        <span class="hint">0 shows every sector as a faint band; s&gt;0 isolates S_s and dims every coprime point outside it, on all three views and in the lens</span>
+      </div>
+      <div class="prow" id="sector-dim-row" style="display:none">
+        <span class="plabel">Dim outside</span>
+        <input type="range" id="sec-dim-sl" min="0" max="100" step="1" value="50"
+               oninput="setSectorDim(+this.value)"
+               title="How visible points outside the isolated sector stay. 0% hides them completely (the old isolate behaviour); 100% leaves them fully visible.">
+        <span class="sval" id="sec-dim-v">50%</span>
+        <span class="hint">opacity kept for coprime points outside S_s while a sector is isolated</span>
+      </div>
+      <div id="sector-legend"></div>
+
+      <div class="panel collapsed" style="margin:12px 0 0;" id="sector-census-panel">
+        <div class="ptitle" onclick="togglePanel(this); renderSectorCensus();">
+          <span>All sectors S_1&hellip;S_G &mdash; full census, click a row to isolate it</span><span class="car">&#9662;</span>
+        </div>
+        <div class="pbody">
+          <span class="hint">Every S_s this G actually has, s = 1&hellip;G &mdash; not limited by Rays above. % err is (exact&minus;F)/F. Click any row to isolate that sector on the canvas.</span>
+          <div id="sector-census" class="scroll"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1261,17 +1352,17 @@ walk anyway.</p>
       <button class="chip" id="part-slopelock" onclick="togglePartSlopeLock()"
               title="Sets the main strip to a symmetric band −p ≤ b·r − a·M < p at whatever slope is dialed (offset = −p, width = 2p). p runs from the first prime of the first Goldbach pair drawn up to the first prime of the last one; the lock lands on that max. While on, the offset and width controls only travel inside that range and move together.">Lock strip to pairs</button>
       <div class="sep"></div>
-      <span class="lbl">off-gcd</span>
-      <input type="range" id="part-offgcd" min="0" max="100" value="22" oninput="setPartOff(+this.value)" style="width:100px">
-      <span class="lbl" id="part-offgcd-v">22%</span>
+      <span class="lbl" title="Alpha for a strip point where gcd(r,M)&ne;1 &mdash; a &lsquo;zero divisor&rsquo; miss, not a genuine Goldbach hit. Defaults to 0: these don't show at all, only the coprime hits do.">off-gcd</span>
+      <input type="range" id="part-offgcd" min="0" max="100" value="0" oninput="setPartOff(+this.value)" style="width:100px">
+      <span class="lbl" id="part-offgcd-v">0%</span>
       <div class="sep"></div>
       <span class="lbl" title="Ring/Cayley only: how much brighter the non-strip backdrop is drawn while a partition overlay is active, so the lattice stays visible under all the strip colours instead of reading as dimmed.">backdrop</span>
       <input type="range" id="part-bgboost" min="100" max="400" value="180" oninput="setPartBgBoost(+this.value)" style="width:100px">
       <span class="lbl" id="part-bgboost-v">1.8&times;</span>
       <div class="sep"></div>
-      <span class="lbl" title="All views: a flat dark wash over everything except the strip points themselves, so partitions stick out against the backdrop. Same knob Strip I had.">dim</span>
-      <input type="range" id="part-dim" min="0" max="90" value="50" oninput="setPartDim(+this.value)" style="width:100px">
-      <span class="lbl" id="part-dim-v">50%</span>
+      <span class="lbl" title="All views: a flat dark wash over everything except the strip points themselves, so partitions stick out against the backdrop. Same knob Strip I had. Defaults high, near the 90% ceiling, so only the strip's own points read clearly once Goldbach is on.">dim</span>
+      <input type="range" id="part-dim" min="0" max="90" value="90" oninput="setPartDim(+this.value)" style="width:100px">
+      <span class="lbl" id="part-dim-v">90%</span>
       <div class="sep"></div>
       <span class="lbl">batch</span>
       <button class="chip" data-bs="10" onclick="setPartBatch(10)" title="Draw 10 gaps at a time — readable, slow to cover the range.">10</button>
@@ -1297,6 +1388,122 @@ walk anyway.</p>
     </div>
   </div>
 
+  <div class="panel collapsed" style="margin:14px 0 0;">
+    <div class="ptitle" onclick="togglePanel(this)"><span>Lift dynamics &mdash; residue spiral, mirror &amp; &plusmn;n path, ported from the opener</span><span class="car">&#9662;</span></div>
+    <div class="pbody">
+
+    <div class="prow">
+      <button class="chip tl on" id="lift-toggle-btn" onclick="liftToggleOn()" title="Overlays the residue spiral / &plusmn;n path on whichever view is active — Grid, Ring or Cayley alike.">&#8657; Lift: on</button>
+      <span class="hint">r &rarr; r mod(M+1) lines, prime spiral, mirror &sigma;, &plusmn;n path &mdash; the opener's dynamics, now on all three views here.</span>
+    </div>
+
+    <div id="lift-dd-wrap" style="display:;">
+
+    <div class="prow">
+      <span class="plabel">Mode</span>
+      <button class="chip lift-mode-btn on" data-m="none" onclick="liftSetMode('none')" title="Neither the spiral nor the &plusmn;n path &mdash; just the r&rarr;r mod(M+1) chain lines below, if that's on.">None</button>
+      <button class="chip lift-mode-btn" data-m="npath" onclick="liftSetMode('npath')" title="r=(M&plusmn;n)/2 — the lift path at the current block depth.">&plusmn;n path</button>
+      <button class="chip lift-mode-btn" data-m="spiral" onclick="liftSetMode('spiral')" title="r=p across every ring M — the chosen prime's residue spiral.">Spiral</button>
+      <button class="chip lift-mode-btn" data-m="both" onclick="liftSetMode('both')" title="Spiral and &plusmn;n path together.">Both</button>
+      <button class="chip lift-mode-btn" data-m="connect" onclick="liftSetMode('connect')" title="Spiral and &plusmn;n path together, with thin lines joining the two at every ring M they share.">Connect</button>
+    </div>
+
+    <div class="prow">
+      <span class="plabel">n &mdash; lift depth</span>
+      <label style="display:inline-flex;align-items:center;gap:4px;color:var(--cream2);cursor:pointer;">
+        <input type="checkbox" id="lift-lockn-chk" onchange="liftToggleLockN(this.checked)"> &#128279; Lock to r-chain depth n
+      </label>
+      <div class="stepper">
+        <button class="sbtn lift-n-stepbtn" onclick="liftStepN(-1)" title="&minus;1">&minus;</button>
+        <span class="val" id="lift-n-val">0</span>
+        <button class="sbtn lift-n-stepbtn" onclick="liftStepN(1)" title="+1">+</button>
+      </div>
+      <span class="hint" id="lift-n-locknote">shared with the <b>r-chain depth n</b> below &mdash; move either and both follow; the saturated primes the spiral skips come from this same n</span>
+      <div class="stepper" style="margin-left:6px;">
+        <button class="chip lift-npdir-btn on" data-d="both" onclick="liftSetNPathDir('both')" title="Both branches, +n and &minus;n">&#8597;</button>
+        <button class="chip lift-npdir-btn" data-d="plus" onclick="liftSetNPathDir('plus')" title="+n branch only">&#9650;</button>
+        <button class="chip lift-npdir-btn" data-d="minus" onclick="liftSetNPathDir('minus')" title="&minus;n branch only">&#9660;</button>
+      </div>
+    </div>
+
+    <div class="prow">
+      <span class="plabel">Spiral prime p</span>
+      <div class="stepper">
+        <button class="sbtn" onclick="liftCycleSpiralP(-1)" title="Previous prime">&#9664;</button>
+        <input class="sval" id="lift-p-inp" type="number" min="2" step="1" value="5" onchange="liftSetSpiralP(this.value)" style="width:56px;">
+        <button class="sbtn" onclick="liftCycleSpiralP(1)" title="Next prime">&#9654;</button>
+      </div>
+      <label style="display:inline-flex;align-items:center;gap:4px;color:rgba(230,56,72,.75);cursor:pointer;" title="Overlay the spiral of every prime p &le; G (the whole grid range) at once. Dense on big grids, and slower there: one spiral per prime."><input type="checkbox" id="lift-allp-chk" onchange="liftToggleAllP(this.checked)"> All p</label>
+      <label style="display:inline-flex;align-items:center;gap:4px;color:rgba(155,127,232,.9);cursor:pointer;" title="Mirror conjugate &sigma;(r)=M&minus;r"><input type="checkbox" id="lift-mirror-chk" onchange="liftToggleMirror(this.checked)"> Mirror &sigma;(r)=M&minus;r</label>
+      <label style="display:inline-flex;align-items:center;gap:4px;color:rgba(230,56,72,.9);cursor:pointer;" title="Highlight the dropout ring M=p, where the residue vanishes."><input type="checkbox" id="lift-dropout-chk" onchange="liftToggleDropout(this.checked)"> Dropout M=p</label>
+      <label style="display:inline-flex;align-items:center;gap:4px;color:rgba(230,56,72,.7);cursor:pointer;"><input type="checkbox" id="lift-dropoutlbl-chk" onchange="liftToggleDropoutLbl(this.checked)"> p lbl</label>
+    </div>
+
+    <div class="prow">
+      <span class="plabel">Show</span>
+      <label style="display:inline-flex;align-items:center;gap:4px;color:var(--teal);cursor:pointer;"><input type="checkbox" id="lift-surv-chk" checked onchange="liftSetSurv(this.checked)"> Surviving</label>
+      <label style="display:inline-flex;align-items:center;gap:4px;color:var(--coral);cursor:pointer;"><input type="checkbox" id="lift-broken-chk" checked onchange="liftSetBroken(this.checked)"> Broken</label>
+      <span class="lbl">dot</span>
+      <input type="range" min="0.3" max="5" step="0.1" value="1" oninput="liftSetDotScale(this.value)" style="max-width:110px;">
+      <span class="val" id="lift-dot-val">1.00&times;</span>
+      <span class="lbl">thickness</span>
+      <input type="range" min="0.2" max="6" step="0.1" value="3" oninput="liftSetThick(this.value)" style="max-width:110px;">
+      <span class="val" id="lift-thick-val">3.00&times;</span>
+    </div>
+
+    <div class="prow">
+      <span class="plabel">Backdrop</span>
+      <label style="display:inline-flex;align-items:center;gap:4px;color:var(--cream2);cursor:pointer;"><input type="checkbox" id="lift-dim-chk" onchange="liftToggleDim(this.checked)"> Dim base plate</label>
+      <input type="range" min="5" max="100" step="5" value="50" oninput="liftSetDim(this.value)" style="max-width:110px;">
+      <span class="val" id="lift-dim-val">50%</span>
+    </div>
+
+    <div class="prow">
+      <span class="plabel">r-chain</span>
+      <label style="display:inline-flex;align-items:center;gap:4px;color:rgba(232,227,219,.9);cursor:pointer;" title="For every coprime r on every ring M, draws r &rarr; r mod(M+1) &mdash; the literal one-step lift this whole panel is named for, generalised past just the spiral's fixed p or the &plusmn;n path's single trajectory. Teal = the lift survives, coral = it dies. Capped at G&le;400 since it's an O(G&sup2;) line count."><input type="checkbox" id="lift-chain-chk" checked onchange="liftToggleChain(this.checked)"> r &rarr; r mod(M+1), every r</label>
+      <span id="lift-chain-n-row" style="display:inline-flex;flex-wrap:wrap;align-items:center;gap:8px;">
+        <span class="lbl">depth n</span>
+        <div class="stepper">
+          <button class="sbtn" onclick="liftStepChainN(-1)" title="&minus;1">&minus;</button>
+          <span class="val" id="lift-chain-n-val">0</span>
+          <button class="sbtn" onclick="liftStepChainN(1)" title="+1">+</button>
+        </div>
+        <input type="range" id="lift-chain-n-sl" min="0" max="399" step="1" value="0" oninput="liftSetChainN(this.value)" style="flex:1 1 150px;min-width:120px;" title="Depth n from 0 up to G&minus;1, the deepest block the lattice can hold.">
+        <span class="val" id="lift-chain-n-max">/ 0</span>
+        <span style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex-basis:100%;">
+          <span class="lbl">of grid</span>
+          <button class="chip" onclick="liftSetChainN(0)" title="Every coprime r, no depth filter.">0</button>
+          <button class="chip" onclick="liftChainFrac(1,4)" title="n = G/4">&frac14;</button>
+          <button class="chip" onclick="liftChainFrac(1,2)" title="n = G/2">&frac12;</button>
+          <button class="chip" onclick="liftChainFrac(2,3)" title="n = 2G/3">&#8532;</button>
+          <button class="chip" onclick="liftSetChainN(liftMaxN())" title="n = G&minus;1, the deepest block that fits.">max</button>
+          <input class="sval" id="lift-chain-fa" type="number" min="0" step="1" value="3" onchange="liftChainFracInputs()" style="width:44px;" title="a">
+          <span class="lbl">/</span>
+          <input class="sval" id="lift-chain-fb" type="number" min="1" step="1" value="4" onchange="liftChainFracInputs()" style="width:44px;" title="b">
+          <button class="chip" onclick="liftChainFracInputs()" title="n = round(G &middot; a/b)">a/b &rarr; n</button>
+        </span>
+        <span class="hint">moves with the lift depth n above while locked (unlock for its own depth) &mdash; only r that stays block-coprime this many rings ahead gets a line</span>
+      </span>
+    </div>
+
+    <div class="prow">
+      <span class="plabel">Animate</span>
+      <span class="lbl">speed</span>
+      <input type="range" min="20" max="500" step="10" value="140" oninput="liftSetAnimSpeed(this.value)" style="max-width:110px;">
+      <span class="val" id="lift-speed-val">140ms</span>
+      <button class="chip" id="lift-n-play-btn" onclick="liftNPlay()" title="Animate the lift depth n — while locked, the r-chain depth n moves with it.">&#9654; n</button>
+      <button class="chip" id="lift-p-play-btn" onclick="liftPPlay()" title="Animate the spiral prime p.">&#9654; p</button>
+      <label style="display:inline-flex;align-items:center;gap:4px;color:rgba(200,168,74,.85);cursor:pointer;" title="While ▶ p plays, skip primes already saturated at the current lift depth (p ≤ n+1)."><input type="checkbox" id="lift-psync-chk" checked onchange="liftTogglePSync(this.checked)"> Sync w/ C(n)</label>
+    </div>
+
+    <div class="hint" style="padding:4px 0;">Spiral: for prime <b>p</b>, plots r=p across every ring M with gcd(p,M)=1 &mdash; teal above p/M=0.5, coral below, ringed red where it will <i>not</i> also survive one more step to M+1. &plusmn;n path: r=(M&plusmn;n)/2, the same block-coprime depth n the r-chain depth and C(n) use.</div>
+
+    <div id="lift-table"></div>
+
+    </div><!-- /lift-dd-wrap -->
+    </div>
+  </div>
+
   <div class="ctrls" style="margin-top:12px;">
     <span class="lbl">Export</span>
     <button class="btn" onclick="openExportModal()" title="Pick any of Grid, Ring and Cayley — one, two, or all three — preview the composed plate, then export it.">Export &#9662;</button>
@@ -1317,6 +1524,11 @@ walk anyway.</p>
       <button class="chip evchip" data-ev="grid" onclick="toggleExportView('grid')" title="Grid — (r, M) lattice">Grid</button>
       <button class="chip evchip" data-ev="ring" onclick="toggleExportView('ring')" title="Ring — polar, M outward">Ring</button>
       <button class="chip evchip" data-ev="cayley" onclick="toggleExportView('cayley')" title="Cayley — residues mod m">Cayley</button>
+    </div>
+    <div class="prow" id="export-cay-row">
+      <span class="plabel">Cayley shape</span>
+      <button class="chip ecchip" data-ec="wide" onclick="setExportCayShape(true)" title="A 2:1 window (twice as wide as tall) for the Cayley tile, so the map's long horizontal reach is shown instead of cut off. In a multi-view export it takes the full width on its own row.">2 : 1 wide</button>
+      <button class="chip ecchip" data-ec="square" onclick="setExportCayShape(false)" title="The square tile, as before. Points that fall outside are now clipped to the tile instead of running over the neighbours.">Square</button>
     </div>
     <div class="pnote" style="padding:2px 0 8px;">Pick any one, any two, or all three &mdash; each draws with its own saved parameters and they're laid out side by side on one plate.</div>
     <div class="prow">
@@ -1881,6 +2093,12 @@ let SPF = null;              // smallest prime factor, 1..max(G, NMAX)
 let PRIMES = null;
 let slopeA = 1, slopeB = 1;  // strip slope a/b
 let offS = 1, widthW = 1;    // offset and width
+let stripThick = 1;          // strip/band overlay line & cell thickness multiplier
+function setStripThick(v) {
+  stripThick = Math.max(0.25, Math.min(4, +v || 1));
+  const el = $('thick-v'); if (el) el.textContent = stripThick.toFixed(2) + '\u00d7';
+  redraw(false);
+}
 let showStrip = true;
 let baseCv = null, baseKey = '';   // cached base layer + its cache key
 let rafId = null;
@@ -1890,14 +2108,49 @@ let rafId = null;
    walkBand over the bitset. These only change where a cell is drawn. */
 let viewMode = 'grid';             // 'grid' | 'ring' | 'cayley'
 let ringRot = 0;                   // radians, applied as a draw transform
-let ringHole = 0.18;               // inner radius as a fraction of R
+let ringHole = 0;                  // inner radius as a fraction of R
 let ringGuides = true;
 /* Point size for the two forward-plotted views. Ring and Cayley stamp one
    dot per sampled cell, and the old fixed S*0.0026 was tuned on a desktop
    plate — on a phone it renders as dust. Default 2x that, and exposed,
    because the right size depends on G and on how far the map spreads the
    points, which is not something one constant can know. */
-let ptScale = 2;
+let ptScale = 8;   // default 8x — treated as a ceiling; ringBase/drawCayleyField shrink dots so neighbours never overlap
+/* Shape of that same dot. Square is the original (crisp at integer pixels,
+   what every size call below was tuned against); circle and triangle are
+   drawn at the same nominal size for a fair visual comparison, not the same
+   pixel-perfect crispness — a circle or triangle at odd sizes will always
+   antialias a little more than an integer-snapped square does. */
+let pointShape = 'circle';
+function setPointShape(v) {
+  pointShape = (v === 'circle' || v === 'triangle') ? v : 'square';
+  document.querySelectorAll('.ptshape').forEach(b =>
+    b.classList.toggle('on', b.dataset.shape === pointShape));
+  redraw(true);   // both backdrop caches key on pointShape, so this rebuilds them
+}
+/* One draw call for a lattice point, in whatever shape is current. (cx,cy) is
+   the centre and size the same nominal width the square used to fill —
+   circle and triangle are sized to roughly the same visual weight rather
+   than the same bounding box, so switching shapes does not read as a size
+   jump. ctx.fillStyle must already be set by the caller. */
+function drawPointAt(ctx, cx, cy, size) {
+  if (pointShape === 'circle') {
+    const rad = size * 0.56;
+    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, TAU); ctx.fill();
+  } else if (pointShape === 'triangle') {
+    const h = size * 0.66;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - h * 0.62);
+    ctx.lineTo(cx - h * 0.58, cy + h * 0.46);
+    ctx.lineTo(cx + h * 0.58, cy + h * 0.46);
+    ctx.closePath(); ctx.fill();
+  } else {
+    // integer-snapped, as the original fillRect calls were — antialiasing
+    // on a 1-2px square at high G is what made the dust look mushy.
+    const h = size / 2;
+    ctx.fillRect(Math.round(cx - h), Math.round(cy - h), Math.max(1, Math.round(size)), Math.max(1, Math.round(size)));
+  }
+}
 /* Cayley's guides are a separate flag from Ring's. They were sharing one,
    and the toggle lived in the Ring control row — which is hidden in Cayley
    view, so the lines were drawn by a control the reader could not reach. */
@@ -1918,7 +2171,19 @@ const THETA_LABEL = { wrap: '2\u03c0r/M', clamp: '2\u03c0\u00b7min(r/M,1)', unit
 let cmap = 'A';
 let rho0 = 0.4, rhoD = 1.8;
 let ba = 0.45, baAng = 0;
-let cayleyRot = 0, cayleyZoomOut = 8, cayleyZoomIn = 1;
+let cayleyRotX = 0, cayleyRotY = 0, cayleyZoomOut = 8, cayleyZoomIn = 1;
+// Surviving = coprime (gcd=1), Broken = not. Ring and Cayley's forward-plotted
+// fields draw every sampled cell either way (coprime coloured, broken as a
+// faint backdrop dot) — these let either set be hidden outright to isolate
+// the other, the same distinction the "Surviving"/"Broken" checkboxes make
+// on the sibling Strip I page.
+let survOn = true, brokenOn = true;
+// Locked to Block walk: the survivor/broken distinction is the block AND
+// itself (inBand over n+1 columns), which only exists while walkMode is
+// 'band'. Flip walkMode there first so the checkboxes always land on a
+// picture where they visibly do something, on Grid as well as Ring/Cayley.
+function setSurvOn(v) { survOn = v; if (walkMode !== 'band') setWalk('band'); ringKey = ''; cayKey = ''; redraw(false); }
+function setBrokenOn(v) { brokenOn = v; if (walkMode !== 'band') setWalk('band'); ringKey = ''; cayKey = ''; redraw(false); }
 
 /* Partitions — Strip I's Goldbach diagonal, ported with its dynamics rather
    than reduced to a hand-typed list of offsets. Nothing here is stored per
@@ -1932,7 +2197,7 @@ let partPicked = new Set(); // hand-picked gaps, from plate clicks or table rows
 let partHidden = new Set(); // collapsed out of the overlay from the legend
 let partBatch = 40, partPage = 0, partRunIdx = 0;
 let partShow = { sum: true, diff: true };
-let partOff = 0.22;         // alpha multiplier for a strip point with gcd ≠ 1
+let partOff = 0;            // alpha multiplier for a strip point with gcd ≠ 1
 // Ring/Cayley's non-strip backdrop is drawn quiet (COPRIME_RGBA and low-alpha
 // dots) so a single strip pops against it — but with Partition mode drawing
 // dozens of strips at once, that same quiet backdrop reads as "everything but
@@ -1945,12 +2210,13 @@ let partBgBoost = 1.8;
 // independent of partBgBoost above (that one lifts the backdrop's own alpha;
 // this one darkens everything indiscriminately on top, strips included until
 // they're redrawn over it) — the two can be combined or used alone.
-let partDim = 0.5;
+let partDim = 0.9;
 function dimPlateIfPartition(ctx, S) {
   if (partMode === 'off' || partDim <= 0) return;
   ctx.save();
   ctx.fillStyle = 'rgba(4,4,13,' + partDim.toFixed(3) + ')';
-  ctx.fillRect(0, 0, S, S);
+  // A wide Cayley export window extends past the square: dim all of it.
+  ctx.fillRect(-3 * S, -3 * S, 7 * S, 7 * S);
   ctx.restore();
 }
 let PICK = true;            // Strip I's Pick chip: does a click select, or jump?
@@ -2112,7 +2378,8 @@ function isCop(r, M) {                       // 1-indexed
    (G/S)×(G/S) block and shades by how many of its cells are coprime, so the
    cost is bounded by canvas area, not by G². */
 function buildBase(S, mode) {
-  const key = COP_G + '|' + S + '|' + mode + (isBlockMode(mode) ? '|n' + blockN() : '');
+  const key = COP_G + '|' + S + '|' + mode + (isBlockMode(mode) ? '|n' + blockN() : '') +
+              (sectorOn && sectorPick > 0 ? '|sec' + sectorPick + '|dim' + sectorDim : '');
   if (baseCv && baseKey === key) return baseCv;
 
   const cv = document.createElement('canvas');
@@ -2131,7 +2398,7 @@ function buildBase(S, mode) {
       let hit = 0, tot = 0;
       for (let M = M0; M < Math.max(M1, M0 + 1); M++) {
         for (let r = r0; r < Math.max(r1, r0 + 1); r++) {
-          tot++; if (isCop(r, M)) hit++;
+          tot++; if (isCop(r, M)) hit += sectorVis(r, M);
         }
       }
       const frac = tot ? hit / tot : 0;
@@ -2144,6 +2411,230 @@ function buildBase(S, mode) {
   baseCv = cv; baseKey = key;
   return cv;
 }
+
+/* ── Sector S_s ──────────────────────────────────────────────────────────
+   Page 11's Farey-interval partition of the coprime pairs, ported from
+   Strip I. Every coprime (r,M) with r ≤ M has a ratio r/M ∈ (0,1]; s = ⌊M/r⌋
+   buckets it into S_s = (1/(s+1), 1/s]. Page 11's count obeys
+   F(s,N) ~ (3/π²)N²/(s(s+1)), width 1/(s(s+1)) — every lattice point here
+   IS such a pair (r ≤ M half; r > M is the mirror image across the
+   diagonal), so the sectors apply directly. Bands are translucent regions
+   drawn under the points, not lines on top of them — the point is to see
+   the width, which is the whole content of the 1/(s(s+1)) estimate. */
+let sectorOn = false, sectorRays = 8, sectorLabels = false, sectorPick = 0;
+// Isolate used to hide everything outside S_s outright (0% visible). A
+// slider now controls how much of that backdrop survives — sectorDim is the
+// percent opacity kept for points OUTSIDE the isolated sector, default 50.
+let sectorDim = 50;
+function sectorOf(r, m) {
+  if (r <= 0 || m <= 0) return null;
+  return r <= m ? Math.floor(m / r) : Math.floor(r / m);
+}
+// Isolate mode: with a sector picked, a point outside it is not a full-on
+// member of S_s — sectorVis() below is what actually decides how visible it
+// stays. sectorKeeps is now only the boolean membership test.
+function sectorKeeps(r, m) {
+  if (!sectorOn || sectorPick <= 0) return true;
+  return sectorOf(r, m) === sectorPick;
+}
+// Opacity multiplier for (r,m): 1 inside the isolated sector (or whenever
+// isolate is off), sectorDim/100 outside it. Every point-drawing loop that
+// used to `continue` past a non-member point now multiplies by this instead.
+function sectorVis(r, m) {
+  if (!sectorOn || sectorPick <= 0) return 1;
+  return sectorKeeps(r, m) ? 1 : sectorDim / 100;
+}
+function setSectorDim(v) {
+  sectorDim = Math.max(0, Math.min(100, Math.round(+v) || 0));
+  const el = $('sec-dim-v'); if (el) el.textContent = sectorDim + '%';
+  const sl = $('sec-dim-sl'); if (sl) sl.value = sectorDim;
+  redraw(true);   // cached backdrops (base/ring/cayley) key on this now
+}
+function fareySectorPrediction(s, N) { return (3 / (Math.PI * Math.PI)) * N * N / (s * (s + 1)); }
+// Past n*(N), exact − F(s,N) is pinned positive and cannot cross zero again —
+// Page 11's hard bound on the last sign flip, exact arithmetic.
+function nStarSector(N) { return (-1 + Math.sqrt(1 + 12 * N * N / (Math.PI * Math.PI))) / 2; }
+// Page 11's palette, so a sector reads the same colour there and here.
+const SECTOR_COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e',
+  '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6',
+  '#06b6d4', '#0ea5e9', '#3b82f6'];
+const _secRGB = SECTOR_COLORS.map(h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]);
+function sectorColorRGB(s) { return _secRGB[((s | 0) - 1 + _secRGB.length * 99) % _secRGB.length]; }
+function sectorColorHex(s) { return SECTOR_COLORS[((s | 0) - 1 + SECTOR_COLORS.length * 99) % SECTOR_COLORS.length]; }
+/* Render mode: colour every coprime cell by which Farey sector S_s it falls
+   in, using the same palette the sector bands and census table already use
+   — so a reader can see the S_s partition directly on the plate itself,
+   in any of the three views, rather than only as an overlay band. A
+   non-coprime cell isn't a member of any S_s (the bucket is defined on the
+   coprime pairs only), so it gets the same flat dark tone every other mode
+   uses for a miss. */
+function sectorCellRGBA(r, M) {
+  if (gcd(r, M) !== 1) return [22, 24, 44, 210];
+  const s = sectorOf(r, M);
+  const [rr, gg, bb] = sectorColorRGB(s);
+  return [rr, gg, bb, 235];
+}
+// Exact census over the coprime bitset Strip II already builds — no second
+// mask needed. O(G²/2), so it is cached on G and only computed when the
+// panel actually needs it, never from inside a hot render loop.
+let _secCensus = null, _secCensusKey = '';
+function sectorCensus(G) {
+  const key = String(G);
+  if (_secCensus && _secCensusKey === key) return _secCensus;
+  const counts = new Map();
+  let total = 0;
+  for (let m = 1; m <= G; m++) {
+    for (let r = 1; r <= m; r++) {
+      if (!isCop(r, m)) continue;
+      const s = Math.floor(m / r);
+      counts.set(s, (counts.get(s) || 0) + 1);
+      total++;
+    }
+  }
+  _secCensusKey = key;
+  return _secCensus = { counts, total, N: G };
+}
+function invalidateSectorCensus() { _secCensus = null; _secCensusKey = ''; }
+/* One (r,M) -> [x,y] projector per view, in each view's own untransformed
+   frame — the same frame Grid's cell math and Ring/Cayley's own point loops
+   already draw in, so sector wedges bend into Ring/Cayley's curved geometry
+   automatically rather than needing a separate approximation per view. */
+function sectorXY(r, M, Splate) {
+  if (viewMode === 'grid') { const cell = Splate / COP_G; return [(r - 0.5) * cell, (M - 0.5) * cell]; }
+  if (viewMode === 'ring') { return ringPt(ringRad(M, Splate), ringRot + thetaOf(r, M), Splate); }
+  if (viewMode === 'cayley') { return cayleyXY(r, M, Splate); }
+  return null;
+}
+// The wedge between m = (s+1)r and m = s·r, sampled along both edges through
+// the current projector so it bends correctly in Ring/Cayley. T draws the
+// reflection across r = M, covering the r > M half the same way sectorOf does.
+function sectorWedgePath(ctx, G, sVal, T, Splate) {
+  const step = Math.max(1, Math.floor(G / 160));
+  const outer = [], inner = [];
+  for (let m = Math.max(1, sVal); m <= G; m += step) {
+    const rHi = m / sVal, rLo = m / (sVal + 1);
+    if (rHi < 1) continue;
+    const hi = Math.min(rHi, G), lo = Math.max(rLo, 0.5);
+    const A = T ? sectorXY(m, hi, Splate) : sectorXY(hi, m, Splate);
+    const B = T ? sectorXY(m, lo, Splate) : sectorXY(lo, m, Splate);
+    if (A && isFinite(A[0]) && isFinite(A[1])) outer.push(A);
+    if (B && isFinite(B[0]) && isFinite(B[1])) inner.push(B);
+  }
+  if (outer.length < 2 || inner.length < 2) return false;
+  ctx.beginPath();
+  ctx.moveTo(outer[0][0], outer[0][1]);
+  for (let i = 1; i < outer.length; i++) ctx.lineTo(outer[i][0], outer[i][1]);
+  for (let i = inner.length - 1; i >= 0; i--) ctx.lineTo(inner[i][0], inner[i][1]);
+  ctx.closePath();
+  return true;
+}
+// Drawn live every frame (cheap — a handful of sampled polygons, not O(G²)),
+// so it never needs its own cache key the way the point clouds do.
+function drawSectorBands(ctx, Splate) {
+  if (!sectorOn || !COP_G) return;
+  const G = COP_G;
+  const list = sectorPick > 0 ? [sectorPick] : [];
+  if (!list.length) for (let i = 1; i <= Math.min(sectorRays, G); i++) list.push(i);
+  ctx.save();
+  for (const sVal of list) {
+    const [cr, cg, cb] = sectorColorRGB(sVal);
+    for (const T of [false, true]) {
+      if (!sectorWedgePath(ctx, G, sVal, T, Splate)) continue;
+      ctx.fillStyle = `rgba(${cr},${cg},${cb},${sectorPick > 0 ? 0.20 : 0.10})`;
+      ctx.fill();
+      ctx.strokeStyle = `rgba(${cr},${cg},${cb},${sectorPick > 0 ? 0.55 : 0.30})`;
+      ctx.lineWidth = Math.max(0.7, Splate * 0.0012);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+function renderSectorLegend() {
+  const el = $('sector-legend');
+  if (!el) return;
+  if (!sectorOn || !sectorLabels) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const G = COP_G;
+  const list = sectorPick > 0 ? [sectorPick] : Array.from({ length: Math.min(sectorRays, G) }, (_, i) => i + 1);
+  el.innerHTML = list.map(s => `<span class="lg"><i style="background:${sectorColorHex(s)}"></i>S${s}</span>`).join('');
+  el.style.display = 'flex';
+}
+// Built once per G (cached inside sectorCensus itself) and reused across
+// isolate clicks — only the picked row's highlight needs to move on a click,
+// not the whole table, which matters once G puts thousands of rows in it.
+let _secTableG = -1;
+function renderSectorCensus() {
+  const el = $('sector-census');
+  if (!el) return;
+  if (!sectorOn) { el.innerHTML = ''; _secTableG = -1; return; }
+  const G = COP_G;
+  if (_secTableG === G) { updateSectorPickHighlight(); return; }
+  const { counts, total } = sectorCensus(G);
+  const nStar = nStarSector(G);
+  let rows = '';
+  for (let s = 1; s <= G; s++) {
+    const exact = counts.get(s) || 0;
+    const pred = fareySectorPrediction(s, G);
+    const delta = exact - pred;
+    const pct = pred ? (delta / pred) * 100 : 0;
+    const cls = delta >= 0 ? 'pos' : 'neg';
+    const picked = s === sectorPick ? ' sec-picked' : '';
+    rows += `<tr class="sec-row${picked}" data-s="${s}" onclick="setSectorPick(${s})">` +
+      `<td><span style="display:inline-block;width:9px;height:9px;background:${sectorColorHex(s)};margin-right:5px;vertical-align:-1px;"></span>S${s}</td>` +
+      `<td class="n">${exact}</td><td class="n">${pred.toFixed(2)}</td>` +
+      `<td class="n ${cls}">${delta >= 0 ? '+' : ''}${delta.toFixed(2)}</td>` +
+      `<td class="n ${cls}">${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</td></tr>`;
+  }
+  el.innerHTML = `<table><tr><th>sector</th><th class="n">exact</th><th class="n">F(s,N)</th><th class="n">&Delta;</th><th class="n">% err</th></tr>${rows}</table>` +
+    `<div class="hint" style="margin-top:6px;">N = G = ${G} &middot; n*(N) = ${nStar.toFixed(2)} — past this s, &Delta; is pinned positive and cannot flip sign again &middot; total coprime pairs (r&le;M): ${total.toLocaleString()}</div>`;
+  _secTableG = G;
+}
+// Moves the highlighted row without rebuilding the table — the click handler
+// this exists for can fire on a 4000+ row list, and a full innerHTML rebuild
+// on every click is exactly the kind of thing that makes a table feel slow.
+function updateSectorPickHighlight() {
+  const el = $('sector-census'); if (!el) return;
+  el.querySelectorAll('tr.sec-row').forEach(tr => {
+    tr.classList.toggle('sec-picked', +tr.dataset.s === sectorPick);
+  });
+}
+function toggleSector() {
+  sectorOn = !sectorOn;
+  const b = $('ch-sector');
+  if (b) { b.classList.toggle('on', sectorOn); b.textContent = 'Sector S_s: ' + (sectorOn ? 'on' : 'off'); }
+  const row = $('sector-row'); if (row) row.style.display = sectorOn ? 'flex' : 'none';
+  const prow = $('sector-pick-row'); if (prow) prow.style.display = sectorOn ? 'flex' : 'none';
+  const drow = $('sector-dim-row'); if (drow) drow.style.display = sectorOn ? 'flex' : 'none';
+  renderSectorLegend();
+  // The full census is expensive at large G, so only build it once the
+  // dropdown is actually open — toggling Sector S_s itself just clears it.
+  if (!sectorOn) { $('sector-census').innerHTML = ''; _secTableG = -1; }
+  else if (!$('sector-census-panel').classList.contains('collapsed')) renderSectorCensus();
+  if (typeof LENS_REDRAW === 'function') LENS_REDRAW();
+  redraw(true);   // isolate mode changes what the cached backdrops contain
+}
+function setSectorRays(v) {
+  sectorRays = Math.max(1, Math.min(COP_G, Math.round(v) || 1));
+  $('sec-rays-num').value = sectorRays;
+  $('sec-rays-sl').value = Math.min(sectorRays, +$('sec-rays-sl').max);
+  renderSectorLegend();
+  if (typeof LENS_REDRAW === 'function') LENS_REDRAW();
+  redraw(false);   // bands only — isolate is gated by sectorPick, not rays
+}
+function stepSectorRays(d) { setSectorRays(sectorRays + d); }
+function setSectorPick(v) {
+  sectorPick = Math.max(0, Math.round(v) || 0);
+  $('sec-pick-num').value = sectorPick;
+  renderSectorLegend(); renderSectorCensus();
+  if (typeof LENS_REDRAW === 'function') LENS_REDRAW();
+  redraw(true);   // isolate changed — the cached backdrops must rebuild
+}
+function stepSectorPick(d) { setSectorPick(sectorPick + d); }
+function toggleSectorLabels() {
+  sectorLabels = !sectorLabels;
+  const b = $('ch-sector-lbl'); if (b) b.classList.toggle('on', sectorLabels);
+  renderSectorLegend();
+}
+
 /* One colour rule, shared by every projection, so a cell reads the same in
    Grid and in Ring. binary/density take the aggregated coprime fraction of
    whatever the pixel covers; the gcd-valued modes cannot be averaged — a gcd
@@ -2167,7 +2658,51 @@ function cellRGBA(mode, frac, r0, M0) {
   if (mode === 'failp') return failPrimeRGBA(r0, M0);
   if (mode === 'jstar') return jStarRGBA(r0, M0);
   if (mode === 'qres') return qresRGBA(r0, M0);
+  if (mode === 'sector') return sectorCellRGBA(r0, M0);
+  if (mode === 'ethiopia') return ethiopiaRGBA(r0, M0);
+  if (mode === 'ethiodepth') return ethioDepthRGBA(r0, M0);
+  if (mode === 'ethioinv') return ethioInvRGBA(r0, M0);
   return gcdColor(mode, gcd(r0, M0));
+}
+/* ETHIOPIAN — the wedge r <= M split by the slope r/M into the three bands of
+   the flag, each exactly one third of the wedge: green for 2/3 <= r/M <= 1
+   (next to the diagonal), yellow for 1/3 <= r/M < 2/3, red for r/M < 1/3
+   (down to 1/G at the far corner). The bounds are lines through the origin,
+   and the fraction of the wedge with r/M >= q is 1 - q, so a band [q1, q2)
+   holds exactly q2 - q1 of it: G^2/6 cells per band on a G x G lattice.
+   Cells past the diagonal (r > M) stay a dark backdrop. Coprime cells carry
+   the full flag colour and the rest a dimmed version, so the coprime
+   structure still reads inside the bands. Shown on Grid at the default -i
+   turn, r running up and M across. */
+const ETH_GREEN = [7, 137, 48], ETH_YELLOW = [252, 221, 9], ETH_RED = [218, 18, 26];
+function ethiopiaBand(r, M) {
+  if (r > M || M < 1) return 0;                 // outside the wedge
+  const q = r / M;
+  return q >= 2 / 3 ? 1 : q >= 1 / 3 ? 2 : 3;   // 1 green, 2 yellow, 3 red — a third of the wedge each
+}
+function ethiopiaRGBA(r, M) {
+  const b = ethiopiaBand(r, M);
+  if (!b) return [22, 24, 40, 180];
+  const c = b === 1 ? ETH_GREEN : b === 2 ? ETH_YELLOW : ETH_RED;
+  if (gcd(r, M) === 1) return [c[0], c[1], c[2], 240];
+  return [Math.round(c[0] * 0.32), Math.round(c[1] * 0.32), Math.round(c[2] * 0.32), 215];
+}
+/* ETHIOPIAN + INVERSE — same wedge split as plain Ethiopian at/below the
+   diagonal (r <= M). Above the diagonal (r > M), the mirrored ratio M/r
+   re-uses ethiopiaBand's own thirds (swap the arguments: ethiopiaBand(M, r)
+   treats M as "r" and r as "M", which is exactly M/r since M < r there),
+   but paints each band's literal RGB complement (255 - channel) instead of
+   the flag color, so the two halves read as opposites of one palette. */
+const ETH_GREEN_INV = ETH_GREEN.map(c => 255 - c);
+const ETH_YELLOW_INV = ETH_YELLOW.map(c => 255 - c);
+const ETH_RED_INV = ETH_RED.map(c => 255 - c);
+function ethioInvRGBA(r, M) {
+  if (r <= M) return ethiopiaRGBA(r, M);
+  const b = ethiopiaBand(M, r);
+  if (!b) return [22, 24, 40, 180];
+  const c = b === 1 ? ETH_GREEN_INV : b === 2 ? ETH_YELLOW_INV : ETH_RED_INV;
+  if (gcd(r, M) === 1) return [c[0], c[1], c[2], 240];
+  return [Math.round(c[0] * 0.32), Math.round(c[1] * 0.32), Math.round(c[2] * 0.32), 215];
 }
 /* Block-coprime survival depth — how many consecutive columns M, M+1, … stay
    coprime to r before the first miss. This is the per-cell quantity C(n)
@@ -2211,6 +2746,14 @@ function depthRGBA(r, M) {
   const [rr, gg, bb] = depthGradientRGB(d);
   return [rr, gg, bb, d === 0 ? 210 : 220];
 }
+/* ETHIOPIAN + DEPTH — the same wedge split as plain Ethiopian at/below the
+   diagonal (r <= M), but the plain dark backdrop that mode uses above the
+   diagonal (r > M) is replaced by the block-survival-depth C(n) gradient,
+   so no cell goes unread: below the line is slope, above it is depth. */
+function ethioDepthRGBA(r, M) {
+  if (r <= M) return ethiopiaRGBA(r, M);
+  return depthRGBA(r, M);
+}
 function toggleDepthDir() {
   depthDir = depthDir === 'h' ? 'd' : 'h';
   const btn = $('depth-dir-btn');
@@ -2219,7 +2762,7 @@ function toggleDepthDir() {
   redraw(true);
 }
 function onCModeChange() {
-  $('depth-dir-btn').style.display = ($('cmode').value === 'depth') ? '' : 'none';
+  $('depth-dir-btn').style.display = (['depth', 'ethiodepth'].includes($('cmode').value)) ? '' : 'none';
   redraw(true);
 }
 /* Residue of r mod M, as a hue — the same quantity Ring's own angle is built
@@ -2231,14 +2774,15 @@ function resmodRGBA(r, M) {
   return [rgb[0], rgb[1], rgb[2], 215];
 }
 /* Distance from r's residue to the nearer end of the ring, min(rr, M-rr) —
-   symmetric about M/2. Kept in a narrow steel-blue band so it never collides
-   with the strip palette; distance reads via lightness/saturation instead. */
+   symmetric about M/2. Spun across the full hue wheel by that distance
+   (ratio 0 = right at an end, 1 = the exact middle) so every distance gets
+   its own colour instead of one hue shaded lighter/darker. */
 function modDistRGBA(r, M) {
   if (gcd(r, M) !== 1) return COPRIME_RGBA;
   const rr = M > 1 ? (r % M || M) : 1;
   const half = Math.max(1, Math.floor(M / 2));
   const ratio = Math.min(rr, M - rr) / half;
-  const rgb = hsl2rgb(216 - ratio * 12, 0.55 + ratio * 0.20, 0.28 + ratio * 0.38);
+  const rgb = hsl2rgb(ratio * 320, 0.68, 0.42 + ratio * 0.14);
   return [rgb[0], rgb[1], rgb[2], 215];
 }
 /* r's position in the ORDERED list of residues coprime to M — spreads each
@@ -2933,7 +3477,7 @@ function setWalk(m) {
   $('wk-strip').classList.toggle('on', m === 'strip');
   $('wk-band').classList.toggle('on', m === 'band');
   $('wk-note').textContent = m === 'band'
-    ? 'width w = n+1; offset is ignored, the band is anchored at M'
+    ? 'width w = n+1; the band\u2019s own AND ignores offset s (anchored at M) \u2014 the strip reading below still tracks s live'
     : '';
   redraw(true);
 }
@@ -2999,14 +3543,20 @@ function doRedraw(rebuildBase) {
   // below still comes from the walk over the bitset.
   if (walkMode === 'band') {
     const bs = walkBand(widthW);
-    updateBarBand(bs);
-    updateIdentityBand(bs);
+    // Band ignores offset s for its own AND — it's anchored at M — but the
+    // strip at the current slope/s/w is still a live, well-defined quantity,
+    // and the person moving the offset slider wants to see it move. Walk it
+    // every frame here too, rather than only when Strip mode is selected.
+    const st = walkStrip(0);
+    updateBarBand(bs, st);
+    updateIdentityBand(bs, st);
   } else {
     const st = walkStrip(0);
     updateBar(st);
     updateIdentity(st);
   }
   updateViewNote();
+  if (typeof liftRenderTable === 'function') liftRenderTable();
 }
 
 /* One painter for screen and export, so a 4K plate is the same picture as the
@@ -3035,25 +3585,30 @@ function plateScale(ctx) {
   return Math.max(1, Math.min(2, k || 1));
 }
 function paintViewInner(ctx, S, cap) {
-  if (viewMode === 'cayley') { drawCayley(ctx, S); return; }
+  if (viewMode === 'cayley') { drawCayley(ctx, S); drawLiftOverlay(ctx, S); drawCayleyLabels(ctx, S); return; }
   if (viewMode === 'ring') {
     drawRingBase(ctx, S, cap);
+    drawSectorBands(ctx, S);
     dimPlateIfPartition(ctx, S);
     if (walkMode === 'band') drawRingBand(ctx, S);
     if (showStrip) drawRingStrip(ctx, S);
     if (ringGuides) drawRingGuides(ctx, S);
     drawUnitVoid(ctx, S);
     drawPartitionsOverlay(ctx, S);
+    drawLiftOverlay(ctx, S);
+    drawRingLabels(ctx, S);
     return;
   }
   const base = buildBase(Math.min(COP_G, cap), $('cmode').value);
   ctx.imageSmoothingEnabled = COP_G > cap;
   ctx.drawImage(base, 0, 0, S, S);
   ctx.imageSmoothingEnabled = true;
+  drawSectorBands(ctx, S);
   dimPlateIfPartition(ctx, S);
   if (walkMode === 'band') drawBandOverlay(ctx, S);
   if (showStrip) drawStripOverlay(ctx, S);
   drawPartitionsOverlay(ctx, S);
+  drawLiftOverlay(ctx, S);
   // Labels go LAST. They used to be drawn before the partition overlay, which
   // then painted over them — switching partitions on silently removed every
   // cell label. They carry their own dark stroke, so they stay readable on
@@ -3323,6 +3878,414 @@ function drawPartitionsOverlay(ctx, S) {
     }
   }
   ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LIFT DYNAMICS — ported from the opener (index.html / page2.html): the
+   residue spiral of a fixed prime p across rings M, its mirror σ(r)=M−r, the
+   dropout ring at M=p, and the ±n "lift path" r=(M±n)/2. Unlike the opener,
+   this draws on whichever of the three views is active — Grid, Ring or
+   Cayley — through the same per-view point mapping drawPartitionsOverlay
+   uses, so it can never disagree with where the base lattice puts a cell.
+
+   LOCK: links the lift depth n (±n path, saturated primes, C(n), spiral-p
+   skipping) to the r-chain's depth n below. While locked the two are ONE
+   number: stepping either moves both, so the lines the r-chain keeps and the
+   primes the spiral treats as saturated always come from the same n. Unlock
+   to give the r-chain its own depth. Independent of the Width control.
+   ══════════════════════════════════════════════════════════════════════════ */
+let liftOn = true;
+let liftMode = 'none';             // 'none' | 'npath' | 'spiral' | 'both' | 'connect'
+let liftLockN = false;             // n is shared with the r-chain depth n while locked
+let liftNManual = 1;               // the lift depth n (shared with the r-chain depth while locked)
+let liftNPathDir = 'both';         // 'both' | 'plus' | 'minus'
+let liftSpiralP = 5;
+let liftMirrorOn = false;
+let liftDropoutOn = false;
+let liftDropoutLblOn = false;
+let liftAllPOn = false;
+let liftSurvOn = true;
+let liftBrokenOn = true;
+let liftDotScale = 1;
+let liftThick = 3;
+let liftDimOn = false;
+let liftDimPct = 50;
+let liftAnimSpeed = 140;
+let liftNPlayIv = null, liftPPlayIv = null;
+let liftPSyncOn = true;
+let liftChainOn = true;            // r → r mod(M+1) lines, for every coprime r — not just the spiral prime or the ±n path
+let liftChainN = 0;                // the r-chain's own depth gate; follows the lift n while locked
+
+/* Deepest useful n for this lattice: a block of n+1 rings cannot reach past
+   the G rings that exist, so the lift / r-chain depth runs 0 … G−1. */
+function liftMaxN() { return Math.max(0, (COP_G || 1) - 1); }
+function liftN() { return Math.max(0, Math.min(liftMaxN(), liftNManual)); }
+function liftChainNEff() { return liftLockN ? liftN() : Math.max(0, Math.min(liftMaxN(), liftChainN)); }
+
+function liftToggleOn() {
+  liftOn = !liftOn;
+  const b = $('lift-toggle-btn');
+  if (b) { b.classList.toggle('on', liftOn); b.textContent = (liftOn ? '\u21D1 Lift: on' : '\u21D1 Lift: off'); }
+  const dd = $('lift-dd-wrap'); if (dd) dd.style.display = liftOn ? '' : 'none';
+  redraw(false);
+}
+function liftSetMode(m) {
+  liftMode = m;
+  document.querySelectorAll('.lift-mode-btn').forEach(function (b) { b.classList.toggle('on', b.dataset.m === m); });
+  redraw(false);
+}
+function liftToggleLockN(v) {
+  liftLockN = !!v;
+  if (liftLockN) liftNManual = Math.max(0, Math.min(liftMaxN(), liftChainN));   // adopt the r-chain's depth on lock
+  liftRenderNReadout();
+  redraw(false);
+}
+function liftStepN(d) {
+  liftNManual = Math.max(0, Math.min(liftMaxN(), liftNManual + d));
+  liftRenderNReadout();
+  redraw(false);
+}
+function liftRenderNReadout() {
+  const el = $('lift-n-val'); if (el) el.textContent = liftN();
+  const note = $('lift-n-locknote'); if (note) note.style.display = liftLockN ? '' : 'none';
+  liftRenderChainNReadout();
+  const lockChk = $('lift-lockn-chk'); if (lockChk) lockChk.checked = liftLockN;
+}
+function liftSetNPathDir(d) {
+  liftNPathDir = d;
+  document.querySelectorAll('.lift-npdir-btn').forEach(function (b) { b.classList.toggle('on', b.dataset.d === d); });
+  redraw(false);
+}
+function liftCycleSpiralP(dir) {
+  liftSpiralP = Math.max(2, dir > 0 ? nextPrime(liftSpiralP) : prevPrime(liftSpiralP));
+  const inp = $('lift-p-inp'); if (inp) inp.value = liftSpiralP;
+  redraw(false);
+}
+function liftSetSpiralP(v) {
+  v = Math.round(+v) || 2;
+  liftSpiralP = isPrime(v) ? v : nextPrime(v - 1);
+  const inp = $('lift-p-inp'); if (inp) inp.value = liftSpiralP;
+  redraw(false);
+}
+function liftToggleMirror(v) { liftMirrorOn = !!v; redraw(false); }
+function liftToggleDropout(v) { liftDropoutOn = !!v; redraw(false); }
+function liftToggleDropoutLbl(v) { liftDropoutLblOn = !!v; redraw(false); }
+function liftToggleAllP(v) { liftAllPOn = !!v; redraw(false); }
+function liftSetSurv(v) { liftSurvOn = !!v; redraw(false); }
+function liftSetBroken(v) { liftBrokenOn = !!v; redraw(false); }
+function liftSetDotScale(v) {
+  liftDotScale = Math.max(0.3, Math.min(5, +v || 1));
+  const l = $('lift-dot-val'); if (l) l.textContent = liftDotScale.toFixed(2) + '\u00d7';
+  redraw(false);
+}
+function liftSetThick(v) {
+  liftThick = Math.max(0.2, Math.min(6, +v || 1));
+  const l = $('lift-thick-val'); if (l) l.textContent = liftThick.toFixed(2) + '\u00d7';
+  redraw(false);
+}
+function liftToggleDim(v) { liftDimOn = !!v; redraw(false); }
+function liftSetDim(v) {
+  liftDimPct = Math.max(5, Math.min(100, +v || 50));
+  const l = $('lift-dim-val'); if (l) l.textContent = liftDimPct + '%';
+  redraw(false);
+}
+function liftSetAnimSpeed(v) {
+  liftAnimSpeed = Math.max(20, Math.min(1000, +v || 140));
+  const l = $('lift-speed-val'); if (l) l.textContent = liftAnimSpeed + 'ms';
+}
+function liftTogglePSync(v) { liftPSyncOn = !!v; }
+function liftToggleChain(v) {
+  liftChainOn = !!v;
+  const row = $('lift-chain-n-row'); if (row) row.style.display = liftChainOn ? 'inline-flex' : 'none';
+  redraw(false);
+}
+function liftStepChainN(d) {
+  if (liftLockN) { liftStepN(d); return; }       // locked: one shared n
+  liftChainN = Math.max(0, Math.min(liftMaxN(), liftChainN + d));
+  liftRenderChainNReadout();
+  redraw(false);
+}
+function liftRenderChainNReadout() {
+  const mx = liftMaxN();
+  liftNManual = Math.min(liftNManual, mx); liftChainN = Math.min(liftChainN, mx);   // G shrank under the depth
+  const el = $('lift-chain-n-val'); if (el) el.textContent = liftChainNEff();
+  liftChainN = liftLockN ? liftN() : liftChainN;
+  const sl = $('lift-chain-n-sl');
+  if (sl) { sl.max = mx; sl.value = liftChainNEff(); }
+  const m = $('lift-chain-n-max'); if (m) m.textContent = '/ ' + mx;
+}
+/* Set the depth directly (slider, presets). While locked this is the shared
+   n, otherwise only the r-chain's own. */
+function liftSetChainN(v) {
+  v = Math.max(0, Math.min(liftMaxN(), Math.round(+v) || 0));
+  if (liftLockN) liftNManual = v; else liftChainN = v;
+  liftRenderNReadout(); redraw(false);
+}
+/* n = round(G · a/b): a fraction of the grid. Presets 1/4, 1/2, 2/3 and a free a/b. */
+function liftChainFrac(a, b) {
+  a = +a; b = +b;
+  if (!(b > 0) || !(a >= 0)) return;
+  liftSetChainN(Math.round(COP_G * a / b));
+}
+function liftChainFracInputs() {
+  liftChainFrac($('lift-chain-fa').value, $('lift-chain-fb').value);
+}
+
+function liftNPlay() {
+  const btn = $('lift-n-play-btn');
+  if (liftNPlayIv) {
+    clearInterval(liftNPlayIv); liftNPlayIv = null;
+    if (btn) { btn.textContent = '\u25B6 n'; btn.classList.remove('on'); }
+    return;
+  }
+  if (btn) { btn.textContent = '\u23F8 n'; btn.classList.add('on'); }
+  liftNPlayIv = setInterval(function () {
+    // Steps the lift depth n; while locked the r-chain depth moves with it.
+    liftNManual = (liftNManual + 1 > liftMaxN()) ? 0 : liftNManual + 1;
+    liftRenderNReadout(); liftRenderTable(); redraw(false);
+  }, liftAnimSpeed);
+}
+function liftPPlay() {
+  const btn = $('lift-p-play-btn');
+  if (liftPPlayIv) {
+    clearInterval(liftPPlayIv); liftPPlayIv = null;
+    if (btn) { btn.textContent = '\u25B6 p'; btn.classList.remove('on'); }
+    return;
+  }
+  if (btn) { btn.textContent = '\u23F8 p'; btn.classList.add('on'); }
+  liftPPlayIv = setInterval(function () {
+    let p = nextPrime(liftSpiralP);
+    if (liftPSyncOn) { const cap = liftN() + 1; while (p <= cap) p = nextPrime(p); }
+    if (p > COP_G) p = 2;
+    liftSetSpiralP(p);
+  }, liftAnimSpeed);
+}
+
+/* Same per-view branch drawPartitionsOverlay uses, so the overlay is never
+   one projection out of step with the lattice underneath it. */
+function liftXY(r, M, S) {
+  const G = COP_G, k = S / G;
+  if (viewMode === 'grid') return [(r - 0.5) * k, (M - 0.5) * k];
+  if (viewMode === 'ring') { const rad = ringRad(M, S), th = ringRot + thetaOf(r, M); return ringPt(rad, th, S); }
+  return cayleyXY(r, M, S);
+}
+
+function liftComputeCD(n) {
+  const ZETA2 = Math.PI * Math.PI / 6;
+  let D = 1, sat = 0;
+  for (let i = 0; i < PRIMES.length; i++) {
+    const p = PRIMES[i], num = Math.min(n + 1, p);
+    D *= (1 - num / (p * p));
+    if (p <= n + 1) sat++;
+  }
+  return { C: D * ZETA2, D: D, sat: sat, zeta2: ZETA2 };
+}
+
+function liftPrimeSet() {
+  if (!liftAllPOn) return [liftSpiralP];
+  // Every prime the lattice holds, p <= G. It used to stop at 97, which read as
+  // a bug on any bigger grid: the spiral for p = 101 exists, it just was not drawn.
+  return PRIMES.filter(function (p) { return p <= COP_G; });
+}
+
+function liftDrawDropoutRing(ctx, S, p, lw, ptk) {
+  const G = COP_G;
+  if (p > G) return;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(224,80,96,.6)'; ctx.lineWidth = Math.max(1, lw); ctx.setLineDash([4, 3]);
+  let labelXY = null;
+  if (viewMode === 'ring') {
+    const rad = ringRad(p, S);
+    ctx.beginPath(); ctx.arc(S / 2, S / 2, rad, 0, TAU); ctx.stroke();
+    labelXY = ringPt(rad, ringRot, S);
+  } else if (viewMode === 'grid') {
+    const k = S / G, y = (p - 0.5) * k;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(S, y); ctx.stroke();
+    labelXY = [S - 4, y];
+  } else {
+    ctx.beginPath();
+    let first = true;
+    for (let r = 1; r < p; r++) {
+      const xy = cayleyXY(r, p, S); if (!xy) continue;
+      if (first) { ctx.moveTo(xy[0], xy[1]); first = false; } else ctx.lineTo(xy[0], xy[1]);
+      if (!labelXY) labelXY = xy;
+    }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  if (liftDropoutLblOn && labelXY) {
+    ctx.fillStyle = 'rgba(224,80,96,.85)';
+    ctx.font = Math.max(8, 9 * ptk) + 'px "JetBrains Mono",monospace';
+    ctx.textAlign = viewMode === 'grid' ? 'right' : 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('p=' + p, labelXY[0] + (viewMode === 'grid' ? -4 : 4), labelXY[1] - 6);
+  }
+  ctx.restore();
+}
+
+function liftDrawSpiral(ctx, S) {
+  const G = COP_G, ptk = S / 700;
+  const dot = Math.max(1.4, 2.2 * ptk) * liftDotScale;
+  const lw = Math.max(0.6, 1.1 * ptk) * liftThick;
+  const primes = liftPrimeSet();
+  for (let pi = 0; pi < primes.length; pi++) {
+    const p = primes[pi];
+    if (p > G || !liftSurvOn) { if (liftDropoutOn && liftSurvOn) liftDrawDropoutRing(ctx, S, p, lw, ptk); continue; }
+    let lastTop = null, lastBot = null;
+    for (let M = p + 1; M <= G; M++) {
+      if (gcd(p, M) !== 1) continue;               // p's own multiples — the residue vanishes
+      const lifts = gcd(p, M + 1) === 1;            // does it also survive one more step, M+1?
+      const isTop = p / M > 0.5;
+      const xy = liftXY(p, M, S); if (!xy) continue;
+      ctx.lineWidth = lw;
+      if (isTop) {
+        if (lastTop) { ctx.strokeStyle = 'rgba(61,200,184,.9)'; ctx.beginPath(); ctx.moveTo(lastTop[0], lastTop[1]); ctx.lineTo(xy[0], xy[1]); ctx.stroke(); }
+        lastTop = xy;
+      } else {
+        if (lastBot) { ctx.strokeStyle = 'rgba(255,140,105,.9)'; ctx.beginPath(); ctx.moveTo(lastBot[0], lastBot[1]); ctx.lineTo(xy[0], xy[1]); ctx.stroke(); }
+        lastBot = xy;
+      }
+      ctx.fillStyle = isTop ? '#4ecdc4' : '#ff8c69';
+      ctx.beginPath(); ctx.arc(xy[0], xy[1], dot, 0, TAU); ctx.fill();
+      if (!lifts && liftBrokenOn) {
+        ctx.strokeStyle = 'rgba(224,80,96,.75)'; ctx.lineWidth = Math.max(0.8, lw * 0.8);
+        ctx.beginPath(); ctx.arc(xy[0], xy[1], dot * 1.7, 0, TAU); ctx.stroke();
+      }
+      if (liftMirrorOn) {
+        const rM = M - p;
+        if (rM >= 1) {
+          const mxy = liftXY(rM, M, S);
+          if (mxy) { ctx.fillStyle = 'rgba(155,127,232,.85)'; ctx.beginPath(); ctx.arc(mxy[0], mxy[1], dot * 0.85, 0, TAU); ctx.fill(); }
+        }
+      }
+    }
+    if (liftDropoutOn) liftDrawDropoutRing(ctx, S, p, lw, ptk);
+  }
+}
+
+function liftDrawNPath(ctx, S) {
+  const G = COP_G, ptk = S / 700, n = liftN();
+  const dot = Math.max(1.4, 2.2 * ptk) * liftDotScale;
+  const lw = Math.max(0.8, 1.3 * ptk) * liftThick;
+  const signs = liftNPathDir === 'plus' ? [1] : liftNPathDir === 'minus' ? [-1] : [1, -1];
+  for (let si = 0; si < signs.length; si++) {
+    const sign = signs[si];
+    const pts = [];   // every point along this branch, kept in M order, whether shown or not — the line should not jump the gaps a filtered-out point leaves
+    for (let M = 2; M <= G; M++) {
+      const rHalf = (M + sign * Math.max(1, n)) / 2;
+      if (rHalf < 1 || rHalf >= M || Math.round(rHalf) !== rHalf) continue;
+      const cop = gcd(rHalf, M) === 1;
+      const xy = liftXY(rHalf, M, S); if (!xy) continue;
+      pts.push({ xy: xy, cop: cop });
+    }
+    // Line first, so the dots draw on top of it rather than under.
+    ctx.beginPath();
+    let started = false;
+    for (let i = 0; i < pts.length; i++) {
+      const show = pts[i].cop ? liftSurvOn : liftBrokenOn;
+      if (!show) { started = false; continue; }
+      if (!started) { ctx.moveTo(pts[i].xy[0], pts[i].xy[1]); started = true; }
+      else ctx.lineTo(pts[i].xy[0], pts[i].xy[1]);
+    }
+    ctx.strokeStyle = sign > 0 ? 'rgba(200,168,74,.95)' : 'rgba(155,127,232,.9)';
+    ctx.lineWidth = lw; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
+    for (let i = 0; i < pts.length; i++) {
+      const cop = pts[i].cop;
+      if (cop && !liftSurvOn) continue;
+      if (!cop && !liftBrokenOn) continue;
+      ctx.fillStyle = cop ? (sign > 0 ? 'rgba(200,168,74,.9)' : 'rgba(155,127,232,.9)') : 'rgba(224,80,96,.55)';
+      ctx.beginPath(); ctx.arc(pts[i].xy[0], pts[i].xy[1], cop ? dot : dot * 0.7, 0, TAU); ctx.fill();
+    }
+  }
+}
+
+function liftDrawConnect(ctx, S) {
+  const G = COP_G, n = liftN(), p = liftSpiralP;
+  const spiralPts = new Map();
+  for (let M = p + 1; M <= G; M++) {
+    if (gcd(p, M) !== 1) continue;
+    const xy = liftXY(p, M, S); if (xy) spiralPts.set(M, xy);
+  }
+  ctx.save();
+  ctx.strokeStyle = 'rgba(232,227,219,.35)'; ctx.lineWidth = 0.8 * liftThick;
+  for (let sign of [1, -1]) {
+    for (let M = 2; M <= G; M++) {
+      const rHalf = (M + sign * Math.max(1, n)) / 2;
+      if (rHalf < 1 || rHalf >= M || Math.round(rHalf) !== rHalf || gcd(rHalf, M) !== 1) continue;
+      const a = spiralPts.get(M); if (!a) continue;
+      const b = liftXY(rHalf, M, S); if (!b) continue;
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+/* r-chain: the literal r → r mod(M+1) rule this whole panel is named for,
+   drawn for every coprime r on every ring — not just the spiral's fixed p or
+   the ±n path's single trajectory. Two Path2Ds (survives / dies) so the whole
+   O(G²) lattice is one stroke() call per colour instead of thousands. Capped
+   at G≤400: past that the line count starts to jank the frame, same reasoning
+   as the spiral/npath O(G) markers already carry. */
+function liftDrawChain(ctx, S) {
+  const G = COP_G;
+  if (G > 400) return;
+  const ptk = S / 700;
+  const lw = Math.max(0.5, 0.9 * ptk) * liftThick;
+  const n = liftChainNEff();
+  const pathLift = new Path2D(), pathDie = new Path2D();
+  for (let M = 2; M < G; M++) {
+    for (let r = 1; r < M; r++) {
+      if (gcd(r, M) !== 1) continue;
+      if (n > 0 && firstFail(r, M, n, G)[0] !== -1) continue;  // doesn't stay block-coprime n rings ahead — skip
+      const r2 = r % (M + 1);
+      const A = liftXY(r, M, S); if (!A) continue;
+      const B = liftXY(r2, M + 1, S); if (!B) continue;
+      const lifted = gcd(r2, M + 1) === 1;
+      const tgt = lifted ? pathLift : pathDie;
+      tgt.moveTo(A[0], A[1]); tgt.lineTo(B[0], B[1]);
+    }
+  }
+  ctx.save();
+  ctx.lineWidth = lw;
+  if (liftSurvOn) { ctx.strokeStyle = 'rgba(61,200,184,.65)'; ctx.stroke(pathLift); }
+  if (liftBrokenOn) { ctx.strokeStyle = 'rgba(224,80,96,.55)'; ctx.stroke(pathDie); }
+  ctx.restore();
+}
+
+function drawLiftOverlay(ctx, S) {
+  if (!liftOn || !COP_G) return;
+  ctx.save();
+  if (liftDimOn) { ctx.fillStyle = 'rgba(4,4,13,' + (1 - liftDimPct / 100).toFixed(3) + ')'; ctx.fillRect(0, 0, S, S); }
+  if (liftMode === 'spiral' || liftMode === 'both' || liftMode === 'connect') liftDrawSpiral(ctx, S);
+  if (liftMode === 'npath' || liftMode === 'both' || liftMode === 'connect') liftDrawNPath(ctx, S);
+  if (liftMode === 'connect') liftDrawConnect(ctx, S);
+  if (liftChainOn) liftDrawChain(ctx, S);
+  ctx.restore();
+}
+
+/* The data table: kept live regardless of whether the overlay itself is on,
+   since n, the saturated-prime list and D(n)/C(n) are useful on their own —
+   this is the opener's renderLiveTable, generalised past n ≤ 24. */
+function liftRenderTable() {
+  liftRenderNReadout();
+  const el = $('lift-table'); if (!el || !COP_G) return;
+  const n = liftN(), r = liftComputeCD(n);
+  const satPrimes = PRIMES.filter(function (p) { return p <= n + 1; });
+  const rows = [
+    ['n \u2014 lift / block depth', n + (liftLockN ? ' (locked to r-chain depth n)' : ' (unlocked)')],
+    ['block length n+1', n + 1],
+    ['spiral prime p', liftSpiralP + (liftSpiralP > COP_G ? ' \u2014 off-plate, G < p' : '')],
+    ['saturated primes p \u2264 n+1', satPrimes.length ? satPrimes.join(', ') : '\u2014 none \u2014'],
+    ['count saturated', r.sat],
+    ['D(n) \u2014 raw density', r.D.toFixed(9)],
+    ['C(n) = \u03b6(2)\u00b7D(n)', r.C.toFixed(9)],
+    ['\u03b6(2) = \u03c0\u00b2/6', r.zeta2.toFixed(9)],
+    ['G (lattice size)', COP_G]
+  ];
+  let html = '<div class="scroll"><table><thead><tr><th>quantity</th><th class="n">value</th></tr></thead><tbody>';
+  for (let i = 0; i < rows.length; i++) html += '<tr><td>' + rows[i][0] + '</td><td class="n">' + rows[i][1] + '</td></tr>';
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
 }
 
 /* ── Goldbach core, ported from Strip I ──────────────────────────────── */
@@ -3949,7 +4912,7 @@ function drawStripOverlay(ctx, S) {
   // laid down first, the colour over it, so the line reads on a coral block
   // plate, on a pale gcd plate and on the near-black default alike. Same
   // trick the cell labels use, for the same reason.
-  const lw = Math.max(1.4, 2.0 * (S / 900));
+  const lw = Math.max(1.4, 2.0 * (S / 900)) * stripThick;
   // The strip is a band between two parallel lines; draw it as a polygon in
   // lattice coords, one clip per edge, rather than cell by cell.
   ctx.beginPath();
@@ -3978,15 +4941,31 @@ function drawBandOverlay(ctx, S) {
   // Sample the full 1..g square via a step rather than truncating to a fixed
   // 600×600 corner — at G well above 600 that corner is a small fraction of
   // the lattice, so most of the grid showed nothing at all.
+  //
+  // Surviving/Broken now gate this layer directly (they used to only reach
+  // Ring and Cayley): Broken is the dim backdrop over every cell the AND
+  // rejects, Surviving is the coral fill over every cell it keeps. Each is
+  // its own pass so unchecking one leaves the other untouched rather than
+  // both riding on a single blanket dim. stripThick scales the cell size so
+  // the highlight can be made bolder or fainter without changing the sample.
   const g = COP_G, k = S / g, w = widthW;
   const step = Math.max(1, Math.ceil(g / 600));
+  const sz = Math.max(1, k * step * stripThick);
   ctx.save();
-  ctx.fillStyle = 'rgba(224,80,96,.85)';
-  const sz = Math.max(1, k * step);
-  let drawn = 0;
-  for (let r = 1; r <= g && drawn < 400000; r += step)
-    for (let M = 1; M + w - 1 <= g; M += step)
-      if (inBand(r, M, w, g)) { ctx.fillRect((r - 1) * k, (M - 1) * k, sz, sz); drawn++; }
+  if (brokenOn) {
+    ctx.fillStyle = 'rgba(4,4,13,.62)';
+    let drawn = 0;
+    for (let r = 1; r <= g && drawn < 400000; r += step)
+      for (let M = 1; M + w - 1 <= g; M += step)
+        if (!inBand(r, M, w, g)) { ctx.fillRect((r - 1) * k, (M - 1) * k, sz, sz); drawn++; }
+  }
+  if (survOn) {
+    ctx.fillStyle = 'rgba(224,80,96,.85)';
+    let drawn = 0;
+    for (let r = 1; r <= g && drawn < 400000; r += step)
+      for (let M = 1; M + w - 1 <= g; M += step)
+        if (inBand(r, M, w, g)) { ctx.fillRect((r - 1) * k, (M - 1) * k, sz, sz); drawn++; }
+  }
   ctx.restore();
 }
 /* ══════════════════════════════════════════════════════════════════════════
@@ -4042,10 +5021,18 @@ function ringOuter(S) { return (S / 2) * RING_INSET; }
    Nothing was ever mismeasured — the inverse used the same convention as the
    forward map, so clicks, the lens and every count agreed. It was orientation
    alone. RING_H = -1 negates the y component so Ring winds the way Cayley
-   does, and the way e^{2πir/M} does on paper. Set it to +1 to restore the old
-   picture; every angle-bearing ring site goes through ringPt or ringCellAt, so
-   this is the only line that decides it. */
-const RING_H = -1;
+   does, and the way e^{2πir/M} does on paper. Ring now opens CLOCKWISE (RING_H = +1, screen angle
+   −2π·r/M on paper); −1 gives the counter-clockwise, e^{+2πir/M} picture that
+   Cayley draws. Every angle-bearing ring site goes through ringPt or
+   ringCellAt, so this one value decides it. */
+let RING_H = 1;   // +1 clockwise on screen (default), -1 counter-clockwise; see setRingWinding
+function setRingWinding(h) {
+  RING_H = h < 0 ? -1 : 1;
+  document.querySelectorAll('.windchip').forEach(b => b.classList.toggle('on', +b.dataset.h === RING_H));
+  ringKey = '';                       // the ring buffer bakes the handedness in
+  if (typeof LENS_REDRAW === 'function') LENS_REDRAW();
+  redraw(true);
+}
 
 /* ── GLOBAL PLATE ROTATION ─────────────────────────────────────────────────
    One quarter-turn control over all three views. Modular arithmetic is read
@@ -4062,7 +5049,7 @@ const RING_H = -1;
    rotPt and unrotPt are written as exact coordinate swaps rather than as
    cos/sin, so a lattice point round-trips bit-exactly through the hit test
    instead of drifting by a float epsilon and landing one cell over. */
-let viewQuarter = 0;
+let viewQuarter = -1;              // opens at −i (quarter turn counter-clockwise) in every view
 function viewQ() { return ((viewQuarter % 4) + 4) % 4; }
 function viewRotRad() { return viewQuarter * Math.PI / 2; }
 function rotPt(x, y, S) {            // plate -> screen
@@ -4180,7 +5167,7 @@ function upright(ctx, x, y, draw) {
    re-orient the one you just set. All three open at 0 — the raster's own
    frame, where r runs right and M runs down, which is how every identity on
    the page is written. */
-const VQ = { grid: 0, ring: 0, cayley: 0 };
+const VQ = { grid: -1, ring: -1, cayley: 0 };
 function syncRotChips() {
   document.querySelectorAll('.rotchip').forEach(b =>
     b.classList.toggle('on', +b.dataset.q === viewQuarter));
@@ -4276,7 +5263,9 @@ function ringCellAt(dx, dy, S) {
    under-samples, but every part of the lattice gets *some* representation. */
 function ringBase(mode, S) {
   const boost = partMode !== 'off' ? partBgBoost : 1;
-  const key = COP_G + '|' + S + '|' + mode + '|' + ringHole.toFixed(4) + '|' + thetaMode + '|' + boost + '|' + ptScale;
+  const key = COP_G + '|' + RING_H + '|' + S + '|' + mode + '|' + ringHole.toFixed(4) + '|' + thetaMode + '|' + boost + '|' + ptScale + '|' + pointShape +
+              '|surv' + survOn + '|brk' + brokenOn +
+              (sectorOn && sectorPick > 0 ? '|sec' + sectorPick + '|dim' + sectorDim : '');
   if (ringCv && ringKey === key) return ringCv;
   const cv = document.createElement('canvas');
   cv.width = S; cv.height = S;
@@ -4287,16 +5276,24 @@ function ringBase(mode, S) {
   // Integer size and integer placement: a fillRect on fractional coordinates
   // is antialiased on all four edges, which is exactly the mush the slider
   // was making visible at larger sizes.
-  const dot = Math.max(1, Math.round(S * 0.0026 * ptScale));
+  // Requested size, capped at the ring-to-ring spacing (the tighter of the
+  // two neighbour distances) so circles never overlap as G grows.
+  const ringGap = ringOuter(S) * (1 - ringHole) / g * step;
+  const dot = Math.max(1, Math.min(Math.round(S * 0.0026 * ptScale), ringGap * 0.85));
   const h = dot / 2;
   for (let M = 1; M <= g; M += step) {
     const rad = ringRad(M, S);
     for (let r = 1; r <= g; r += step) {
+      const vis = sectorVis(r, M);
+      if (vis <= 0) continue;
       const cop = isCop(r, M);
+      if (cop ? !survOn : !brokenOn) continue;
       const th = thetaOf(r, M);                 // rotation applied by drawRingBase's transform
       const q = ringPt(rad, th, S), x = q[0], y = q[1];
       ctx.fillStyle = cop ? cellRGBAstr(mode, 1, r, M, boost) : 'rgba(255,255,255,' + Math.min(1, .05 * boost).toFixed(3) + ')';
-      ctx.fillRect(Math.round(x - h), Math.round(y - h), dot, dot);
+      if (vis < 1) ctx.globalAlpha = vis;
+      drawPointAt(ctx, x, y, dot);
+      if (vis < 1) ctx.globalAlpha = 1;
     }
   }
   ringCv = cv; ringKey = key;
@@ -4367,20 +5364,30 @@ function drawRingStripAt(ctx, S, s, color) {
 }
 function drawRingStrip(ctx, S) { drawRingStripAt(ctx, S, offS, 'rgba(61,200,184,.22)'); }
 function drawRingBand(ctx, S) {
+  // Same Surviving/Broken gating and stripThick sizing as the Grid band
+  // overlay, applied here instead of unconditionally dimming+highlighting.
   const g = COP_G, w = widthW, C = S / 2;
   const step = Math.max(1, Math.ceil(g / 600));
-  const sz = Math.max(1, ringOuter(S) * (1 - ringHole) / g * step);
+  const sz = Math.max(1, ringOuter(S) * (1 - ringHole) / g * step * stripThick);
   ctx.save();
-  ctx.fillStyle = 'rgba(224,80,96,.85)';
-  let drawn = 0;
-  for (let r = 1; r <= g && drawn < 200000; r += step)
-    for (let M = 1; M + w - 1 <= g; M += step)
-      if (inBand(r, M, w, g)) {
-        const rad = ringRad(M, S), th = ringRot + thetaOf(r, M);
-        const q = ringPt(rad, th, S);
-        ctx.fillRect(q[0] - sz / 2, q[1] - sz / 2, sz, sz);
-        drawn++;
-      }
+  if (brokenOn) {
+    // Same reasoning as the Grid band overlay: dim the ring plate first so
+    // the AND's survivors read as selected rather than as one more coral fleck.
+    ctx.fillStyle = 'rgba(4,4,13,.62)';
+    ctx.beginPath(); ctx.arc(S / 2, S / 2, ringOuter(S) + 1, 0, TAU); ctx.fill();
+  }
+  if (survOn) {
+    ctx.fillStyle = 'rgba(224,80,96,.85)';
+    let drawn = 0;
+    for (let r = 1; r <= g && drawn < 200000; r += step)
+      for (let M = 1; M + w - 1 <= g; M += step)
+        if (inBand(r, M, w, g)) {
+          const rad = ringRad(M, S), th = ringRot + thetaOf(r, M);
+          const q = ringPt(rad, th, S);
+          ctx.fillRect(q[0] - sz / 2, q[1] - sz / 2, sz, sz);
+          drawn++;
+        }
+  }
   ctx.restore();
 }
 function drawRingGuides(ctx, S) {
@@ -4454,15 +5461,48 @@ function wMapB(theta, m, G) {
   return [(nr * dr + ni * di) / d, (ni * dr - nr * di) / d];
 }
 /* r,M -> screen point, applying the live map + rotation + scale. Returns
-   null off-plate (pole, or clipped by zoom) so callers can skip the point. */
+   null off-plate (pole, or clipped by zoom) so callers can skip the point.
+
+   Rotation used to be one 2D turn of the (u,v) plane — mathematically that
+   IS a rotation of the underlying Riemann sphere about its z-axis (the pole
+   axis), since the lift below depends only on u²+v², a rotation invariant.
+   x and y tilt the sphere on the other two axes, which a flat 2D rotation
+   of the plane can never reach — hence lift, rotate in 3D, project back. */
+function sphereLift(u, v) {
+  const uv = u * u + v * v, denom = 1 + uv;
+  return [2 * u / denom, 2 * v / denom, (uv - 1) / denom];
+}
+function sphereProject(X, Y, Z) {
+  const denom = 1 - Z;
+  if (denom < 1e-6) return null;             // at the north pole — no image on the plate
+  return [X / denom, Y / denom];
+}
+function rotX3(X, Y, Z, a) { const c = Math.cos(a), s = Math.sin(a); return [X, Y * c - Z * s, Y * s + Z * c]; }
+function rotY3(X, Y, Z, a) { const c = Math.cos(a), s = Math.sin(a); return [X * c + Z * s, Y, -X * s + Z * c]; }
+// Apply x then y, matching the order the sliders are laid out top to
+// bottom. Order matters for 3D rotation, so the inverse below undoes it
+// y, then x — same trick as reversing a stack.
+function cayleySphereRotate(u, v, ax, ay) {
+  let p = sphereLift(u, v);
+  if (ax) p = rotX3(p[0], p[1], p[2], ax);
+  if (ay) p = rotY3(p[0], p[1], p[2], ay);
+  return sphereProject(p[0], p[1], p[2]);
+}
+function cayleySphereUnrotate(u, v, ax, ay) {
+  let p = sphereLift(u, v);
+  if (ay) p = rotY3(p[0], p[1], p[2], -ay);
+  if (ax) p = rotX3(p[0], p[1], p[2], -ax);
+  return sphereProject(p[0], p[1], p[2]);
+}
 function cayleyXY(r, M, S) {
   const cx = S / 2, cy = S / 2, Rc = cayleyScale(S);
   const th = thetaOf(r, M);
   let w = cmap === 'B' ? wMapB(th, M, COP_G) : wMapA(th, M, COP_G);
   if (!w) return null;
-  if (cayleyRot) {
-    const t = cayleyRot * Math.PI / 180, c = Math.cos(t), s2 = Math.sin(t);
-    const uu = w[0] * c - w[1] * s2; w = [uu, w[0] * s2 + w[1] * c];
+  if (cayleyRotX || cayleyRotY) {
+    const ax = cayleyRotX * Math.PI / 180, ay = cayleyRotY * Math.PI / 180;
+    w = cayleySphereRotate(w[0], w[1], ax, ay);
+    if (!w) return null;
   }
   const x = cx + w[0] * Rc, y = cy - w[1] * Rc;
   if (!isFinite(x) || !isFinite(y) || Math.abs(x - cx) > S * 4 || Math.abs(y - cy) > S * 4) return null;
@@ -4470,12 +5510,37 @@ function cayleyXY(r, M, S) {
 }
 let cayCv = null, cayKey = '';
 function cayleyBaseKey(S) {
-  return [COP_G, S, cmap, rho0, rhoD, ba, baAng, cayleyRot, cayleyZoomOut, cayleyZoomIn, thetaMode, ptScale, $('cmode').value].join('|');
+  return [COP_G, S, cmap, rho0, rhoD, ba, baAng, cayleyRotX, cayleyRotY, cayleyZoomOut, cayleyZoomIn, thetaMode, ptScale, pointShape,
+          survOn, brokenOn,
+          (sectorOn && sectorPick > 0 ? 'sec' + sectorPick + 'dim' + sectorDim : ''), $('cmode').value].join('|');
 }
 /* Forward-plotted field: loop the lattice (capped, like Strip I) and stamp
    each coprime cell's Möbius image. Forward scatter can under-sample once
    G² passes the point budget — stated here rather than hidden, same as
    Strip I's own caption for this view. */
+/* Typical nearest-neighbour distance (px, at buffer size Sb) between the
+   Möbius images of adjacent lattice cells. Sampled on a coarse grid, low
+   percentile, ignoring coincident points (r >= M pinned under clamp) so a
+   dot never has to be smaller than the visible structure demands. */
+function cayleySpacing(Sb, g, step) {
+  const K = 28, ds = [];
+  for (let i = 0; i < K; i++) {
+    const M = Math.max(1, Math.min(g - step, Math.round(1 + (g - 1) * (i + 0.5) / K)));
+    for (let j = 0; j < K; j++) {
+      const r = Math.max(1, Math.min(M, Math.round(1 + (M - 1) * (j + 0.5) / K)));
+      const p = cayleyXY(r, M, Sb);
+      if (!p) continue;
+      const a = cayleyXY(r + step, M, Sb), b = cayleyXY(r, M + step, Sb);
+      let d = Infinity;
+      if (a) d = Math.min(d, Math.hypot(a[0] - p[0], a[1] - p[1]));
+      if (b) d = Math.min(d, Math.hypot(b[0] - p[0], b[1] - p[1]));
+      if (isFinite(d) && d > 0.3) ds.push(d);
+    }
+  }
+  if (!ds.length) return Infinity;
+  ds.sort((x, y) => x - y);
+  return ds[Math.floor(ds.length * 0.2)];
+}
 function drawCayleyField(ctx, S) {
   const boost = partMode !== 'off' ? partBgBoost : 1;
   const Sb = Math.min(2400, Math.round(S * plateScale(ctx)));   // device resolution, capped
@@ -4488,31 +5553,47 @@ function drawCayleyField(ctx, S) {
     ctx.drawImage(cv, 0, 0, S, S);
     ctx.imageSmoothingEnabled = true;
   };
-  const key = cayleyBaseKey(Sb) + '|' + boost;
-  if (cayCv && cayKey === key) { blit(cayCv); return; }
+  // Wide export: the buffer grows to twice the square along whichever screen
+  // axis the quarter turn maps to the window's long side, centred on the plate.
+  const wideOdd = viewQ() % 2 === 1;
+  const wx = (CAY_WIDE_ON && !wideOdd) ? 2 : 1, wy = (CAY_WIDE_ON && wideOdd) ? 2 : 1;
+  const ox = (wx - 1) * Sb / 2, oy = (wy - 1) * Sb / 2;
+  const key = cayleyBaseKey(Sb) + '|' + boost + '|w' + wx + wy;
+  const blitW = (cv) => {
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(cv, -(wx - 1) * S / 2, -(wy - 1) * S / 2, wx * S, wy * S);
+    ctx.imageSmoothingEnabled = true;
+  };
+  if (cayCv && cayKey === key) { blitW(cayCv); return; }
   const cv = document.createElement('canvas');
-  cv.width = Sb; cv.height = Sb;
+  cv.width = Sb * wx; cv.height = Sb * wy;
   const cctx = cv.getContext('2d');
-  cctx.fillStyle = '#04040d'; cctx.fillRect(0, 0, Sb, Sb);
+  cctx.fillStyle = '#04040d'; cctx.fillRect(0, 0, cv.width, cv.height);
   // Same fix as ringBase: sample the FULL 1..g range at a fixed density
   // instead of truncating to the first 900 rows/cols, which left everything
   // past r or M = 900 as an undrawn void once g exceeded that.
   const g = COP_G, N = 900, step = Math.max(1, Math.ceil(g / N));
   const mode = $('cmode').value;
-  const dot = Math.max(1, Math.round(S * 0.0026 * ptScale * plateScale(ctx) *
-                                     Math.min(2.4, Math.sqrt(Math.max(1, cayleyZoomIn)))));
+  const dotReq = Math.round(S * 0.0026 * ptScale * plateScale(ctx) *
+                            Math.min(2.4, Math.sqrt(Math.max(1, cayleyZoomIn))));
+  const dot = Math.max(1, Math.min(dotReq, cayleySpacing(Sb, g, step) * 0.85));
   const h = dot / 2;
   for (let M = 1; M <= g; M += step) {
     for (let r = 1; r <= g; r += step) {
+      const vis = sectorVis(r, M);
+      if (vis <= 0) continue;
       const cop = isCop(r, M);
+      if (cop ? !survOn : !brokenOn) continue;
       const p = cayleyXY(r, M, Sb);
       if (!p) continue;
       cctx.fillStyle = cop ? cellRGBAstr(mode, 1, r, M, boost) : 'rgba(255,255,255,' + Math.min(1, .05 * boost).toFixed(3) + ')';
-      cctx.fillRect(Math.round(p[0] - h), Math.round(p[1] - h), dot, dot);
+      if (vis < 1) cctx.globalAlpha = vis;
+      drawPointAt(cctx, p[0] + ox, p[1] + oy, dot);
+      if (vis < 1) cctx.globalAlpha = 1;
     }
   }
   cayCv = cv; cayKey = key;
-  blit(cv);
+  blitW(cv);
 }
 /* cellRGBA returns a Uint8 tuple; the field wants a css string, so wrap it
    rather than duplicate the colour-mode switch that buildBase already owns.
@@ -4726,24 +5807,35 @@ function drawCayleyGuides(ctx, S) {
   ctx.restore();
 }
 function drawCayleyBand(ctx, S) {
+  // Same Surviving/Broken gating and stripThick sizing as Grid and Ring.
   const g = COP_G, w = widthW;
   const step = Math.max(1, Math.ceil(g / 600));
-  const dot = Math.max(1.4, S * 0.0026 * step);
+  const dot = Math.max(1.4, S * 0.0026 * step * stripThick);
   ctx.save();
-  ctx.fillStyle = 'rgba(224,80,96,.85)';
-  let drawn = 0;
-  for (let r = 1; r <= g && drawn < 200000; r += step)
-    for (let M = 1; M + w - 1 <= g; M += step)
-      if (inBand(r, M, w, g)) {
-        const p = cayleyXY(r, M, S);
-        if (!p) continue;
-        ctx.fillRect(p[0] - dot / 2, p[1] - dot / 2, dot, dot);
-        drawn++;
-      }
+  if (brokenOn) {
+    // Same reasoning as the Grid and Ring band overlays: dim the field first
+    // so the AND's survivors read as selected rather than as flecks on an
+    // equally bright field.
+    ctx.fillStyle = 'rgba(4,4,13,.62)';
+    ctx.fillRect(0, 0, S, S);
+  }
+  if (survOn) {
+    ctx.fillStyle = 'rgba(224,80,96,.85)';
+    let drawn = 0;
+    for (let r = 1; r <= g && drawn < 200000; r += step)
+      for (let M = 1; M + w - 1 <= g; M += step)
+        if (inBand(r, M, w, g)) {
+          const p = cayleyXY(r, M, S);
+          if (!p) continue;
+          ctx.fillRect(p[0] - dot / 2, p[1] - dot / 2, dot, dot);
+          drawn++;
+        }
+  }
   ctx.restore();
 }
 function drawCayley(ctx, S) {
   drawCayleyField(ctx, S);
+  drawSectorBands(ctx, S);
   dimPlateIfPartition(ctx, S);
   if (cayGuides) drawCayleyGuides(ctx, S);
   if (walkMode === 'band') drawCayleyBand(ctx, S);
@@ -4751,15 +5843,24 @@ function drawCayley(ctx, S) {
   drawPartitionsOverlay(ctx, S);
 }
 
-function updateBarBand(bs) {
+function updateBarBand(bs, st) {
   const d = bs.total ? bs.good / bs.total : 0;
   $('bar-l').innerHTML = 'G=<b>' + COP_G + '</b> \u00b7 <b>band</b> of w=<b>' + widthW +
     '</b> columns (n=<b>' + (widthW - 1) + '</b>) \u00b7 measured on ' + bs.cap + '\u00d7' + bs.cap;
   $('bar-r').innerHTML = 'positions <b>' + bs.total.toLocaleString() + '</b> \u00b7 survive AND <b>' +
     bs.good.toLocaleString() + '</b> \u00b7 <b>per-block</b> density <b>' + fmt(d, 6) +
     '</b> \u00b7 D(' + (widthW - 1) + ') = <b>' + fmt(Dn(widthW - 1), 6) + '</b>';
+  // The band's own AND ignores s, but the strip at the same slope/s/w is
+  // still walked live above — surface it here so dragging the offset slider
+  // visibly moves a number even with Block selected.
+  if (st) {
+    const sd = st.total ? st.cop / st.total : 0;
+    $('bar-r').innerHTML += ' <span class="qnote">\u00b7 strip at s=<b>' + offS +
+      '</b>: <b>' + st.cop.toLocaleString() + '</b>/<b>' + st.total.toLocaleString() +
+      '</b> coprime, per-cell density <b>' + fmt(sd, 6) + '</b></span>';
+  }
 }
-function updateIdentityBand(bs) {
+function updateIdentityBand(bs, st) {
   const t = $('idt');
   t.innerHTML = '<tr><th>Quantity</th><th>Measured on the band</th><th>Exact</th><th>\u0394</th></tr>';
   const n = widthW - 1;
@@ -4784,6 +5885,24 @@ function updateIdentityBand(bs) {
     '<tr><td colspan="4" style="color:var(--cream3);">Measured on ' + bs.cap + '\u00d7' + bs.cap +
     '. Finite-G bias scales as (n+1)/G, so at n=' + n + ' the expected error here is about ' +
     fmt(100 * 4 * (n + 1) / bs.cap, 1) + '%. Raise G for a tighter read.</td></tr>');
+  // The band's own AND ignores s and doesn't track removed cells at all — but
+  // the strip at the current slope/s/w is a separate, well-defined walk, and
+  // it stays live here so nudging the offset shows something move even with
+  // Block selected.
+  if (st) {
+    const sd = st.total ? st.cop / st.total : 0;
+    const sp = stripPredict();
+    const removed = st.total - st.cop;
+    t.insertAdjacentHTML('beforeend',
+      '<tr><td>Strip density at s=' + offS + ', w=' + widthW + '</td><td class="n">' +
+      fmt(sd, 6) + '</td><td class="n">' + (sp ? fmt(sp.pred, 6) : '\u2014') +
+      '</td><td class="n">' + (sp ? fmt(Math.abs(sd - sp.pred), 6) : '\u2014') + '</td></tr>');
+    t.insertAdjacentHTML('beforeend',
+      '<tr><td colspan="4" style="color:var(--cream3);">Strip removed <b>' +
+      removed.toLocaleString() + '</b> of <b>' + st.total.toLocaleString() +
+      '</b> cells as non-coprime at this offset \u2014 tracked live as you move s, ' +
+      'independent of the band\u2019s own AND.</td></tr>');
+  }
 }
 function updateBar(st) {
   const d = st.total ? st.cop / st.total : 0;
@@ -4987,6 +6106,11 @@ function onG(v) {
   // interactive).
   $('w-sl').max = Math.max(1, Math.min(8192, 2 * v));
   markPrime('g-pt', v);
+  // Sector S_s's last real sector is S_G itself (r=1, M=G) — the Rays
+  // control's ceiling moves with G instead of sitting at a fixed number.
+  $('sec-rays-num').max = v; $('sec-rays-sl').max = v;
+  if (sectorRays > v) setSectorRays(v);
+  if (sectorOn) renderSectorCensus();   // full census depends on G directly
   buildPhi(Math.max(4096, v));   // exports quote Phi(G); keep the table ahead of G
   buildCoprime(v, ok => { if (ok !== false) { onGridChanged(); redraw(true); } });
 }
@@ -5048,6 +6172,9 @@ function onW(v) {
 /* ── view switching ────────────────────────────────────────────────────── */
 function setView(v) {
   viewMode = v;
+  labelScale = LS[v] !== undefined ? LS[v] : 1;
+  { const sl = $('lbl-sc'); if (sl) sl.value = labelScale;
+    const lv = $('lbl-sc-v'); if (lv) lv.textContent = labelScale.toFixed(2) + '\u00d7'; }
   viewQuarter = VQ[v] !== undefined ? VQ[v] : 0;
   syncRotChips();
   document.querySelectorAll('.viewchip').forEach(b =>
@@ -5056,7 +6183,8 @@ function setView(v) {
   $('row-cay').classList.toggle('on', v === 'cayley');
   $('row-cay-a').classList.toggle('on', v === 'cayley');
   $('row-cay-b').classList.toggle('on', v === 'cayley');
-  $('row-cay-c').classList.toggle('on', v === 'cayley');
+  $('row-cay-rx').classList.toggle('on', v === 'cayley');
+  $('row-cay-ry').classList.toggle('on', v === 'cayley');
   $('row-cay-zoom').classList.toggle('on', v === 'cayley');
   // Point size and guide opacity apply to both forward-plotted views, so the
   // row lives outside the per-map rows and shows for either one.
@@ -5100,7 +6228,7 @@ function setRingHole(pct) {
 /* Point size invalidates both cached plates, so it goes through redraw with
    a rebuild — the caches key on ptScale, so a stale buffer cannot survive. */
 function setPtScale(v) {
-  ptScale = Math.max(0.5, Math.min(8, +v || 2));
+  ptScale = Math.max(0.5, Math.min(8, +v || 8));
   $('pt-sz').value = ptScale;
   $('pt-sz-v').textContent = ptScale.toFixed(1) + '\u00d7';
   redraw(true);
@@ -5151,13 +6279,29 @@ function setRhoPair(a, b) {
 }
 function setBA(v) { ba = v; $('sl-ba').value = v; $('v-ba').textContent = v.toFixed(2); cayKey = ''; redraw(false); }
 function setBAAng(v) { baAng = v; $('v-baang').textContent = v + '\u00b0'; cayKey = ''; redraw(false); }
-function setCayleyRot(deg) {
+// x and y tilt the sphere itself (see cayleySphereRotate). The plain 2D
+// rotation this replaced only reached the sphere's z-axis, which the
+// global TURN control already covers for whole-plate quarter turns — so
+// there's no separate z slider here, just these two.
+function setCayleyRotX(deg) {
   deg = ((Math.round(deg) % 360) + 360) % 360;
-  cayleyRot = deg;
-  $('cay-rot').value = deg; $('cay-rot-v').textContent = deg + '\u00b0';
-  [0, 90, 180, 270].forEach(k => { const b = $('cr-' + k); if (b) b.classList.toggle('on', k === deg); });
+  cayleyRotX = deg;
+  $('cay-rot-x').value = deg; $('cay-rot-x-v').textContent = deg + '\u00b0';
+  [0, 90, 180, 270].forEach(k => { const b = $('crx-' + k); if (b) b.classList.toggle('on', k === deg); });
   cayKey = ''; redraw(false);
 }
+function setCayleyRotY(deg) {
+  deg = ((Math.round(deg) % 360) + 360) % 360;
+  cayleyRotY = deg;
+  $('cay-rot-y').value = deg; $('cay-rot-y-v').textContent = deg + '\u00b0';
+  [0, 90, 180, 270].forEach(k => { const b = $('cry-' + k); if (b) b.classList.toggle('on', k === deg); });
+  cayKey = ''; redraw(false);
+}
+// Nudge by a fixed step (default a quarter turn) rather than only jumping to
+// an absolute preset or dragging the slider. Cayley-only — the global view
+// TURN (viewQuarter) is a completely separate value and this never touches it.
+function stepCayleyRotX(delta) { setCayleyRotX(cayleyRotX + delta); }
+function stepCayleyRotY(delta) { setCayleyRotY(cayleyRotY + delta); }
 /* Zoom out (÷1/2/4/8) only does anything for map A: Γ is unbounded, so its
    picture can run off the plate and the divisor pulls the frame back to see
    more of it. B (Blaschke) is bounded — |w|≤1 always — so there is nothing
@@ -5205,7 +6349,11 @@ function updateViewNote() {
           'the <i>primitive</i> M-th roots, \u03c6(M) of them.'
         : ringHole > 0.8
           ? ' Push <b>hole</b> to 1 to collapse every ring onto one circle \u2014 the roots of unity.'
-          : '');
+          : '') +
+      (RING_LABELS_HIDDEN
+        ? ' <b style="color:var(--gold)">Cell labels hidden:</b> ' + RING_LABELS_HIDDEN +
+          '. Try a shorter label mode (<b>M</b>, <b>r</b> or <b>gcd</b>) or the lens.'
+        : '');
     return;
   }
   if (viewMode === 'cayley') {
@@ -5216,7 +6364,11 @@ function updateViewNote() {
       '. \u03b8 = ' + THETA_LABEL[thetaMode] + ' (<b>' + thetaMode + '</b>), same as Ring \u2014 Cayley is ' +
       'Ring\u2019s picture, conformally bent. Field is forward-plotted and capped at 900\u00d7900 cells, ' +
       'so past that G it under-samples rather than lies about density \u2014 read the bar above for exact counts.' +
-      (cmap === 'A' ? ' Map A is unbounded; a pole crosses the plate where \u03c1 passes 1.' : ' Map B is bounded: |w| \u2264 1 everywhere.');
+      (cmap === 'A' ? ' Map A is unbounded; a pole crosses the plate where \u03c1 passes 1.' : ' Map B is bounded: |w| \u2264 1 everywhere.') +
+      (CAYLEY_LABELS_HIDDEN
+        ? ' <b style="color:var(--gold)">Cell labels hidden:</b> ' + CAYLEY_LABELS_HIDDEN +
+          '. Try a shorter label mode (<b>M</b>, <b>r</b> or <b>gcd</b>) or the lens.'
+        : '');
     return;
   }
   const mode = $('cmode').value;
@@ -5285,6 +6437,14 @@ function updateViewNote() {
       ? ' <b style="color:var(--cream3)">Outside the ν_p argument</b> — this mode colours a ' +
         'property of the cell itself, not of the strip. Nothing in §1 rests on it; ' +
         'it is here because the same plate happens to carry it.'
+      : '') +
+    (mode === 'sector'
+      ? ' <b style="color:var(--gold)">Sector S_s.</b> Every coprime (r,M) is coloured by ' +
+        's = \u230aM/r\u230b (r \u2264 M, mirrored across the diagonal for r &gt; M) \u2014 the same ' +
+        'Farey-interval bucket the Sector S_s panel counts, now painted directly rather than only ' +
+        'drawn as translucent bands underneath. A non-coprime cell is not a member of any S_s and ' +
+        'stays the flat dark tone every other mode gives a miss. Independent of the Sector S_s ' +
+        'panel\u2019s own on/off and Isolate \u2014 turn Isolate on to also fade every S_s but one.'
       : '') +
     // A label mode that is switched on and draws nothing looks broken. Say why.
     (GRID_LABELS_HIDDEN
@@ -5490,17 +6650,29 @@ function exportCards() {
 }
 
 /* Draw the plate exactly as it appears on screen, at export resolution. */
-function paintPlate(ctx, x, y, side) {
+/* w x h is the tile window; h defaults to w (square). The window is ALWAYS
+   clipped: Cayley's map throws points far outside the square, and unclipped
+   they used to land on the neighbouring tiles. A wide tile (w > h) keeps the
+   plate's square coordinate system of side h centred in the window, and only
+   the Cayley point field is widened to fill it (CAY_WIDE_ON). */
+let CAY_WIDE_ON = false;
+function paintPlate(ctx, x, y, w, h) {
+  if (h === undefined) h = w;
   // An 8K plate has cells wide enough for labels the on-screen canvas cannot
   // fit, so painting it must not rewrite what the view note says about the
   // screen. Snapshot the flag and put it back.
   const hiddenWas = GRID_LABELS_HIDDEN;
   ctx.save();
   ctx.translate(x, y);
-  ctx.fillStyle = PAL.bg; ctx.fillRect(0, 0, side, side);
-  paintView(ctx, side, 2048);
+  ctx.beginPath(); ctx.rect(0, 0, w, h); ctx.clip();
+  ctx.fillStyle = PAL.bg; ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  if (w !== h) ctx.translate((w - h) / 2, 0);
+  CAY_WIDE_ON = (w !== h) && viewMode === 'cayley';
+  try { paintView(ctx, h, 2048); } finally { CAY_WIDE_ON = false; }
+  ctx.restore();
   ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.lineWidth = 1;
-  ctx.strokeRect(.5, .5, side - 1, side - 1);
+  ctx.strokeRect(.5, .5, w - 1, h - 1);
   ctx.restore();
   GRID_LABELS_HIDDEN = hiddenWas;
 }
@@ -5539,6 +6711,23 @@ function colourKeyEntries(mode) {
       return [[1, 2, 'survives'], [2, 4, 'p = 2 kills it'], [3, 6, 'p = 3'],
               [5, 10, 'p = 5'], [7, 14, 'p = 7'], [11, 22, 'p = 11']]
              .map(([r, M, l]) => probe(r, M, l));
+    case 'ethiopia':
+      return [probe(5, 6, 'green \u00b7 2/3 \u2264 r/M \u2264 1  (\u2153 of the wedge)'),
+              probe(1, 2, 'yellow \u00b7 1/3 \u2264 r/M < 2/3  (\u2153)'),
+              probe(1, 5, 'red \u00b7 r/M < 1/3, down to 1/G  (\u2153)'),
+              probe(5, 2, 'r > M \u00b7 outside the wedge')];
+    case 'ethiodepth':
+      return [probe(5, 6, 'green \u00b7 2/3 \u2264 r/M \u2264 1'),
+              probe(1, 2, 'yellow \u00b7 1/3 \u2264 r/M < 2/3'),
+              probe(1, 5, 'red \u00b7 r/M < 1/3'),
+              probe(5, 2, 'r > M \u00b7 C(n) depth gradient')];
+    case 'ethioinv':
+      return [probe(5, 6, 'green \u00b7 2/3 \u2264 r/M \u2264 1'),
+              probe(1, 2, 'yellow \u00b7 1/3 \u2264 r/M < 2/3'),
+              probe(1, 5, 'red \u00b7 r/M < 1/3'),
+              probe(6, 5, 'r > M \u00b7 inverse (complement) of green'),
+              probe(2, 1, 'r > M \u00b7 inverse (complement) of yellow'),
+              probe(5, 1, 'r > M \u00b7 inverse (complement) of red')];
     case 'gsplit':
       return [probe(1, 1, '2 \u00b7 ramified'), probe(1, 2, 'p \u2261 1 (4) \u00b7 splits'),
               probe(3, 3, 'p \u2261 3 (4) \u00b7 inert')];
@@ -5660,6 +6849,144 @@ function drawPartBand(ctx, x, y, w, S, rows) {
   });
   ctx.restore();
 }
+
+/* ── EXPORT DETAIL LEGEND ──────────────────────────────────────────────────
+   Everything that is switched on and visible on the plate gets a legend entry
+   WITH its numbers: the view parameters, the Lift-dynamics state (n, spiral p,
+   saturated primes, C(n)/D(n)…), and the partition / sector state. Built from
+   the live globals at export time, so it cannot describe a control that is
+   off. Returns sections of {title, items:[{rgb|null, text}]}. */
+function exportDetailSections(views) {
+  const f2 = (x) => (+x).toFixed(2);
+  const CT = 'rgba(61,200,184,.95)', CC = 'rgba(224,80,96,.95)', CG = 'rgba(200,168,74,.95)',
+        CV = 'rgba(155,127,232,.95)', CW = 'rgba(232,227,219,.6)';
+  const out = [];
+
+  // ── VIEW ──
+  const vi = [];
+  const nameOf = { grid: 'Grid', ring: 'Ring', cayley: 'Cayley' };
+  views.forEach(v => {
+    let t = nameOf[v] || v;
+    if (v === 'grid') t += ' \u00b7 render ' + $('cmode').value;
+    else if (v === 'ring') t += ' \u00b7 \u03b8 ' + thetaMode + ', ' + (RING_H > 0 ? 'clockwise' : 'counter-clockwise') + ', rot ' + Math.round(ringRot * 180 / Math.PI) + '\u00b0, hole ' + f2(ringHole);
+    else if (v === 'cayley') t += ' \u00b7 map ' + cmap + (cmap === 'A'
+      ? ', \u03c1 ' + f2(rho0) + '+' + f2(rhoD) + '\u00b7M/G' : ', a ' + f2(ba) + '\u2220' + baAng + '\u00b0') +
+      ', tilt x ' + cayleyRotX + '\u00b0 y ' + cayleyRotY + '\u00b0, zoom ' + cayleyZoomOut + '\u00d7 out ' + cayleyZoomIn.toFixed(1) + '\u00d7 in';
+    vi.push({ rgb: null, text: t });
+  });
+  if (views.some(v => v !== 'grid')) {
+    vi.push({ rgb: null, text: 'points ' + ptScale.toFixed(1) + '\u00d7 max, ' + pointShape + ' (auto-shrunk so neighbours never overlap)' });
+    if (views.includes('ring') && ringGuides) vi.push({ rgb: null, text: 'ring guides on' });
+    if (views.includes('cayley') && cayGuides) vi.push({ rgb: null, text: 'cayley guides on \u00b7 opacity ' + Math.round(cayGuideAlpha * 100) + '%' });
+  }
+  vi.push({ rgb: null, text: 'labels ' + $('lens-lbl').value + (labelFadeAlpha(COP_G) <= 0 ? ' (hidden at this G)' : ' \u00b7 stack ' + (thetaMode === 'clamp' && views.some(v => v !== 'grid') ? (pinLabelMode === 'all' ? 'all cells' : pinLabelMode === 'zero' ? 'r=M only' : 'r=M \u00d7k') : 'n/a') + ' \u00b7 size ' + views.map(v => (nameOf[v] || v) + ' ' + (LS[v] !== undefined ? LS[v] : labelScale).toFixed(2) + '\u00d7').join(', ')) });
+  const qs = views.map(v => (VQ[v] || 0)).filter(q => q);
+  if (qs.length) vi.push({ rgb: null, text: 'turn ' + views.map(v => (nameOf[v] || v) + ' ' + ((VQ[v] || 0) * 90) + '\u00b0').join(', ') });
+  if (!plateIdentity()) vi.push({ rgb: null, text: 'plate zoom ' + plateK.toFixed(2) + '\u00d7' });
+  if (showStrip) vi.push({ rgb: CT, text: 'main strip ' + slopeA + '/' + slopeB + ' \u00b7 s ' + offS + ' \u00b7 w ' + widthW + ' \u00b7 ' + walkMode });
+  out.push({ title: 'VIEW', items: vi });
+
+  // ── LIFT DYNAMICS ──
+  if (liftOn && COP_G) {
+    const n = liftN(), cd = liftComputeCD(n);
+    const li = [];
+    const sat = PRIMES.filter(p => p <= n + 1);
+    li.push({ rgb: null, text: 'mode ' + liftMode + ' \u00b7 n = ' + n + (liftLockN ? ' (locked to r-chain depth)' : ' (unlocked)') +
+      ' \u00b7 block length ' + (n + 1) });
+    if (liftMode === 'spiral' || liftMode === 'both' || liftMode === 'connect') {
+      li.push({ rgb: CT, text: 'spiral r = p \u00b7 ' + (liftAllPOn ? 'all primes p \u2264 G = ' + COP_G + ' (' + PRIMES.filter(p => p <= COP_G).length + ' spirals)' : 'p = ' + liftSpiralP + (liftSpiralP > COP_G ? ' (off-plate, G < p)' : '')) +
+        ' \u00b7 teal above p/M = 0.5, coral below' });
+      if (liftMirrorOn) li.push({ rgb: CV, text: 'mirror \u03c3(r) = M \u2212 r' });
+      if (liftDropoutOn) li.push({ rgb: CC, text: 'dropout ring M = p' + (liftDropoutLblOn ? ' (labelled)' : '') });
+    }
+    if (liftMode === 'npath' || liftMode === 'both' || liftMode === 'connect') {
+      li.push({ rgb: CG, text: '\u00b1n path r = (M\u00b1' + Math.max(1, n) + ')/2 \u00b7 branches ' +
+        (liftNPathDir === 'both' ? '+n and \u2212n' : liftNPathDir === 'plus' ? '+n only' : '\u2212n only') });
+    }
+    if (liftMode === 'connect') li.push({ rgb: CW, text: 'connectors joining spiral and \u00b1n path at shared rings' });
+    if (liftChainOn && COP_G <= 400) li.push({ rgb: CT, text: 'r-chain r \u2192 r mod(M+1) \u00b7 depth n = ' + liftChainNEff() +
+      (liftChainNEff() > 0 ? ' (only r block-coprime that far ahead)' : ' (every r)') + ' \u00b7 teal survives, coral dies' });
+    else if (liftChainOn) li.push({ rgb: null, text: 'r-chain not drawn (G > 400)' });
+    li.push({ rgb: null, text: 'showing ' + [liftSurvOn ? 'surviving' : '', liftBrokenOn ? 'broken' : ''].filter(Boolean).join(' + ') +
+      ' \u00b7 dot ' + liftDotScale.toFixed(2) + '\u00d7 \u00b7 thickness ' + liftThick.toFixed(2) + '\u00d7' +
+      (liftDimOn ? ' \u00b7 base plate dimmed to ' + liftDimPct + '%' : '') });
+    li.push({ rgb: null, text: 'saturated p \u2264 n+1: ' + (sat.length ? sat.join(', ') : 'none') + ' (' + cd.sat + ')' });
+    li.push({ rgb: null, text: 'D(n) = ' + fmt(cd.D, 6) + ' \u00b7 C(n) = \u03b6(2)\u00b7D(n) = ' + fmt(cd.C, 6) });
+    out.push({ title: 'LIFT DYNAMICS', items: li });
+  }
+
+  // ── PARTITION / SECTORS ──
+  const pi = [];
+  if (partMode !== 'off') {
+    const shown = partMode === 'single' ? [partG] : currentPartBatch().filter(it => !partHidden.has(it.g)).map(it => it.g);
+    pi.push({ rgb: CG, text: 'partition mode ' + partMode + ' \u00b7 E = ' + partE() + ' \u00b7 r(E) = ' + goldbachGaps().length + ' pairs' });
+    pi.push({ rgb: null, text: 'drawn ' + shown.length + ' gap' + (shown.length === 1 ? '' : 's') + ': ' +
+      shown.slice(0, 24).join(', ') + (shown.length > 24 ? ', \u2026' : '') });
+    pi.push({ rgb: null, text: 'families ' + [partShow.diff ? 'difference |M\u2212r|' : '', partShow.sum ? 'sum r+M' : ''].filter(Boolean).join(' + ') +
+      (partSlopeLock ? ' \u00b7 main strip locked to pairs' : '') + ' \u00b7 backdrop \u00d7' + partBgBoost.toFixed(2) });
+  }
+  if (sectorOn) {
+    pi.push({ rgb: CV, text: 'sectors ' + (sectorPick > 0 ? 'S_' + sectorPick + ' isolated' : sectorRays + ' rays') +
+      ' \u00b7 outside dimmed to ' + sectorDim + '%' });
+  }
+  if (pi.length) out.push({ title: partMode !== 'off' ? 'PARTITION' + (sectorOn ? ' & SECTORS' : '') : 'SECTORS', items: pi });
+  return out;
+}
+/* Word-wrap into columns and measure the height BEFORE the canvas exists, so
+   the export grows to fit rather than clipping. Measures with a scratch
+   context in the same monospace face the band is drawn in. */
+function layoutDetailBand(sections, W, S) {
+  if (!sections.length) return { h: 0, cols: [], colW: 0, gap: 0 };
+  const mctx = document.createElement('canvas').getContext('2d');
+  const px = 12.5 * S, lh = 19 * S, gap = 26 * S, swW = 14 * S;
+  mctx.font = px + 'px ' + MONO;
+  const ncol = Math.min(sections.length, 3);
+  const colW = (W - gap * (ncol - 1)) / ncol;
+  const wrapTo = (text, maxW) => {
+    const words = text.split(' '), lines = []; let cur = '';
+    for (const w of words) {
+      const t = cur ? cur + ' ' + w : w;
+      if (cur && mctx.measureText(t).width > maxW) { lines.push(cur); cur = w; } else cur = t;
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  };
+  const cols = Array.from({ length: ncol }, () => ({ blocks: [], h: 0 }));
+  sections.forEach(sec => {
+    const lay = sec.items.map(it => ({ rgb: it.rgb, lines: wrapTo(it.text, colW - swW - 10 * S) }));
+    const nLines = lay.reduce((a, b) => a + b.lines.length, 0);
+    const h = 30 * S + nLines * lh + lay.length * 5 * S + 12 * S;
+    let tgt = cols[0]; cols.forEach(c => { if (c.h < tgt.h) tgt = c; });
+    tgt.blocks.push({ title: sec.title, lay, h }); tgt.h += h;
+  });
+  return { h: Math.max.apply(null, cols.map(c => c.h)) + 44 * S, cols, colW, gap, px, lh, swW };
+}
+function drawDetailBand(ctx, L, x, y, W, S) {
+  if (!L.h) return;
+  ctx.save();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = Math.max(1, S);
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + W, y); ctx.stroke();
+  ctx.fillStyle = PAL.gold; ctx.font = (14 * S) + 'px ' + MONO;
+  ctx.fillText('LEGEND \u00b7 WHAT IS ON THE PLATE, WITH ITS NUMBERS', x, y + 22 * S);
+  L.cols.forEach((col, ci) => {
+    let cy = y + 52 * S;
+    const cx = x + ci * (L.colW + L.gap);
+    col.blocks.forEach(b => {
+      ctx.fillStyle = PAL.gold; ctx.font = (13 * S) + 'px ' + MONO;
+      ctx.fillText(b.title, cx, cy); cy += 26 * S;
+      ctx.font = L.px + 'px ' + MONO;
+      b.lay.forEach(it => {
+        if (it.rgb) { ctx.fillStyle = it.rgb; ctx.fillRect(cx, cy - 7 * S, L.swW, L.swW); }
+        ctx.fillStyle = PAL.cream3;
+        it.lines.forEach((ln, i) => ctx.fillText(ln, cx + L.swW + 10 * S, cy + i * L.lh));
+        cy += it.lines.length * L.lh + 5 * S;
+      });
+      cy += 12 * S;
+    });
+  });
+  ctx.restore();
+}
 async function exportPNG(pxReq, views) {
   if (!COP) return;
   let px = pxReq;
@@ -5677,17 +7004,45 @@ async function exportPNG(pxReq, views) {
   // — the gap on either side of the lone bottom tile — becomes two detail
   // panels instead of going to waste.
   let tiles, sidePanels = null, plateBlockH;
-  if (views.length <= 2) {
+  // Cayley as a 2:1 window: it always takes its own full-width row under the
+  // square tiles, and in a three-view export the two description panels move
+  // to a strip beneath it (there is no room left beside it).
+  const cayWide = exportCayWide && views.includes('cayley');
+  if (cayWide) {
+    const others = views.filter(v => v !== 'cayley');
+    const cayH = W / 2;
+    if (!others.length) {
+      tiles = [{ view: 'cayley', x: m, y: 0, w: W, h: cayH, side: W }];
+      plateBlockH = cayH;
+    } else {
+      const side = (W - tileGap) / 2;
+      tiles = others.length === 1
+        ? [{ view: others[0], x: m + (W - side) / 2, y: 0, w: side, h: side, side }]
+        : others.map((v, i) => ({ view: v, x: m + i * (side + tileGap), y: 0, w: side, h: side, side }));
+      const cy = side + rowGap;
+      tiles.push({ view: 'cayley', x: m, y: cy, w: W, h: cayH, side: W });
+      plateBlockH = cy + cayH;
+      if (views.length >= 3) {
+        const py = cy + cayH + 40 * S, panelW = W / 2 - tileGap, panelH = 470 * S;
+        sidePanels = {
+          view: 'cayley',
+          left: { x: m, y: py, w: panelW, h: panelH },
+          right: { x: m + W / 2 + tileGap, y: py, w: panelW, h: panelH },
+        };
+        plateBlockH = py + panelH;
+      }
+    }
+  } else if (views.length <= 2) {
     const side = views.length === 1 ? W : (W - tileGap) / 2;
-    tiles = views.map((v, i) => ({ view: v, x: m + i * (side + tileGap), y: 0, side }));
+    tiles = views.map((v, i) => ({ view: v, x: m + i * (side + tileGap), y: 0, w: side, h: side, side }));
     plateBlockH = side;
   } else {
     const side = (W - tileGap) / 2;
     const bx = m + (W - side) / 2;
     tiles = [
-      { view: views[0], x: m, y: 0, side },
-      { view: views[1], x: m + side + tileGap, y: 0, side },
-      { view: views[2], x: bx, y: side + rowGap, side },
+      { view: views[0], x: m, y: 0, w: side, h: side, side },
+      { view: views[1], x: m + side + tileGap, y: 0, w: side, h: side, side },
+      { view: views[2], x: bx, y: side + rowGap, w: side, h: side, side },
     ];
     plateBlockH = side + rowGap + side;
     const panelW = (W - side) / 2 - tileGap;
@@ -5717,9 +7072,11 @@ async function exportPNG(pxReq, views) {
         : 82 * S;
     }
   }
+  const detailBand = layoutDetailBand(exportDetailSections(views), W, S);
+  const detH = detailBand.h;
   const baseHeaderH = 560 * S + pBandH;
   const headerH = baseHeaderH + compareBandH + tagGapH, footerH = 172 * S;
-  let H = Math.round(headerH + plateBlockH + legendRowH + footerH);
+  let H = Math.round(headerH + plateBlockH + legendRowH + detH + footerH);
 
   /* Phones cap total canvas AREA, not just side length — iOS around 16.7M
      pixels, Android by available memory. Past the cap the allocation does
@@ -5834,15 +7191,18 @@ async function exportPNG(pxReq, views) {
       : ', a ' + ba.toFixed(2) + '∠' + baAng + '°'),
   };
   const viewModeWas = viewMode;
+  const labelScaleWas = labelScale, viewQuarterWas = viewQuarter;
   tiles.forEach(t => {
     viewMode = t.view;
-    paintPlate(ctx, t.x, headerH + t.y, t.side);
+    labelScale = LS[t.view] !== undefined ? LS[t.view] : labelScale;
+    viewQuarter = VQ[t.view] !== undefined ? VQ[t.view] : viewQuarter;   // each tile keeps its own turn
+    paintPlate(ctx, t.x, headerH + t.y, t.w, t.h);
     if (views.length > 1) {
       ctx.textAlign = 'center'; ctx.fillStyle = PAL.gold; ctx.font = (13 * S) + 'px ' + MONO;
-      ctx.fillText(VIEW_TAG[t.view] || t.view.toUpperCase(), t.x + t.side / 2, headerH + t.y - 10 * S);
+      ctx.fillText((VIEW_TAG[t.view] || t.view.toUpperCase()) + (t.w !== t.h ? '  \u00b7  2 : 1' : ''), t.x + t.w / 2, headerH + t.y - 10 * S);
     }
   });
-  viewMode = viewModeWas;
+  viewMode = viewModeWas; labelScale = labelScaleWas; viewQuarter = viewQuarterWas;
 
   // One combined legend line under the whole tile block.
   if (views.length > 1) {
@@ -5886,7 +7246,7 @@ async function exportPNG(pxReq, views) {
       ? ['map     ' + cmap,
          cmap === 'A' ? ('\u03c1       ' + rho0.toFixed(2) + ' + ' + rhoD.toFixed(2) + '\u00b7M/G')
                       : ('a       ' + ba.toFixed(2) + ' \u2220 ' + baAng + '\u00b0'),
-         'rotate  ' + Math.round(cayleyRot * 180 / Math.PI) + '\u00b0',
+         'rotate  x ' + cayleyRotX + '\u00b0, y ' + cayleyRotY + '\u00b0',
          'zoom    ' + cayleyZoomOut + '\u00d7 out, ' + cayleyZoomIn.toFixed(1) + '\u00d7 in']
       : v === 'ring'
       ? ['\u03b8 mode  ' + thetaMode, 'rotate  ' + Math.round(ringRot * 180 / Math.PI) + '\u00b0', 'hole    ' + ringHole.toFixed(2)]
@@ -5965,7 +7325,8 @@ async function exportPNG(pxReq, views) {
 
   // footer — every parameter the current plate depends on, not just the
   // headline ones, so the image is reproducible without the page open
-  const fy = headerH + plateBlockH + legendRowH + 40 * S;
+  drawDetailBand(ctx, detailBand, m, headerH + plateBlockH + legendRowH + 8 * S, W, S);
+  const fy = headerH + plateBlockH + legendRowH + detH + 40 * S;
   ctx.font = (15.5 * S) + 'px ' + MONO; ctx.fillStyle = PAL.cream3; ctx.textAlign = 'left';
   ctx.fillText('v = b·r − a·M   ·   slope ' + slopeA + '/' + slopeB + '   ·   s = ' + offS +
     '   ·   w = ' + widthW + '   ·   G = ' + COP_G + '   ·   walk = ' + walkMode +
@@ -6061,6 +7422,7 @@ function offerManualSave(href, name) {
    fixed order regardless of click order, so the layout never depends on
    which chip was toggled last. */
 let exportViews = ['grid'];
+let exportCayWide = true;   // Cayley tile 2:1 (wide) or square
 let exportRes = 2048;
 const EXPORT_VIEW_ORDER = ['grid', 'ring', 'cayley'];
 function orderedExportViews() { return EXPORT_VIEW_ORDER.filter(v => exportViews.includes(v)); }
@@ -6083,6 +7445,10 @@ function toggleExportView(v) {
   }
   syncExportUI();
 }
+function setExportCayShape(wide) {
+  exportCayWide = !!wide;
+  syncExportUI();
+}
 function setExportRes(px) {
   exportRes = px;
   syncExportUI();
@@ -6091,6 +7457,10 @@ function syncExportUI() {
   document.querySelectorAll('#export-modal .evchip').forEach(b => {
     b.classList.toggle('on', exportViews.includes(b.dataset.ev));
   });
+  document.querySelectorAll('#export-modal .ecchip').forEach(b => {
+    b.classList.toggle('on', (b.dataset.ec === 'wide') === exportCayWide);
+  });
+  const ecRow = $('export-cay-row'); if (ecRow) ecRow.style.display = exportViews.includes('cayley') ? '' : 'none';
   document.querySelectorAll('#export-modal .erchip').forEach(b => {
     b.classList.toggle('on', +b.dataset.er === exportRes);
   });
@@ -6106,9 +7476,10 @@ function updateExportPreview() {
   const side = 160;
   views.forEach(v => {
     const cv = document.createElement('canvas');
-    cv.width = side; cv.height = side;
+    const pw = (v === 'cayley' && exportCayWide) ? side * 2 : side;
+    cv.width = pw; cv.height = side;
     viewMode = v;
-    paintPlate(cv.getContext('2d'), 0, 0, side);
+    paintPlate(cv.getContext('2d'), 0, 0, pw, side);
     const wrap = document.createElement('div');
     wrap.className = 'exp-tile';
     wrap.appendChild(cv);
@@ -6167,6 +7538,13 @@ function exportState() {
     L.push('  partitions        mode=' + partMode + '  E=' + partE() +
            '  r(E)=' + goldbachGaps().length + ' pairs' +
            '  drawn ' + shown.length + '  {' + shown.slice(0, 40).join(',') + (shown.length > 40 ? ',…' : '') + '}');
+  }
+  if (liftOn) {
+    const n = liftN(), cd = liftComputeCD(n);
+    L.push('  lift dynamics     mode=' + liftMode + '  n=' + n + (liftLockN ? ' (locked to r-chain depth)' : ' (unlocked)') +
+           '  spiral p=' + (liftAllPOn ? 'all' : liftSpiralP) + '  chain=' + (liftChainOn ? 'on, depth ' + liftChainNEff() : 'off') +
+           '  saturated p<=n+1: ' + (PRIMES.filter(p => p <= n + 1).join(',') || 'none') +
+           '  D(n)=' + cd.D.toFixed(9) + '  C(n)=' + cd.C.toFixed(9));
   }
   L.push('');
   L.push('STRIP   ' + slopeA + '/' + slopeB + '   s=' + offS + '   w=' + widthW);
@@ -6785,9 +8163,11 @@ function placeLens(lens, info, wrap, px, py, html) {
 function cayleyMEstAt(sx, sy, S) {
   const G = COP_G, cx = S / 2, cy = S / 2, Rc = cayleyScale(S);
   let u = (sx - cx) / Rc, v = -(sy - cy) / Rc;
-  if (cayleyRot) {                      // cayleyXY rotates last, so undo first
-    const t = -cayleyRot * Math.PI / 180, c = Math.cos(t), s2 = Math.sin(t);
-    const uu = u * c - v * s2; v = u * s2 + v * c; u = uu;
+  if (cayleyRotX || cayleyRotY) {   // cayleyXY rotates last, so undo first
+    const ax = cayleyRotX * Math.PI / 180, ay = cayleyRotY * Math.PI / 180;
+    const p = cayleySphereUnrotate(u, v, ax, ay);
+    if (!p) return null;
+    u = p[0]; v = p[1];
   }
   let zr, zi;
   if (cmap === 'B') {
@@ -7018,6 +8398,14 @@ function drawLens(px, py) {
         // through to the wrong branch and drawing gcdband's colours instead.
         col = cellRGBA(mode, 1, r, M);
       }
+      // Isolate used to swap the cell to the flat backdrop tone outright;
+      // now it blends toward that tone by sectorDim instead, matching the
+      // plate's own dimming rather than a harder cutoff in the lens alone.
+      const vis = sectorVis(r, M);
+      if (vis < 1) {
+        const DK = [22, 24, 44, 255];
+        col = [0, 1, 2, 3].map(i => Math.round(DK[i] + (col[i] - DK[i]) * vis));
+      }
       lctx.fillStyle = 'rgba(' + col[0] + ',' + col[1] + ',' + col[2] + ',' + (col[3] / 255) + ')';
       lctx.fillRect(lx, ly, w + .5, w + .5);
       // Band and strip are independent walks that can both be live on the
@@ -7179,6 +8567,19 @@ let LENS_LABELS_HIDDEN = false;
 const LABEL_STROKE = 0.20;   // stroke width as a fraction of font size
 const LABEL_PAD    = 0.94;   // fraction of the cell the ink is allowed
 const LABEL_CAPH   = 0.74;   // cap height + descender as a fraction of the em
+// Labels used to hard-cut at G=100 in one frame — legible, then gone. Fading
+// them out over a range instead (ending at 109, the quick-set prime button)
+// reads as the labels running out of room rather than the mode breaking.
+const LABEL_FADE_START = 90, LABEL_FADE_END = 109;
+function labelFadeAlpha(g) {
+  if (g <= LABEL_FADE_START) return 1;
+  if (g >= LABEL_FADE_END) return 0;
+  return 1 - (g - LABEL_FADE_START) / (LABEL_FADE_END - LABEL_FADE_START);
+}
+/* Label size is remembered per view: Grid cells are roomy at 1×, Ring and
+   Cayley pack points tighter and open at 0.6×. */
+const LABEL_DEFAULT = { grid: 1, ring: 0.6, cayley: 0.6 };
+const LS = { grid: 1, ring: 0.6, cayley: 0.6 };
 let labelScale = 1;
 function labelFit(ctx, widest, cell, want) {
   const probe = 100;
@@ -7206,6 +8607,8 @@ function widestLabel(mode, r0, r1, m0, m1) {
 }
 function setLabelScale(v) {
   labelScale = Math.max(0.4, Math.min(3, +v || 1));
+  LS[viewMode] = labelScale;
+  const sl = $('lbl-sc'); if (sl) sl.value = labelScale;
   const el = $('lbl-sc-v');
   if (el) el.textContent = labelScale.toFixed(2) + '\u00d7';
   if (typeof LENS_REDRAW === 'function') LENS_REDRAW();
@@ -7248,7 +8651,11 @@ function drawGridLabels(ctx, S) {
   const g = COP_G;
   const mode = $('lens-lbl').value;
   if (mode === 'off') return;
-  if (g > 100) { GRID_LABELS_HIDDEN = 'G is past 100 — use the lens'; return; }
+  const alpha = labelFadeAlpha(g);
+  if (alpha <= 0) {
+    GRID_LABELS_HIDDEN = 'G is past ' + LABEL_FADE_END + ' \u2014 use the lens';
+    return;
+  }
   const cell = S / g;
 
   // The widest string this mode actually produces, measured rather than
@@ -7277,6 +8684,7 @@ function drawGridLabels(ctx, S) {
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';
+  ctx.globalAlpha = alpha;
   if (rich) {
     const rfs = Math.min(fs, Math.max(9, cell / 11));
     ctx.font = rfs + 'px "JetBrains Mono",monospace';
@@ -7327,6 +8735,122 @@ function drawGridLabels(ctx, S) {
         ctx.strokeText(txt, ux, uy);
         ctx.fillStyle = co ? 'rgba(214,180,86,1)' : 'rgba(255,255,255,.5)';
         ctx.fillText(txt, ux, uy);
+      });
+    }
+  }
+  ctx.restore();
+}
+/* Ring and Cayley never had this at all — labels stopped at the Grid
+   boundary the same way the lens once did. Same mode, same widest-label
+   fit and the same fade, just stamped at ringPt/cayleyXY instead of a grid
+   cell centre. cell = S/g is not a real cell size under these projections
+   (spacing is uneven — tight near the centre, loose at the rim), but it is
+   the same budget Grid sizes against, so a label mode that just fit on Grid
+   fits here too rather than needing its own separate tuning. */
+let RING_LABELS_HIDDEN = '';
+/* Clamp pins every r >= M in ring M to one point. Three ways to label that
+   stack: 'all' (each cell overprinted), 'zero' (the r = M cell only), 'count'
+   (r = M plus a small xk naming how many cells share the spot). Only clamp
+   pins cells, so the other theta modes are untouched. */
+let pinLabelMode = 'count';
+function setPinLabels(m) {
+  pinLabelMode = m;
+  document.querySelectorAll('.pinchip').forEach(b => b.classList.toggle('on', b.dataset.pin === m));
+  redraw(false);
+}
+function pinSkip(r, M) { return thetaMode === 'clamp' && pinLabelMode !== 'all' && r > M; }
+function pinCount(r, M, g) { return (thetaMode === 'clamp' && pinLabelMode === 'count' && r === M) ? (g - M + 1) : 0; }
+function drawPinCount(ctx, x, y, fs, k) {
+  if (k < 2) return;
+  const f2 = fs * 0.62;
+  ctx.font = f2 + 'px "JetBrains Mono",monospace';
+  ctx.lineWidth = f2 * LABEL_STROKE;
+  const yy = y - fs * 0.95;
+  ctx.strokeStyle = 'rgba(4,4,13,.92)'; ctx.strokeText('\u00d7' + k, x, yy);
+  ctx.fillStyle = 'rgba(140,215,205,1)'; ctx.fillText('\u00d7' + k, x, yy);
+  ctx.font = fs + 'px "JetBrains Mono",monospace';
+  ctx.lineWidth = fs * LABEL_STROKE;
+}
+function drawRingLabels(ctx, S) {
+  RING_LABELS_HIDDEN = '';
+  const g = COP_G;
+  const mode = $('lens-lbl').value;
+  if (mode === 'off') return;
+  const alpha = labelFadeAlpha(g);
+  if (alpha <= 0) { RING_LABELS_HIDDEN = 'G is past ' + LABEL_FADE_END + ' \u2014 use the lens'; return; }
+  const cell = S / g;
+  const widest = widestLabel(mode, 1, g, 1, g);
+  const want = 12 * Math.max(1, S / 900) * labelScale;
+  const fs = labelFit(ctx, widest, cell, want);
+  const floor = (Math.min(devicePixelRatio || 1, 3) >= 2) ? 6 : 7;
+  if (fs < floor) {
+    RING_LABELS_HIDDEN = 'points are ' + cell.toFixed(1) + 'px apart at G=' + g +
+      ' — too small for "' + widest + '"';
+    return;
+  }
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.globalAlpha = alpha;
+  ctx.font = fs + 'px "JetBrains Mono",monospace';
+  ctx.lineWidth = fs * LABEL_STROKE;
+  for (let M = 1; M <= g; M++) {
+    for (let r = 1; r <= g; r++) {
+      if (pinSkip(r, M)) continue;
+      const rad = ringRad(M, S), th = ringRot + thetaOf(r, M);
+      const q = ringPt(rad, th, S);
+      const txt = labelText(mode, r, M);
+      const co = gcd(r, M) === 1;
+      const pk = pinCount(r, M, g);
+      upright(ctx, q[0], q[1], (ux, uy) => {
+        ctx.strokeStyle = 'rgba(4,4,13,.92)';
+        ctx.strokeText(txt, ux, uy);
+        ctx.fillStyle = co ? 'rgba(214,180,86,1)' : 'rgba(255,255,255,.5)';
+        ctx.fillText(txt, ux, uy);
+        if (pk) drawPinCount(ctx, ux, uy, fs, pk);
+      });
+    }
+  }
+  ctx.restore();
+}
+let CAYLEY_LABELS_HIDDEN = '';
+function drawCayleyLabels(ctx, S) {
+  CAYLEY_LABELS_HIDDEN = '';
+  const g = COP_G;
+  const mode = $('lens-lbl').value;
+  if (mode === 'off') return;
+  const alpha = labelFadeAlpha(g);
+  if (alpha <= 0) { CAYLEY_LABELS_HIDDEN = 'G is past ' + LABEL_FADE_END + ' \u2014 use the lens'; return; }
+  const cell = S / g;
+  const widest = widestLabel(mode, 1, g, 1, g);
+  const want = 12 * Math.max(1, S / 900) * labelScale;
+  const fs = labelFit(ctx, widest, cell, want);
+  const floor = (Math.min(devicePixelRatio || 1, 3) >= 2) ? 6 : 7;
+  if (fs < floor) {
+    CAYLEY_LABELS_HIDDEN = 'points are ' + cell.toFixed(1) + 'px apart at G=' + g +
+      ' — too small for "' + widest + '"';
+    return;
+  }
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.globalAlpha = alpha;
+  ctx.font = fs + 'px "JetBrains Mono",monospace';
+  ctx.lineWidth = fs * LABEL_STROKE;
+  for (let M = 1; M <= g; M++) {
+    for (let r = 1; r <= g; r++) {
+      if (pinSkip(r, M)) continue;
+      const q = cayleyXY(r, M, S);
+      if (!q) continue;
+      const txt = labelText(mode, r, M);
+      const co = gcd(r, M) === 1;
+      const pk = pinCount(r, M, g);
+      upright(ctx, q[0], q[1], (ux, uy) => {
+        ctx.strokeStyle = 'rgba(4,4,13,.92)';
+        ctx.strokeText(txt, ux, uy);
+        ctx.fillStyle = co ? 'rgba(214,180,86,1)' : 'rgba(255,255,255,.5)';
+        ctx.fillText(txt, ux, uy);
+        if (pk) drawPinCount(ctx, ux, uy, fs, pk);
       });
     }
   }
@@ -8676,13 +10200,15 @@ function boot() {
   wireLens();
   setLensZoom(3); setLensPin('auto');
   buildPhi(4096);
-  // All three views open unturned. Counts are unaffected by the turn either
+  // All three views open turned by −i (VQ). Counts are unaffected by the turn either
   // way - self test 17c reruns the whole walk at each quarter.
-  setView('grid'); setRingRot(0); setRingHole(18); setThetaMode('clamp'); setCmap('A');
+  setView('grid'); setRingRot(0); setRingHole(0); setThetaMode('clamp'); setCmap('A');
   setPtScale(ptScale); setCayGuideAlpha(100); syncPlateUI(); setVoidM(voidM);
+  onCModeChange();   // syncs the depth-dir button to whatever cmode defaults to
   syncLensChips();
   computePartItems(); syncPartUI(); renderPartTable();
   onG(31);
+  liftRenderNReadout(); liftRenderTable();
   onOff(0); onW(1); reslope();
   gcdTable();
   setPcX(pcX);
